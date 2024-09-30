@@ -1,0 +1,421 @@
+schema {
+  subscription: RootSubscriptionType
+  mutation: RootMutationType
+  query: RootQueryType
+}
+
+type RootQueryType {
+  """
+  Gets an Aerocloud V6 simulation by ID.
+  For public simulations, also token and password can be provided.
+  """
+  simulationV6(
+    id: ID!
+
+    "When a simulation is shared, a token is returned in order to access it."
+    token: String
+
+    "In addition to the token above, a password can be set to access the public simulation."
+    password: String
+  ): SimulationV6
+
+  "Lists all projects containing Aerocloud V6 simulations."
+  projectsV6(limit: UnsignedInteger, offset: UnsignedInteger, status: ProjectStatus): [ProjectV6!]!
+
+  "Gets a project by ID, containing Aerocloud V6 simulations."
+  projectV6(id: ID!): ProjectV6
+
+  "The currently authenticated user."
+  viewer: User
+
+  "Lists through simulations owned by the current viewer"
+  simulations(limit: UnsignedInteger, offset: UnsignedInteger): [Simulation!]!
+}
+
+type RootMutationType {
+  "Creates a model for later use when submitting a simulation."
+  createModelV6(input: InputModelV6!): ModelForUploadV6!
+
+  "Creates and submits a new simulation."
+  createSimulationV6(input: InputSimulationV6!): SimulationV6!
+
+  "Creates a new project."
+  createProjectV6(input: InputProjectV6!): ProjectV6!
+}
+
+type RootSubscriptionType {
+  simulationV6Succeeded: SimulationV6
+}
+
+enum SimulationStatus {
+  "The simulation is in progress."
+  PROGRESS
+
+  "The simulation has completed and is being reviewed for quality assurance."
+  QUALITY_CHECK
+
+  "The simulation's results are available to be consumed."
+  SUCCESS
+}
+
+"A simulation can be shared via token and optionally with a password as well."
+type SimulationSharingStatus {
+  "Whether the simulation has been shared."
+  public: Boolean!
+
+  "The token used by other users in order to access the simulation."
+  token: String
+
+  "In addition to the token, a password can be set by the owner."
+  password: String
+}
+
+"Indicates how the simulation was submitted to NablaFlow."
+enum SimulationSourceName {
+  "From the web application."
+  WEB
+
+  "Via API from a third-party that the user has authorised."
+  API_OAUTH2
+
+  "Via API using a Personal Access Token."
+  API_PAT
+}
+
+"Indicates how the simulation was submitted to NablaFlow."
+type SimulationSource {
+  name: SimulationSourceName!
+
+  "Identifies the ID of the token, when an API client was used to submit the simulation (either a third-party integration or a Personal Access Token)"
+  id: ID
+}
+
+"Natural number (integer >= 0)."
+scalar UnsignedInteger
+
+"A project's status."
+enum ProjectStatus {
+  "Project is active and new simulations can be added"
+  ACTIVE
+
+  "Project is closed and no new simulations can be added"
+  CLOSED
+}
+
+"Inputs to the creation of a model."
+input InputModelV6 {
+  "An indicative name."
+  name: String!
+
+  reusable: Boolean!
+
+  files: [InputFileV6!]!
+}
+
+input InputFileV6 {
+  name: String!
+  unit: FileUnit!
+  orientation: [Float]
+}
+
+type ModelForUploadV6 {
+  id: ID!
+  name: String!
+  reusable: String!
+  files: [FileForUploadV6!]!
+}
+
+type FileForUploadV6 {
+  id: ID!
+  name: String!
+  unit: FileUnit!
+  orientation: [Float]
+  strategy: FileUploadStrategy!
+  uploadUrl: String!
+}
+
+input InputGroundV6 {
+  enabled: Boolean!
+  moving: Boolean!
+  offset: GroundOffset
+}
+
+type GroundV6 {
+  enabled: Boolean!
+  moving: Boolean!
+  offset: GroundOffset
+}
+
+input InputRollingPartsV6 {
+  fileId: ID!
+  names: [String!]
+}
+
+input InputSimulationV6 {
+  name: String!
+  modelId: ID!
+  projectId: ID!
+  quality: InputSimulationQuality!
+  revision: String
+  speed: Speed!
+  fluid: Fluid!
+  ground: InputGroundV6!
+  yawAngles: [YawAngle!]!
+  rollingParts: [InputRollingPartsV6!]
+  skipConfirmation: Boolean
+}
+
+input InputProjectV6 {
+  name: String!
+  description: String
+}
+
+type SimulationInputsV6 {
+  quality: SimulationQuality!
+  speed: Speed!
+  fluid: Fluid!
+  ground: GroundV6!
+  yawAngles: [YawAngle!]!
+  model: ModelV6!
+}
+
+type PartsV6 {
+  id: ID!
+  name: String!
+  rolling: Boolean!
+}
+
+type FileV6 {
+  id: ID!
+  name: String!
+  unit: FileUnit!
+  orientation: [Float]
+  parts: [PartsV6!]!
+}
+
+type ModelV6 {
+  id: ID!
+  name: String!
+  reusable: Boolean!
+  files: [FileV6!]!
+}
+
+"An Aerocloud V6 simulation"
+type SimulationV6 {
+  id: ID!
+
+  name: String!
+
+  revision: String
+
+  status: SimulationStatus!
+
+  source: SimulationSource!
+
+  "URL meant to be opened from a browser"
+  browserUrl: String!
+
+  sharingStatus: SimulationSharingStatus!
+
+  inputs: SimulationInputsV6!
+
+  results: ResultsV6
+
+  createdAt: DateTime!
+
+  updatedAt: DateTime!
+}
+
+type ResultsV6 {
+  yawAngles(indexes: [Index!]): [YawAngleResultsV6!]
+  exports: ExportsV6!
+}
+
+type ExportsV6 {
+  pdfUrl: String!
+  xlsxUrl: String!
+  sliceImagesZipUrl: String!
+  rawDataZipUrl: String
+  videoUrl: String
+}
+
+type YawAngleResultsV6 {
+  index: Index!
+  degrees: YawAngle!
+  force: YawAngleForceV6!
+  coefficient: YawAngleCoefficientV6!
+  coefficientArea: YawAngleCoefficientAreaV6!
+  moment: YawAngleMomentV6!
+}
+
+type YawAngleForceV6 {
+  fd: Float!
+  fl: Float!
+  fs: Float!
+}
+
+type YawAngleCoefficientV6 {
+  cd: Float!
+  cl: Float!
+  cs: Float!
+}
+
+type YawAngleCoefficientAreaV6 {
+  cda: Float!
+  cla: Float!
+  csa: Float!
+}
+
+type YawAngleMomentV6 {
+  mr: Float!
+  mp: Float!
+  my: Float!
+}
+
+"A project is a collection of comparable Aerocloud V6 simulations."
+type ProjectV6 {
+  id: ID!
+  name: String!
+  browserUrl: String!
+  status: ProjectStatus!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  simulations(limit: UnsignedInteger, offset: UnsignedInteger): [SimulationV6!]!
+}
+
+type User {
+  id: ID!
+  email: String!
+  fullName: String
+  billing: UserBilling!
+}
+
+type UserBilling {
+  currentPlan: Plan!
+  totalAvailableCredits: UnsignedInteger!
+  purchasedCredits: UnsignedInteger!
+  purchasedCreditsExpireOn: Date
+  subscription: UserSubscription
+}
+
+enum Plan {
+  PAY_AS_YOU_GO
+  SUBSCRIPTION
+}
+
+enum SubscriptionState {
+  ACTIVE
+  CANCELLED
+  SUSPENDED
+}
+
+enum SubscriptionInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionSuspensionReason {
+  PAYMENT_REQUIRES_ACTION
+  PAYMENT_FAILED
+}
+
+type UserSubscription {
+  state: SubscriptionState!
+  interval: SubscriptionInterval!
+  monthlyCredits: UnsignedInteger!
+  availableCredits: UnsignedInteger!
+  startedOn: Date!
+  endsOn: Date
+  renewsOn: Date
+  nextMonthlyCycleStartsOn: Date
+  suspensionReason: SubscriptionSuspensionReason
+}
+
+"An Aerocloud Simulation."
+union Simulation = SimulationV6
+
+"""
+Quality represents how accurate the simulation is.
+Submitted models are simplified as needed by the chosen quality level.
+"""
+enum InputSimulationQuality {
+  "Up to 5 million cells, general understanding of fluid flow behaviour."
+  BASIC
+
+  "Up to 15 million cells, more accurate than basic."
+  STANDARD
+
+  "Up to 30 million cells, highly accurate data."
+  PRO
+
+  DUMMY
+}
+
+"Measured in m\/s, must be greater than or equal to 0"
+scalar Speed
+
+"""
+Quality represents how accurate the simulation is.
+Submitted models are simplified as needed by the chosen quality level.
+"""
+enum SimulationQuality {
+  "For internal use only."
+  DUMMY
+
+  "Up to 5 million cells, general understanding of fluid flow behaviour."
+  BASIC
+
+  "Up to 15 million cells, more accurate than basic."
+  STANDARD
+
+  "Up to 30 million cells, highly accurate data."
+  PRO
+}
+
+"Measure unit of lengths in a 3D file."
+enum FileUnit {
+  MM
+  CM
+  M
+  INCHES
+}
+
+enum Fluid {
+  AIR
+  WIND
+}
+
+""
+scalar YawAngle
+
+"Measured in meters, must be greater or equal to 0."
+scalar GroundOffset
+
+"How to perform the file upload."
+enum FileUploadStrategy {
+  """
+  A direct HTTP PUT to the provided S3 url, where the file to upload is the body of the request.
+
+    ```bash title="Example with curl"
+    curl -X PUT "$UPLOAD_URL" @file.stl
+    ```
+  """
+  S3
+}
+
+"Generic index type, natural number (integer >= 0)."
+scalar Index
+
+"""
+The `DateTime` scalar type represents a date and time in the UTC
+timezone. The DateTime appears in a JSON response as an ISO8601 formatted
+string, including UTC timezone ("Z"). The parsed date and time string will
+be converted to UTC if there is an offset.
+"""
+scalar DateTime
+
+"""
+The `Date` scalar type represents a date. The Date appears in a JSON
+response as an ISO8601 formatted string, without a time component.
+"""
+scalar Date

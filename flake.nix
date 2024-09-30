@@ -26,7 +26,7 @@
         overlays = [(import rust-overlay)];
       };
 
-      nablaflow-cli = pkgs.callPackage ./nix/drv.nix { inherit crane; };
+      nablaflow-cli = pkgs.callPackage ./nix/drv.nix {inherit crane;};
     in {
       checks = nablaflow-cli.checks;
 

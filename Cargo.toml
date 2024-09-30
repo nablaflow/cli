@@ -1,6 +1,31 @@
 [package]
-name = "nablaflow"
+name = "nf"
 version = "0.1.0"
+description = "CLI app to interact with NablaFlow's API"
 edition = "2021"
+publish = false
 
 [dependencies]
+chrono = { version = "~0.4.38", features = ["serde"] }
+clap = { version = "~4.5", features = ["derive", "env"] }
+color-eyre = { version = "~0.6", default-features = false }
+comfy-table = { version = "~7.1.1", default-features = false }
+cynic = { version = "~3.8", features = ["http-reqwest"] }
+dirs = "5.0.1"
+reqwest = { version = "~0.12", default-features = false, features = ["rustls-tls", "http2", "json", "gzip"] }
+serde = { version = "~1.0", features = ["derive"] }
+serde_json = "1.0.128"
+termcolor = "1.4.1"
+tokio = { version = "~1.39", default-features = false, features = ["rt", "macros", "fs"] }
+toml = "~0.8"
+tracing = "~0.1"
+tracing-subscriber = "~0.3"
+
+[build-dependencies]
+cynic-codegen = "~3.8.0"
+
+[profile.release]
+lto = "thin"
+
+[profile.dev.package.backtrace]
+opt-level = 3

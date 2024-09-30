@@ -6,14 +6,24 @@
   darwin,
   rust-bin,
   crane,
-}:
-let
+}: let
   rustToolchain = rust-bin.stable.latest.default;
   craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
-  commonArgs = {
-    strictDeps = true;
 
-    src = craneLib.cleanCargoSource ../.;
+  fs = lib.fileset;
+  src = fs.toSource {
+    root = ../.;
+    fileset = fs.unions [
+      ../Cargo.toml
+      ../Cargo.lock
+      (fs.fileFilter (file: builtins.any file.hasExt ["rs" "toml" "snap" "schema.graphql"]) ../.)
+    ];
+  };
+
+  commonArgs = {
+    inherit src;
+
+    strictDeps = true;
 
     buildInputs =
       []
@@ -22,25 +32,22 @@ let
         darwin.apple_sdk.frameworks.Security
         darwin.apple_sdk.frameworks.SystemConfiguration
       ];
-
-    # nativeBuildInputs = [
-    #   nasm
-    #   cmake
-    # ];
   };
 
   cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 in {
-  app = craneLib.buildPackage (commonArgs // {
-    inherit cargoArtifacts;
-  });
+  app = craneLib.buildPackage (commonArgs
+    // {
+      inherit cargoArtifacts;
+    });
 
   checks = {
-    clippy = craneLib.cargoClippy (commonArgs // {
-      inherit cargoArtifacts;
+    clippy = craneLib.cargoClippy (commonArgs
+      // {
+        inherit cargoArtifacts;
 
-      cargoClippyExtraArgs = "--all-targets -- --deny warnings";
-    });
+        cargoClippyExtraArgs = "--all-targets -- --deny warnings";
+      });
 
     fmt = craneLib.cargoFmt commonArgs;
   };

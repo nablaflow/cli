@@ -74,4 +74,5 @@ pub enum AeroCloudScope {
 #[derive(Subcommand, Debug)]
 pub enum AeroCloudV6Command {
     ListProjects,
+    ListSimulations { project_id: String },
 }

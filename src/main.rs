@@ -43,6 +43,12 @@ async fn main() -> eyre::Result<()> {
                     commands::aerocloud::v6::list_projects::run(&args, &config)
                         .await?;
                 }
+                args::AeroCloudV6Command::ListSimulations { project_id } => {
+                    commands::aerocloud::v6::list_simulations::run(
+                        &args, &config, project_id,
+                    )
+                    .await?;
+                }
             },
         },
         _ => todo!(),

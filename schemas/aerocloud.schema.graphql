@@ -382,7 +382,7 @@ enum FileUnit {
 
 enum Fluid {
   AIR
-  WIND
+  WATER
 }
 
 ""

@@ -1,5 +1,5 @@
 pub mod aerocloud {
-    use chrono::NaiveDate;
+    use chrono::{DateTime, NaiveDate, Utc};
     use cynic::Id;
     use std::fmt;
 
@@ -7,7 +7,16 @@ pub mod aerocloud {
     mod schema {}
 
     #[derive(cynic::Scalar, Debug)]
-    pub struct UnsignedInteger(u64);
+    pub struct UnsignedInteger(pub u64);
+
+    #[derive(cynic::Scalar, Debug)]
+    pub struct Speed(pub f32);
+
+    #[derive(cynic::Scalar, Debug)]
+    pub struct YawAngle(pub f32);
+
+    #[derive(cynic::Scalar, Debug)]
+    pub struct GroundOffset(pub f32);
 
     impl fmt::Display for UnsignedInteger {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -16,6 +25,7 @@ pub mod aerocloud {
     }
 
     cynic::impl_scalar!(NaiveDate, schema::Date);
+    cynic::impl_scalar!(DateTime<Utc>, schema::DateTime);
 
     #[derive(cynic::Enum, Debug, Clone, Copy)]
     #[cynic(schema = "aerocloud")]
@@ -44,6 +54,30 @@ pub mod aerocloud {
     pub enum SubscriptionSuspensionReason {
         PaymentRequiresAction,
         PaymentFailed,
+    }
+
+    #[derive(cynic::Enum, Debug, Clone, Copy)]
+    #[cynic(schema = "aerocloud")]
+    pub enum SimulationStatus {
+        Progress,
+        QualityCheck,
+        Success,
+    }
+
+    #[derive(cynic::Enum, Debug, Clone, Copy)]
+    #[cynic(schema = "aerocloud")]
+    pub enum SimulationQuality {
+        Dummy,
+        Basic,
+        Standard,
+        Pro,
+    }
+
+    #[derive(cynic::Enum, Debug, Clone, Copy)]
+    #[cynic(schema = "aerocloud")]
+    pub enum Fluid {
+        Air,
+        Water,
     }
 
     #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
@@ -79,23 +113,76 @@ pub mod aerocloud {
         pub subscription: Option<UserSubscription>,
     }
 
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct ProjectV6 {
+        pub id: Id,
+        pub name: String,
+        pub browser_url: String,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct GroundV6 {
+        pub enabled: bool,
+        pub moving: bool,
+        pub offset: Option<GroundOffset>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud", graphql_type = "SimulationInputsV6")]
+    pub struct SimulationInputsV6NoModel {
+        pub quality: SimulationQuality,
+        pub speed: Speed,
+        pub fluid: Fluid,
+        pub ground: Option<GroundV6>,
+        pub yaw_angles: Vec<YawAngle>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct SimulationV6 {
+        pub id: Id,
+        pub name: String,
+        pub browser_url: String,
+        pub status: SimulationStatus,
+        pub created_at: DateTime<Utc>,
+        pub inputs: SimulationInputsV6NoModel,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud", graphql_type = "ProjectV6")]
+    pub struct ProjectV6WithSimulations {
+        pub id: Id,
+        pub name: String,
+        pub simulations: Vec<SimulationV6>,
+    }
+
     #[derive(cynic::QueryFragment, Debug)]
     #[cynic(schema = "aerocloud", graphql_type = "RootQueryType")]
     pub struct ViewerQuery {
         pub viewer: Option<User>,
     }
 
-    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
-    #[cynic(schema = "aerocloud")]
-    pub struct ProjectV6 {
-        pub id: cynic::Id,
-        pub name: String,
-        pub browser_url: String,
-    }
-
     #[derive(cynic::QueryFragment, Debug)]
     #[cynic(schema = "aerocloud", graphql_type = "RootQueryType")]
     pub struct ProjectsV6Query {
         pub projects_v6: Vec<ProjectV6>,
+    }
+
+    #[derive(cynic::QueryVariables)]
+    pub struct SimulationsInProjectV6Arguments {
+        pub id: Id,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootQueryType",
+        variables = "SimulationsInProjectV6Arguments"
+    )]
+    pub struct SimulationsInProjectV6Query {
+        #[arguments(id: $id)]
+        pub project_v6: Option<ProjectV6WithSimulations>,
     }
 }

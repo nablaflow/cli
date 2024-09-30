@@ -33,7 +33,7 @@
       packages.default = nablaflow-cli.app;
 
       devShells.default = pkgs.mkShell {
-        # inputsFrom = builtins.attrValues self.checks.${system};
+        inputsFrom = builtins.attrValues self.checks.${system};
 
         packages = with pkgs; [
           nablaflow-cli.rustToolchain

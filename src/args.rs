@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use clap_stdin::FileOrStdin;
 use reqwest::Url;
 use std::path::PathBuf;
 
@@ -74,5 +75,19 @@ pub enum AeroCloudScope {
 #[derive(Subcommand, Debug)]
 pub enum AeroCloudV6Command {
     ListProjects,
-    ListSimulations { project_id: String },
+    ListSimulations {
+        project_id: String,
+    },
+    #[command(after_help = format!(r#"
+PARAMS is a TOML file like:
+
+```toml
+{}```
+"#, include_str!("../examples/aerocloud/v6/create_model.toml")))]
+    CreateModel {
+        #[arg(
+            help = "path to file containing params (pass - for reading file from stdin)"
+        )]
+        params: FileOrStdin,
+    },
 }

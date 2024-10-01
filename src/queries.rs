@@ -80,6 +80,21 @@ pub mod aerocloud {
         Water,
     }
 
+    #[derive(cynic::Enum, Debug, Clone, Copy)]
+    #[cynic(schema = "aerocloud")]
+    pub enum FileUnit {
+        Mm,
+        Cm,
+        M,
+        Inches,
+    }
+
+    #[derive(cynic::Enum, Debug, Clone, Copy, PartialEq, Eq)]
+    #[cynic(schema = "aerocloud")]
+    pub enum FileUploadStrategy {
+        S3,
+    }
+
     #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
     #[cynic(schema = "aerocloud")]
     pub struct User {
@@ -170,7 +185,7 @@ pub mod aerocloud {
         pub projects_v6: Vec<ProjectV6>,
     }
 
-    #[derive(cynic::QueryVariables)]
+    #[derive(cynic::QueryVariables, Debug)]
     pub struct SimulationsInProjectV6Arguments {
         pub id: Id,
     }
@@ -184,5 +199,52 @@ pub mod aerocloud {
     pub struct SimulationsInProjectV6Query {
         #[arguments(id: $id)]
         pub project_v6: Option<ProjectV6WithSimulations>,
+    }
+
+    #[derive(cynic::InputObject, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct InputFileV6 {
+        pub name: String,
+        pub unit: FileUnit,
+        pub orientation: Option<[f64; 4]>,
+    }
+
+    #[derive(cynic::InputObject, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct InputModelV6 {
+        pub name: String,
+        pub reusable: bool,
+        pub files: Vec<InputFileV6>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct FileForUploadV6 {
+        pub name: String,
+        pub strategy: FileUploadStrategy,
+        pub upload_url: String,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct ModelForUploadV6 {
+        pub id: Id,
+        pub files: Vec<FileForUploadV6>,
+    }
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct CreateModelV6MutationParams {
+        pub input: InputModelV6,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootMutationType",
+        variables = "CreateModelV6MutationParams"
+    )]
+    pub struct CreateModelV6Mutation {
+        #[arguments(input: $input)]
+        pub create_model_v6: ModelForUploadV6,
     }
 }

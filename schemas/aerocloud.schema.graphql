@@ -121,7 +121,7 @@ input InputFileV6 {
 type ModelForUploadV6 {
   id: ID!
   name: String!
-  reusable: String!
+  reusable: Boolean!
   files: [FileForUploadV6!]!
 }
 
@@ -129,7 +129,7 @@ type FileForUploadV6 {
   id: ID!
   name: String!
   unit: FileUnit!
-  orientation: [Float]
+  orientation: [Float!]!
   strategy: FileUploadStrategy!
   uploadUrl: String!
 }

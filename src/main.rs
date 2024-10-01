@@ -1,6 +1,6 @@
 use crate::{args::Args, config::Config};
 use clap::Parser;
-use color_eyre::eyre;
+use color_eyre::eyre::{self, WrapErr};
 use tracing::Level;
 
 mod args;
@@ -38,7 +38,7 @@ async fn main() -> eyre::Result<()> {
             args::AeroCloudScope::CurrentUser => {
                 commands::aerocloud::current_user::run(&args, &config).await?;
             }
-            args::AeroCloudScope::V6 { ref command } => match command {
+            args::AeroCloudScope::V6 { command } => match command {
                 args::AeroCloudV6Command::ListProjects => {
                     commands::aerocloud::v6::list_projects::run(&args, &config)
                         .await?;
@@ -46,6 +46,17 @@ async fn main() -> eyre::Result<()> {
                 args::AeroCloudV6Command::ListSimulations { project_id } => {
                     commands::aerocloud::v6::list_simulations::run(
                         &args, &config, project_id,
+                    )
+                    .await?;
+                }
+                args::AeroCloudV6Command::CreateModel { params } => {
+                    commands::aerocloud::v6::create_model::run(
+                        &args,
+                        &config,
+                        &params
+                            .clone()
+                            .contents()
+                            .wrap_err("failed to read contents")?,
                     )
                     .await?;
                 }

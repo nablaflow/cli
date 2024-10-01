@@ -9,10 +9,11 @@ use crate::{
 };
 use color_eyre::eyre::{self, bail, WrapErr};
 use cynic::{http::ReqwestExt, MutationBuilder};
+use reqwest::header::CONTENT_LENGTH;
 use serde::Deserialize;
 use std::{fs, path::PathBuf, time::Duration};
 use tokio::{fs::File as AsyncFile, task::JoinSet};
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -34,7 +35,7 @@ impl From<FileUnit> for aerocloud::FileUnit {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct File {
     pub name: String,
     pub unit: FileUnit,
@@ -42,11 +43,31 @@ pub struct File {
     pub path: PathBuf,
 }
 
-#[derive(Deserialize, Debug)]
+impl From<File> for InputFileV6 {
+    fn from(val: File) -> Self {
+        Self {
+            name: val.name,
+            unit: val.unit.into(),
+            orientation: val.orientation,
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct Model {
     pub name: String,
     pub reusable: bool,
     pub files: Vec<File>,
+}
+
+impl From<Model> for InputModelV6 {
+    fn from(val: Model) -> Self {
+        Self {
+            name: val.name,
+            reusable: val.reusable,
+            files: val.files.into_iter().map(Into::into).collect(),
+        }
+    }
 }
 
 pub async fn run(args: &Args, config: &Config, params: &str) -> eyre::Result<()> {
@@ -60,19 +81,7 @@ pub async fn run(args: &Args, config: &Config, params: &str) -> eyre::Result<()>
     }
 
     let op = CreateModelV6Mutation::build(CreateModelV6MutationParams {
-        input: InputModelV6 {
-            name: model.name.clone(),
-            reusable: model.reusable,
-            files: model
-                .files
-                .iter()
-                .map(|file| InputFileV6 {
-                    name: file.name.clone(),
-                    unit: file.unit.into(),
-                    orientation: file.orientation,
-                })
-                .collect(),
-        },
+        input: model.clone().into(),
     });
 
     let (client, endpoint) =
@@ -88,6 +97,14 @@ pub async fn run(args: &Args, config: &Config, params: &str) -> eyre::Result<()>
         .run_graphql(op)
         .await
         .wrap_err("failed to mutate")?;
+
+    if let Some(errors) = res.errors {
+        for error in errors {
+            error!("{}", error);
+        }
+
+        bail!("mutation returned errors");
+    }
 
     let model_for_upload = res
         .data
@@ -142,12 +159,19 @@ async fn upload_file(
         .await
         .wrap_err_with(|| format!("failed to open file {path:?}"))?;
 
-    client
-        .post(upload_url)
+    let metadata = body.metadata().await?;
+
+    let res = client
+        .put(upload_url)
         .body(body)
+        .header(CONTENT_LENGTH, metadata.len().to_string())
         .send()
         .await
         .wrap_err_with(|| format!("failed to upload file {path:?}"))?;
+
+    if res.status() != 200 {
+        return Err(eyre::eyre!("failed to upload file {path:?}: {:?}", res));
+    }
 
     info!("uploaded {:?}", path);
 

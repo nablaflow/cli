@@ -79,11 +79,11 @@ pub enum AeroCloudV6Command {
         project_id: String,
     },
     #[command(after_help = format!(r#"
-PARAMS is a TOML file like:
+PARAMS is a JSON file like:
 
-```toml
+```json
 {}```
-"#, include_str!("../examples/aerocloud/v6/create_model.toml")))]
+"#, include_str!("../examples/aerocloud/v6/create_model.json")))]
     CreateModel {
         #[arg(
             help = "path to file containing params (pass - for reading file from stdin)"

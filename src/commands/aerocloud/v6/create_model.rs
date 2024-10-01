@@ -51,7 +51,7 @@ pub struct Model {
 
 pub async fn run(args: &Args, config: &Config, params: &str) -> eyre::Result<()> {
     let model =
-        toml::from_str::<Model>(params).wrap_err("failed to parse toml")?;
+        serde_json::from_str::<Model>(params).wrap_err("failed to parse json")?;
 
     for file in &model.files {
         if !fs::exists(&file.path)? {

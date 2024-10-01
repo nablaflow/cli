@@ -14,7 +14,7 @@ pub struct Config {
 }
 
 pub fn path() -> Option<PathBuf> {
-    Some(dirs::config_dir()?.join("nablaflow").join("config.toml"))
+    Some(dirs::config_dir()?.join("nablaflow").join("config.json"))
 }
 
 fn serialize_url<S>(v: &Url, ser: S) -> Result<S::Ok, S::Error>

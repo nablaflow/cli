@@ -16,7 +16,7 @@
     fileset = fs.unions [
       ../Cargo.toml
       ../Cargo.lock
-      (fs.fileFilter (file: builtins.any file.hasExt ["rs" "toml" "snap" "schema.graphql"]) ../.)
+      (fs.fileFilter (file: builtins.any file.hasExt ["rs" "toml" "json" "snap" "schema.graphql"]) ../.)
     ];
   };
 

@@ -1,0 +1,12 @@
+{
+  "name": "my model",
+  "reusable": false,
+  "files": [
+    {
+      "name": "file1",
+      "unit": "m",
+      "orientation": [1.0, 0.0, 0.0, 0.0],
+      "path": "examples/aerocloud/v6/ball.stl"
+    }
+  ]
+}

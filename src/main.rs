@@ -60,6 +60,23 @@ async fn main() -> eyre::Result<()> {
                     )
                     .await?;
                 }
+                args::AeroCloudV6Command::CreateSimulation {
+                    params,
+                    project_id,
+                    model_id,
+                } => {
+                    commands::aerocloud::v6::create_simulation::run(
+                        &args,
+                        &config,
+                        model_id.as_deref(),
+                        project_id.as_deref(),
+                        &params
+                            .clone()
+                            .contents()
+                            .wrap_err("failed to read contents")?,
+                    )
+                    .await?;
+                }
             },
         },
         _ => todo!(),

@@ -3,7 +3,7 @@
   "reusable": false,
   "files": [
     {
-      "name": "ball",
+      "name": "ball.stl",
       "unit": "m",
       "orientation": [1.0, 0.0, 0.0, 0.0],
       "path": "examples/aerocloud/v6/ball.stl"

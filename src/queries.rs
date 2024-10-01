@@ -75,6 +75,15 @@ pub mod aerocloud {
 
     #[derive(cynic::Enum, Debug, Clone, Copy)]
     #[cynic(schema = "aerocloud")]
+    pub enum InputSimulationQuality {
+        Dummy,
+        Basic,
+        Standard,
+        Pro,
+    }
+
+    #[derive(cynic::Enum, Debug, Clone, Copy)]
+    #[cynic(schema = "aerocloud")]
     pub enum Fluid {
         Air,
         Water,
@@ -246,5 +255,42 @@ pub mod aerocloud {
     pub struct CreateModelV6Mutation {
         #[arguments(input: $input)]
         pub create_model_v6: ModelForUploadV6,
+    }
+
+    #[derive(cynic::InputObject, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct InputGroundV6 {
+        pub enabled: bool,
+        pub moving: bool,
+        pub offset: GroundOffset,
+    }
+
+    #[derive(cynic::InputObject, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct InputSimulationV6 {
+        pub name: String,
+        pub model_id: Id,
+        pub project_id: Id,
+        pub quality: InputSimulationQuality,
+        pub speed: Speed,
+        pub fluid: Fluid,
+        pub ground: InputGroundV6,
+        pub yaw_angles: Vec<YawAngle>,
+    }
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct CreateSimulationV6MutationParams {
+        pub input: InputSimulationV6,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootMutationType",
+        variables = "CreateSimulationV6MutationParams"
+    )]
+    pub struct CreateSimulationV6Mutation {
+        #[arguments(input: $input)]
+        pub create_simulation_v6: SimulationV6,
     }
 }

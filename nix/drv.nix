@@ -1,12 +1,17 @@
 {
-  pkgs,
-  lib,
-  stdenv,
-  libiconv,
-  darwin,
-  rust-bin,
+  buildPackages,
   crane,
+  darwin,
+  installShellFiles,
+  lib,
+  libiconv,
+  pkgs,
+  rust-bin,
+  stdenv,
 }: let
+  canRunNf = stdenv.hostPlatform.emulatorAvailable buildPackages;
+  nf = "${stdenv.hostPlatform.emulator buildPackages} $out/bin/nf";
+
   rustToolchain = rust-bin.stable.latest.default;
   craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
@@ -39,6 +44,15 @@ in {
   app = craneLib.buildPackage (commonArgs
     // {
       inherit cargoArtifacts;
+
+      nativeBuildInputs = [installShellFiles];
+
+      preFixup = lib.optionalString canRunNf ''
+        installShellCompletion --cmd nf \
+          --bash <(${nf} generate-completions bash) \
+          --fish <(${nf} generate-completions fish) \
+          --zsh <(${nf} generate-completions zsh)
+      '';
     });
 
   checks = {

@@ -1,5 +1,6 @@
 use crate::config::{Config, Token};
 use clap::{Parser, Subcommand};
+use clap_complete::aot::Shell;
 use clap_stdin::{FileOrStdin, MaybeStdin};
 use reqwest::Url;
 use std::path::PathBuf;
@@ -56,6 +57,9 @@ pub enum Scope {
         #[command(subcommand)]
         command: AeroCloudScope,
     },
+    GenerateCompletions {
+        shell: Shell,
+    }
 }
 
 #[derive(Subcommand, Debug)]

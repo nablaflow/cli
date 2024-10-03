@@ -1,7 +1,8 @@
 use crate::{args::Args, config::Config};
-use clap::Parser;
+use clap::{Parser, CommandFactory};
 use color_eyre::eyre;
 use tracing::Level;
+use std::io;
 
 mod args;
 mod commands;
@@ -31,6 +32,11 @@ async fn main() -> eyre::Result<()> {
         }
         args::Scope::AeroCloud { ref command } => {
             commands::aerocloud::run(&args, &config, command).await?;
+        }
+        args::Scope::GenerateCompletions { shell } => {
+            let mut args = Args::command();
+            let name = args.get_name().to_string();
+            clap_complete::generate(shell, &mut args, name, &mut io::stdout());
         }
     }
 

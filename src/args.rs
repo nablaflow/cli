@@ -59,7 +59,7 @@ pub enum Scope {
     },
     GenerateCompletions {
         shell: Shell,
-    }
+    },
 }
 
 #[derive(Subcommand, Debug)]

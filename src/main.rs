@@ -1,8 +1,8 @@
 use crate::{args::Args, config::Config};
-use clap::{Parser, CommandFactory};
+use clap::{CommandFactory, Parser};
 use color_eyre::eyre;
-use tracing::Level;
 use std::io;
+use tracing::Level;
 
 mod args;
 mod commands;

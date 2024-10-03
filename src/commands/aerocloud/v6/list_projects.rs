@@ -9,8 +9,8 @@ use cynic::{http::ReqwestExt, QueryBuilder};
 use tracing::debug;
 
 pub async fn run(args: &Args, config: &Config) -> eyre::Result<()> {
-    let (client, endpoint) =
-        http::build_aerocloud_client(&config.token, &config.hostname)?;
+    let (client, endpoint) = http::build_aerocloud_client_from_config(config)?;
+
     let op = ProjectsV6Query::build(());
     debug!("{endpoint}, {}", op.query);
 

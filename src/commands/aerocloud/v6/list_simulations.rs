@@ -17,8 +17,7 @@ pub async fn run(
     config: &Config,
     project_id: &str,
 ) -> eyre::Result<()> {
-    let (client, endpoint) =
-        http::build_aerocloud_client(&config.token, &config.hostname)?;
+    let (client, endpoint) = http::build_aerocloud_client_from_config(config)?;
 
     let id = Id::new(project_id);
     let op =

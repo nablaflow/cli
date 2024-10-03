@@ -84,8 +84,7 @@ pub async fn run(args: &Args, config: &Config, params: &str) -> eyre::Result<()>
         input: model.clone().into(),
     });
 
-    let (client, endpoint) =
-        http::build_aerocloud_client(&config.token, &config.hostname)?;
+    let (client, endpoint) = http::build_aerocloud_client_from_config(config)?;
 
     debug!(
         "{endpoint}, query: {}, variables: {:?}",

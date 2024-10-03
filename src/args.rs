@@ -1,5 +1,6 @@
+use crate::config::{Config, Token};
 use clap::{Parser, Subcommand};
-use clap_stdin::FileOrStdin;
+use clap_stdin::{FileOrStdin, MaybeStdin};
 use reqwest::Url;
 use std::path::PathBuf;
 
@@ -15,12 +16,11 @@ pub struct Args {
     #[arg(
         short = 'H',
         long,
-        default_value = "https://api.nablaflow.io",
         value_name = "URI",
-        help = "Host to connect to",
+        help = "Host to connect to. If specified will take precedence over the one set in config",
         env = "NF_HOSTNAME"
     )]
-    pub hostname: Url,
+    pub hostname: Option<Url>,
 
     #[arg(
         short,
@@ -29,17 +29,17 @@ pub struct Args {
         value_name = "TOKEN",
         help = "Token to use during requests. If specified will take precedence over the one set in config"
     )]
-    pub token: Option<String>,
+    pub token: Option<Token>,
 
     #[arg(
         short,
         long,
-        default_value_os_t = crate::config::path().expect("failed to determine default config dir"),
+        default_value_os_t = Config::default_path().expect("failed to determine default config dir"),
         value_name = "CONFIGPATH",
         help = "CLI configuration file",
-        env = "NF_CONFIG",
+        env = "NF_CONFIGPATH",
     )]
-    pub config: PathBuf,
+    pub config_path: PathBuf,
 
     #[command(subcommand)]
     pub scope: Scope,
@@ -47,14 +47,9 @@ pub struct Args {
 
 #[derive(Subcommand, Debug)]
 pub enum Scope {
-    #[command(name = "authtoken")]
-    AuthToken {
-        #[arg(
-            env = "NF_TOKEN",
-            value_name = "TOKEN",
-            help = "Token to set in config"
-        )]
-        token: String,
+    Config {
+        #[command(subcommand)]
+        command: ConfigScope,
     },
     #[command(name = "aerocloud")]
     AeroCloud {
@@ -69,6 +64,18 @@ pub enum AeroCloudScope {
     V6 {
         #[command(subcommand)]
         command: AeroCloudV6Command,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ConfigScope {
+    SetAuthToken {
+        #[arg(value_name = "TOKEN", help = "Token to set in config")]
+        token: MaybeStdin<Token>,
+    },
+    SetHostname {
+        #[arg(value_name = "HOSTNAME", help = "Hostname to set in config")]
+        hostname: Url,
     },
 }
 

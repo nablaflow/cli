@@ -23,21 +23,15 @@ async fn main() -> eyre::Result<()> {
         })
         .init();
 
-    let token = args
-        .token
-        .clone()
-        .ok_or_else(|| eyre::eyre!("no token provided"))?;
-
-    let config = Config {
-        token,
-        hostname: args.hostname.clone(),
-    };
+    let config = Config::load(&args).await?;
 
     match args.scope {
+        args::Scope::Config { ref command } => {
+            commands::config::run(&args, &config, command).await?;
+        }
         args::Scope::AeroCloud { ref command } => {
             commands::aerocloud::run(&args, &config, command).await?;
         }
-        _ => todo!(),
     }
 
     Ok(())

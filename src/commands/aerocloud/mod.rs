@@ -14,14 +14,14 @@ pub async fn run(
 ) -> eyre::Result<()> {
     match subcommand {
         AeroCloudScope::CurrentUser => {
-            self::current_user::run(args, config).await?;
+            self::current_user::run(args, config).await
         }
         AeroCloudScope::V6 { command } => match command {
             AeroCloudV6Command::ListProjects => {
-                self::v6::list_projects::run(args, config).await?;
+                self::v6::list_projects::run(args, config).await
             }
             AeroCloudV6Command::ListSimulations { project_id } => {
-                self::v6::list_simulations::run(args, config, project_id).await?;
+                self::v6::list_simulations::run(args, config, project_id).await
             }
             AeroCloudV6Command::CreateModel { params } => {
                 self::v6::create_model::run(
@@ -32,7 +32,7 @@ pub async fn run(
                         .contents()
                         .wrap_err("failed to read contents")?,
                 )
-                .await?;
+                .await
             }
             AeroCloudV6Command::CreateSimulation {
                 params,
@@ -49,10 +49,8 @@ pub async fn run(
                         .contents()
                         .wrap_err("failed to read contents")?,
                 )
-                .await?;
+                .await
             }
         },
     }
-
-    Ok(())
 }

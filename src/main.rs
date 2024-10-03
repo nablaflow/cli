@@ -1,6 +1,6 @@
 use crate::{args::Args, config::Config};
 use clap::Parser;
-use color_eyre::eyre::{self, WrapErr};
+use color_eyre::eyre;
 use tracing::Level;
 
 mod args;
@@ -34,51 +34,9 @@ async fn main() -> eyre::Result<()> {
     };
 
     match args.scope {
-        args::Scope::AeroCloud { ref command } => match command {
-            args::AeroCloudScope::CurrentUser => {
-                commands::aerocloud::current_user::run(&args, &config).await?;
-            }
-            args::AeroCloudScope::V6 { command } => match command {
-                args::AeroCloudV6Command::ListProjects => {
-                    commands::aerocloud::v6::list_projects::run(&args, &config)
-                        .await?;
-                }
-                args::AeroCloudV6Command::ListSimulations { project_id } => {
-                    commands::aerocloud::v6::list_simulations::run(
-                        &args, &config, project_id,
-                    )
-                    .await?;
-                }
-                args::AeroCloudV6Command::CreateModel { params } => {
-                    commands::aerocloud::v6::create_model::run(
-                        &args,
-                        &config,
-                        &params
-                            .clone()
-                            .contents()
-                            .wrap_err("failed to read contents")?,
-                    )
-                    .await?;
-                }
-                args::AeroCloudV6Command::CreateSimulation {
-                    params,
-                    project_id,
-                    model_id,
-                } => {
-                    commands::aerocloud::v6::create_simulation::run(
-                        &args,
-                        &config,
-                        model_id.as_deref(),
-                        project_id.as_deref(),
-                        &params
-                            .clone()
-                            .contents()
-                            .wrap_err("failed to read contents")?,
-                    )
-                    .await?;
-                }
-            },
-        },
+        args::Scope::AeroCloud { ref command } => {
+            commands::aerocloud::run(&args, &config, command).await?;
+        }
         _ => todo!(),
     }
 

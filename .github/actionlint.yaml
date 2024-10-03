@@ -1,0 +1,6 @@
+self-hosted-runner:
+  labels:
+    - big
+    - small
+    - amd64
+    - arm64

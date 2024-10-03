@@ -1,0 +1,46 @@
+name: test
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - ".github/dependabot.yml"
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform:
+          - arm64
+          - amd64
+
+    permissions:
+      id-token: write
+      contents: read
+
+    runs-on: [self-hosted, linux, small, "${{ matrix.platform }}"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v30
+        with:
+          github_access_token: ${{ github.token }}
+
+      - run: "sudo chown -R runner: /etc/nix"
+
+      - uses: cachix/cachix-action@v15
+        with:
+          name: nablaflow
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+        env:
+          USER: runner
+
+      - run: nix flake check -L
+      - run: nix build -L .

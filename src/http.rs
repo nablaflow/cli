@@ -12,7 +12,7 @@ pub fn build_aerocloud_client_from_config(
 ) -> eyre::Result<(Client, Url)> {
     let endpoint = config.hostname().join("/aerocloud/graphql")?;
 
-    Ok((build_client(config.token()?)?, endpoint))
+    Ok((build_client(config.token_or_fail()?)?, endpoint))
 }
 
 fn build_client(token: &Token) -> eyre::Result<Client> {

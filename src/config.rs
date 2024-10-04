@@ -49,7 +49,7 @@ impl Config {
         tokio_fs::write(path, &buf).await.wrap_err("writing config")
     }
 
-    pub fn token(&self) -> eyre::Result<&Token> {
+    pub fn token_or_fail(&self) -> eyre::Result<&Token> {
         self.token
             .as_ref()
             .ok_or_else(|| eyre::eyre!("no token provided"))

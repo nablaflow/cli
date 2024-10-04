@@ -6,6 +6,7 @@ use color_eyre::eyre;
 
 pub mod set_auth_token;
 pub mod set_hostname;
+pub mod show;
 
 pub async fn run(
     args: &Args,
@@ -18,6 +19,9 @@ pub async fn run(
         }
         ConfigScope::SetHostname { hostname } => {
             self::set_hostname::run(args, config, hostname).await
+        }
+        ConfigScope::Show { include_secrets } => {
+            self::show::run(args, config, *include_secrets).await
         }
     }
 }

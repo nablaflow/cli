@@ -81,6 +81,14 @@ pub enum ConfigScope {
         #[arg(value_name = "HOSTNAME", help = "Hostname to set in config")]
         hostname: Url,
     },
+    Show {
+        #[arg(
+            short = 's',
+            long,
+            help = "Do not remove secrets from output (only applies to non-json output)"
+        )]
+        include_secrets: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]

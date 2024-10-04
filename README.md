@@ -27,9 +27,11 @@ The concept of profiles will be added in the future to facilitate switching betw
 > [!TIP]
 > Check that everything was setup correctly by running `nf aerocloud current-user`.
 
-All commands accept `--json` after `nf` to output JSON instead of human readable text, so that the CLI can be comfortably used in scripts.
+> [!TIP]
+> All commands accept `--json` after `nf` to output JSON instead of human readable text, so that the CLI can be comfortably used in scripts.
 
-Use `--help` on every subcommand to see their documentation.
+> [!TIP]
+> Use `--help` on every subcommand to see their documentation.
 
 ### AeroCloud v6
 
@@ -38,3 +40,7 @@ In order to submit a simulation you need a project and a model:
 - `nf aerocloud v6 create-model $PATH_TO_JSON`, see [examples/aerocloud/v6/create_model.json](examples/aerocloud/v6/create_model.json) as starting point.
   Note down the model id.
 - `nf aerocloud v6 create-simulation --model-id $MODEL_ID --project-id $PROJECT_ID $PATH_TO_JSON`, see [examples/aerocloud/v6/create_simulation.json](examples/aerocloud/v6/create_simulation.json) as starting point.
+
+> [!TIP]
+> All commands that consume a JSON from a path also accept JSON from stdin, be sure to pass `-` instead of the file.  
+> This facilitates usage from scripts.

@@ -81,6 +81,7 @@ pub enum ConfigScope {
         #[arg(value_name = "HOSTNAME", help = "Hostname to set in config")]
         hostname: Url,
     },
+    UnsetHostname,
     Show {
         #[arg(
             short = 's',

@@ -17,7 +17,8 @@ pub struct Config {
     #[serde(
         serialize_with = "serialize_url",
         deserialize_with = "deserialize_url",
-        skip_serializing_if = "Option::is_none"
+        skip_serializing_if = "Option::is_none",
+        default
     )]
     pub hostname: Option<Url>,
 }

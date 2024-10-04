@@ -45,7 +45,7 @@ fn print_human(config: &Config, include_secrets: bool) {
     table.set_header(vec!["Key", "Value"]);
 
     table.add_row(vec!["Token", token_to_show]);
-    table.add_row(vec!["Hostname", &config.hostname().to_string()]);
+    table.add_row(vec!["Hostname", config.hostname().as_ref()]);
 
     println!("{table}");
 }

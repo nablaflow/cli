@@ -9,7 +9,7 @@ publish = false
 chrono = { version = "~0.4.38", features = ["serde"] }
 clap = { version = "~4.5", features = ["derive", "env"] }
 clap-stdin = "0.5.1"
-clap_complete = "4.5.36"
+clap_complete = "4.5.37"
 color-eyre = { version = "~0.6", default-features = false }
 comfy-table = { version = "~7.1.1", default-features = false }
 cynic = { version = "~3.8", features = ["http-reqwest"] }

@@ -24,16 +24,10 @@ jobs:
       id-token: write
       contents: read
 
-    runs-on: [self-hosted, linux, small, "${{ matrix.platform }}"]
+    runs-on: ["arc-runner-small-${{ matrix.platform }}"]
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: cachix/install-nix-action@v30
-        with:
-          github_access_token: ${{ github.token }}
-
-      - run: "sudo chown -R runner: /etc/nix"
 
       - uses: cachix/cachix-action@v15
         with:

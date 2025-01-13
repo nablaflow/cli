@@ -25,6 +25,26 @@ type RootQueryType {
   "Gets a project by ID, containing Aerocloud V6 simulations."
   projectV6(id: ID!): ProjectV6
 
+  """
+  Gets an Aerocloud V7 simulation by ID.
+  For public simulations, also token and password can be provided.
+  """
+  simulationV7(
+    id: ID!
+
+    "When a simulation is shared, a token is returned in order to access it."
+    token: String
+
+    "In addition to the token above, a password can be set to access the public simulation."
+    password: String
+  ): SimulationV7
+
+  "Lists all projects containing Aerocloud V7 simulations."
+  projectsV7(limit: UnsignedInteger, offset: UnsignedInteger, status: ProjectStatus): [ProjectV7!]!
+
+  "Gets a project by ID, containing Aerocloud V7 simulations."
+  projectV7(id: ID!): ProjectV7
+
   "The currently authenticated user."
   viewer: User
 
@@ -41,10 +61,20 @@ type RootMutationType {
 
   "Creates a new project."
   createProjectV6(input: InputProjectV6!): ProjectV6!
+
+  "Creates a model for later use when submitting a simulation."
+  createModelV7(input: InputModelV7!): ModelForUploadV7!
+
+  "Creates and submits a new simulation."
+  createSimulationV7(input: InputSimulationV7!): SimulationV7!
+
+  "Creates a new project."
+  createProjectV7(input: InputProjectV7!): ProjectV7!
 }
 
 type RootSubscriptionType {
   simulationV6Succeeded: SimulationV6
+  simulationV7Succeeded: SimulationV7
 }
 
 enum SimulationStatus {
@@ -100,6 +130,186 @@ enum ProjectStatus {
 
   "Project is closed and no new simulations can be added"
   CLOSED
+}
+
+"Inputs to the creation of a model."
+input InputModelV7 {
+  "An indicative name."
+  name: String!
+
+  reusable: Boolean!
+
+  files: [InputFileV7!]!
+}
+
+input InputFileV7 {
+  name: String!
+  unit: FileUnit!
+  orientation: [Float]
+}
+
+type ModelForUploadV7 {
+  id: ID!
+  name: String!
+  reusable: Boolean!
+  files: [FileForUploadV7!]!
+}
+
+type FileForUploadV7 {
+  id: ID!
+  name: String!
+  unit: FileUnit!
+  orientation: [Float!]!
+  strategy: FileUploadStrategy!
+  uploadUrl: String!
+}
+
+input InputGroundV7 {
+  enabled: Boolean!
+  moving: Boolean!
+  offset: GroundOffset
+}
+
+type GroundV7 {
+  enabled: Boolean!
+  moving: Boolean!
+  offset: GroundOffset
+}
+
+input InputRollingPartsV7 {
+  fileId: ID!
+  names: [String!]
+}
+
+input InputSimulationV7 {
+  name: String!
+  modelId: ID!
+  projectId: ID!
+  quality: InputSimulationQuality!
+  revision: String
+  speed: Speed!
+  fluid: Fluid!
+  ground: InputGroundV7!
+  yawAngles: [YawAngle!]!
+  rollingParts: [InputRollingPartsV7!]
+  skipConfirmation: Boolean
+}
+
+input InputProjectV7 {
+  name: String!
+  description: String
+}
+
+type SimulationInputsV7 {
+  quality: SimulationQuality!
+  speed: Speed!
+  fluid: Fluid!
+  ground: GroundV7!
+  yawAngles: [YawAngle!]!
+  model: ModelV7!
+}
+
+type PartsV7 {
+  id: ID!
+  name: String!
+  rolling: Boolean!
+}
+
+type FileV7 {
+  id: ID!
+  name: String!
+  unit: FileUnit!
+  orientation: [Float]
+  parts: [PartsV7!]!
+}
+
+type ModelV7 {
+  id: ID!
+  name: String!
+  reusable: Boolean!
+  files: [FileV7!]!
+}
+
+"An Aerocloud V7 simulation"
+type SimulationV7 {
+  id: ID!
+
+  name: String!
+
+  revision: String
+
+  status: SimulationStatus!
+
+  source: SimulationSource!
+
+  "URL meant to be opened from a browser"
+  browserUrl: String!
+
+  sharingStatus: SimulationSharingStatus!
+
+  inputs: SimulationInputsV7!
+
+  results: ResultsV7
+
+  createdAt: DateTime!
+
+  updatedAt: DateTime!
+}
+
+type ResultsV7 {
+  yawAngles(indexes: [Index!]): [YawAngleResultsV7!]
+  exports: ExportsV7!
+}
+
+type ExportsV7 {
+  pdfUrl: String!
+  xlsxUrl: String!
+  sliceImagesZipUrl: String!
+  rawDataZipUrl: String
+}
+
+type YawAngleResultsV7 {
+  index: Index!
+  degrees: YawAngle!
+  force: YawAngleForceV7!
+  coefficient: YawAngleCoefficientV7!
+  coefficientArea: YawAngleCoefficientAreaV7!
+  moment: YawAngleMomentV7!
+}
+
+type YawAngleForceV7 {
+  fd: Float!
+  fl: Float!
+  fs: Float!
+}
+
+type YawAngleCoefficientV7 {
+  cd: Float!
+  cl: Float!
+  cs: Float!
+}
+
+type YawAngleCoefficientAreaV7 {
+  cda: Float!
+  cla: Float!
+  csa: Float!
+}
+
+type YawAngleMomentV7 {
+  mr: Float!
+  mp: Float!
+  my: Float!
+}
+
+"A project is a collection of comparable Aerocloud V7 simulations."
+type ProjectV7 {
+  id: ID!
+  name: String!
+  browserUrl: String!
+  status: ProjectStatus!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  simulations(limit: UnsignedInteger, offset: UnsignedInteger): [SimulationV7!]!
 }
 
 "Inputs to the creation of a model."

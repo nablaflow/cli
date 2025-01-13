@@ -293,4 +293,155 @@ pub mod aerocloud {
         #[arguments(input: $input)]
         pub create_simulation_v6: SimulationV6,
     }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct ProjectV7 {
+        pub id: Id,
+        pub name: String,
+        pub browser_url: String,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct GroundV7 {
+        pub enabled: bool,
+        pub moving: bool,
+        pub offset: Option<GroundOffset>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud", graphql_type = "SimulationInputsV7")]
+    pub struct SimulationInputsV7NoModel {
+        pub quality: SimulationQuality,
+        pub speed: Speed,
+        pub fluid: Fluid,
+        pub ground: Option<GroundV7>,
+        pub yaw_angles: Vec<YawAngle>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct SimulationV7 {
+        pub id: Id,
+        pub name: String,
+        pub browser_url: String,
+        pub status: SimulationStatus,
+        pub created_at: DateTime<Utc>,
+        pub inputs: SimulationInputsV7NoModel,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud", graphql_type = "ProjectV7")]
+    pub struct ProjectV7WithSimulations {
+        pub id: Id,
+        pub name: String,
+        pub simulations: Vec<SimulationV7>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(schema = "aerocloud", graphql_type = "RootQueryType")]
+    pub struct ProjectsV7Query {
+        pub projects_v7: Vec<ProjectV7>,
+    }
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct SimulationsInProjectV7Arguments {
+        pub id: Id,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootQueryType",
+        variables = "SimulationsInProjectV7Arguments"
+    )]
+    pub struct SimulationsInProjectV7Query {
+        #[arguments(id: $id)]
+        pub project_v7: Option<ProjectV7WithSimulations>,
+    }
+
+    #[derive(cynic::InputObject, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct InputFileV7 {
+        pub name: String,
+        pub unit: FileUnit,
+        pub orientation: Option<[f64; 4]>,
+    }
+
+    #[derive(cynic::InputObject, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct InputModelV7 {
+        pub name: String,
+        pub reusable: bool,
+        pub files: Vec<InputFileV7>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct FileForUploadV7 {
+        pub name: String,
+        pub strategy: FileUploadStrategy,
+        pub upload_url: String,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct ModelForUploadV7 {
+        pub id: Id,
+        pub files: Vec<FileForUploadV7>,
+    }
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct CreateModelV7MutationParams {
+        pub input: InputModelV7,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootMutationType",
+        variables = "CreateModelV7MutationParams"
+    )]
+    pub struct CreateModelV7Mutation {
+        #[arguments(input: $input)]
+        pub create_model_v7: ModelForUploadV7,
+    }
+
+    #[derive(cynic::InputObject, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct InputGroundV7 {
+        pub enabled: bool,
+        pub moving: bool,
+        pub offset: GroundOffset,
+    }
+
+    #[derive(cynic::InputObject, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct InputSimulationV7 {
+        pub name: String,
+        pub model_id: Id,
+        pub project_id: Id,
+        pub quality: InputSimulationQuality,
+        pub speed: Speed,
+        pub fluid: Fluid,
+        pub ground: InputGroundV7,
+        pub yaw_angles: Vec<YawAngle>,
+    }
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct CreateSimulationV7MutationParams {
+        pub input: InputSimulationV7,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootMutationType",
+        variables = "CreateSimulationV7MutationParams"
+    )]
+    pub struct CreateSimulationV7Mutation {
+        #[arguments(input: $input)]
+        pub create_simulation_v7: SimulationV7,
+    }
 }

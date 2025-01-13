@@ -1,0 +1,15 @@
+{
+  "name": "sim",
+  "model_id": null,
+  "project_id": null,
+  "quality": "basic",
+  "revision": null,
+  "speed": 30.0,
+  "fluid": "air",
+  "ground": {
+    "enabled": true,
+    "moving": false,
+    "offset": 0.0
+  },
+  "yaw_angles": [0.0]
+}

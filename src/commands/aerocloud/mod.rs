@@ -1,11 +1,12 @@
 use crate::{
-    args::{AeroCloudScope, AeroCloudV6Command, Args},
+    args::{AeroCloudScope, AeroCloudV6Command, AeroCloudV7Command, Args},
     config::Config,
 };
 use color_eyre::eyre::{self, WrapErr};
 
 pub mod current_user;
 pub mod v6;
+pub mod v7;
 
 pub async fn run(
     args: &Args,
@@ -40,6 +41,42 @@ pub async fn run(
                 model_id,
             } => {
                 self::v6::create_simulation::run(
+                    args,
+                    config,
+                    model_id.as_deref(),
+                    project_id.as_deref(),
+                    &params
+                        .clone()
+                        .contents()
+                        .wrap_err("failed to read contents")?,
+                )
+                .await
+            }
+        },
+        AeroCloudScope::V7 { command } => match command {
+            AeroCloudV7Command::ListProjects => {
+                self::v7::list_projects::run(args, config).await
+            }
+            AeroCloudV7Command::ListSimulations { project_id } => {
+                self::v7::list_simulations::run(args, config, project_id).await
+            }
+            AeroCloudV7Command::CreateModel { params } => {
+                self::v7::create_model::run(
+                    args,
+                    config,
+                    &params
+                        .clone()
+                        .contents()
+                        .wrap_err("failed to read contents")?,
+                )
+                .await
+            }
+            AeroCloudV7Command::CreateSimulation {
+                params,
+                project_id,
+                model_id,
+            } => {
+                self::v7::create_simulation::run(
                     args,
                     config,
                     model_id.as_deref(),

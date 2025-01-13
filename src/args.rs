@@ -69,6 +69,10 @@ pub enum AeroCloudScope {
         #[command(subcommand)]
         command: AeroCloudV6Command,
     },
+    V7 {
+        #[command(subcommand)]
+        command: AeroCloudV7Command,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -119,6 +123,47 @@ PARAMS is a JSON file like:
 ```json
 {}```
 "#, include_str!("../examples/aerocloud/v6/create_simulation.json")))]
+    CreateSimulation {
+        #[arg(short, long)]
+        model_id: Option<String>,
+
+        #[arg(short, long)]
+        project_id: Option<String>,
+
+        #[arg(
+            help = "path to file containing params (pass - for reading file from stdin)"
+        )]
+        params: FileOrStdin,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum AeroCloudV7Command {
+    ListProjects,
+
+    ListSimulations {
+        project_id: String,
+    },
+
+    #[command(after_help = format!(r#"
+PARAMS is a JSON file like:
+
+```json
+{}```
+"#, include_str!("../examples/aerocloud/v7/create_model.json")))]
+    CreateModel {
+        #[arg(
+            help = "path to file containing params (pass - for reading file from stdin)"
+        )]
+        params: FileOrStdin,
+    },
+
+    #[command(after_help = format!(r#"
+PARAMS is a JSON file like:
+
+```json
+{}```
+"#, include_str!("../examples/aerocloud/v7/create_simulation.json")))]
     CreateSimulation {
         #[arg(short, long)]
         model_id: Option<String>,

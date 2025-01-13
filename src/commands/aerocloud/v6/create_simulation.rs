@@ -110,10 +110,10 @@ pub async fn run(
         .wrap_err("failed to parse json")?;
 
     if let Some(id) = model_id {
-        simulation.model_id = Some(id.into())
+        simulation.model_id = Some(id.into());
     }
     if let Some(id) = project_id {
-        simulation.project_id = Some(id.into())
+        simulation.project_id = Some(id.into());
     }
 
     let op =

@@ -25,7 +25,7 @@ pub async fn run(
             self::unset_hostname::run(args, config).await
         }
         ConfigScope::Show { include_secrets } => {
-            self::show::run(args, config, *include_secrets).await
+            self::show::run(args, config, *include_secrets)
         }
     }
 }

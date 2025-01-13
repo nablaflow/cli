@@ -1,7 +1,7 @@
 use crate::{args::Args, config::Config};
 use color_eyre::eyre;
 
-pub async fn run(
+pub fn run(
     args: &Args,
     config: &Config,
     include_secrets: bool,

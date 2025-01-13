@@ -80,6 +80,7 @@ pub fn default_hostname() -> Url {
     Url::parse(DEFAULT_HOSTNAME).unwrap()
 }
 
+#[allow(clippy::ref_option)]
 fn serialize_url<S>(v: &Option<Url>, ser: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,

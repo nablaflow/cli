@@ -104,7 +104,7 @@ fn print_human(user: &User) {
         if let Some(suspension_reason) = subscription.suspension_reason {
             table.add_row(vec![
                 "Suspension reason",
-                &format!("{:?}", suspension_reason),
+                &format!("{suspension_reason:?}"),
             ]);
         }
         println!("{table}");

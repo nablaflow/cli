@@ -27,15 +27,12 @@ type RootQueryType {
 
   """
   Gets an Aerocloud V7 simulation by ID.
-  For public simulations, also token and password can be provided.
+  For public simulations, also a password can be provided if needed.
   """
   simulationV7(
     id: ID!
 
-    "When a simulation is shared, a token is returned in order to access it."
-    token: String
-
-    "In addition to the token above, a password can be set to access the public simulation."
+    "To access a password-protected public simulation."
     password: String
   ): SimulationV7
 
@@ -245,7 +242,7 @@ type SimulationV7 {
   "URL meant to be opened from a browser"
   browserUrl: String!
 
-  sharingStatus: SimulationSharingStatus!
+  sharingStatus: SimulationSharingStatusV7!
 
   inputs: SimulationInputsV7!
 
@@ -254,6 +251,15 @@ type SimulationV7 {
   createdAt: DateTime!
 
   updatedAt: DateTime!
+}
+
+"A simulation can be shared, optionally protected with a password."
+type SimulationSharingStatusV7 {
+  "Whether the simulation has been shared."
+  public: Boolean!
+
+  "A password if a public simulation has been protected with it."
+  password: String
 }
 
 type ResultsV7 {

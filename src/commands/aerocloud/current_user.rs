@@ -5,6 +5,7 @@ use crate::{
     queries::aerocloud::{User, ViewerQuery},
 };
 use color_eyre::eyre::{self, WrapErr};
+use convert_case::{Case, Casing};
 use cynic::{http::ReqwestExt, QueryBuilder};
 use tracing::debug;
 
@@ -55,7 +56,7 @@ fn print_human(user: &User) {
     table.set_header(vec!["Billing"]);
     table.add_row(vec![
         "Current plan",
-        &format!("{:?}", user.billing.current_plan),
+        &format!("{:?}", user.billing.current_plan).to_case(Case::Lower),
     ]);
     table.add_row(vec![
         "Total available credits",

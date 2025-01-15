@@ -8,6 +8,7 @@ use crate::{
     },
 };
 use color_eyre::eyre::{self, WrapErr};
+use convert_case::{Case, Casing};
 use cynic::{http::ReqwestExt, QueryBuilder};
 use tracing::debug;
 
@@ -63,7 +64,7 @@ fn print_human(projects: &[ProjectV6]) {
         table.add_row(vec![
             format!("{}", project.id.inner()),
             format!("{}", project.name),
-            format!("{:?}", project.status).to_ascii_lowercase(),
+            format!("{:?}", project.status).to_case(Case::Lower),
             format!("{}", project.browser_url),
         ]);
     }

@@ -8,6 +8,7 @@ use crate::{
     },
 };
 use color_eyre::eyre::{self, bail, WrapErr};
+use convert_case::{Case, Casing};
 use cynic::{http::ReqwestExt, Id, QueryBuilder};
 use itertools::Itertools;
 use tracing::debug;
@@ -76,9 +77,9 @@ fn print_human(project: &ProjectV6WithSimulations) {
         table.add_row(vec![
             format!("{}", sim.id.inner()),
             format!("{}", sim.name),
-            format!("{:?}", sim.inputs.quality).to_ascii_lowercase(),
+            format!("{:?}", sim.inputs.quality).to_case(Case::Lower),
             sim.inputs.yaw_angles.iter().map(|n| n.0).join(", "),
-            format!("{:?}", sim.status).to_ascii_lowercase(),
+            format!("{:?}", sim.status).to_case(Case::Lower),
             format!("{}", sim.created_at),
             format!("{}", sim.browser_url),
         ]);

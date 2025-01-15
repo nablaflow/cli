@@ -44,9 +44,6 @@ type RootQueryType {
 
   "The currently authenticated user."
   viewer: User
-
-  "Lists through simulations owned by the current viewer"
-  simulations(limit: UnsignedInteger, offset: UnsignedInteger): [Simulation!]!
 }
 
 type RootMutationType {
@@ -263,7 +260,7 @@ type SimulationSharingStatusV7 {
 }
 
 type ResultsV7 {
-  yawAngles(indexes: [Index!]): [YawAngleResultsV7!]
+  yawAngles(degrees: [YawAngle!]): [YawAngleResultsV7!]
   exports: ExportsV7!
 }
 
@@ -275,12 +272,18 @@ type ExportsV7 {
 }
 
 type YawAngleResultsV7 {
-  index: Index!
   degrees: YawAngle!
+  surfaceArea: Float!
   force: YawAngleForceV7!
   coefficient: YawAngleCoefficientV7!
   coefficientArea: YawAngleCoefficientAreaV7!
   moment: YawAngleMomentV7!
+  heatTransfer: HeatTransferV7!
+}
+
+type HeatTransferV7 {
+  value: Float!
+  coefficient: Float!
 }
 
 type YawAngleForceV7 {
@@ -443,7 +446,7 @@ type SimulationV6 {
 }
 
 type ResultsV6 {
-  yawAngles(indexes: [Index!]): [YawAngleResultsV6!]
+  yawAngles(degrees: [YawAngle!]): [YawAngleResultsV6!]
   exports: ExportsV6!
 }
 
@@ -452,16 +455,21 @@ type ExportsV6 {
   xlsxUrl: String!
   sliceImagesZipUrl: String!
   rawDataZipUrl: String
-  videoUrl: String
 }
 
 type YawAngleResultsV6 {
-  index: Index!
   degrees: YawAngle!
+  surfaceArea: Float!
   force: YawAngleForceV6!
   coefficient: YawAngleCoefficientV6!
   coefficientArea: YawAngleCoefficientAreaV6!
   moment: YawAngleMomentV6!
+  heatTransfer: HeatTransferV6!
+}
+
+type HeatTransferV6 {
+  value: Float!
+  coefficient: Float!
 }
 
 type YawAngleForceV6 {
@@ -547,9 +555,6 @@ type UserSubscription {
   suspensionReason: SubscriptionSuspensionReason
 }
 
-"An Aerocloud Simulation."
-union Simulation = SimulationV6
-
 """
 Quality represents how accurate the simulation is.
 Submitted models are simplified as needed by the chosen quality level.
@@ -618,9 +623,6 @@ enum FileUploadStrategy {
   """
   S3
 }
-
-"Generic index type, natural number (integer >= 0)."
-scalar Index
 
 """
 The `DateTime` scalar type represents a date and time in the UTC

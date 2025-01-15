@@ -33,13 +33,13 @@ The concept of profiles will be added in the future to facilitate switching betw
 > [!TIP]
 > Use `--help` on every subcommand to see their documentation.
 
-### AeroCloud v6
+### AeroCloud v7
 
 In order to submit a simulation you need a project and a model:
-- `nf aerocloud v6 list-projects`, note down the project ID.
-- `nf aerocloud v6 create-model $PATH_TO_JSON`, see [examples/aerocloud/v6/create_model.json](examples/aerocloud/v6/create_model.json) as starting point.
+- `nf aerocloud v7 list-projects` or `nf aerocloud v7 create-project "project name"`, note down the project ID.
+- `nf aerocloud v7 create-model $PATH_TO_JSON`, see [examples/aerocloud/v7/create_model.json](examples/aerocloud/v7/create_model.json) as starting point.
   Note down the model id.
-- `nf aerocloud v6 create-simulation --model-id $MODEL_ID --project-id $PROJECT_ID $PATH_TO_JSON`, see [examples/aerocloud/v6/create_simulation.json](examples/aerocloud/v6/create_simulation.json) as starting point.
+- `nf aerocloud v7 create-simulation --model-id $MODEL_ID --project-id $PROJECT_ID $PATH_TO_JSON`, see [examples/aerocloud/v7/create_simulation.json](examples/aerocloud/v7/create_simulation.json) as starting point.
 
 > [!TIP]
 > All commands that consume a JSON from a path also accept JSON from stdin, be sure to pass `-` instead of the file.  

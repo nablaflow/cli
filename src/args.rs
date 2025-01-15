@@ -66,6 +66,9 @@ pub enum Scope {
     GenerateCompletions {
         shell: Shell,
     },
+    GenerateManpage {
+        dest: PathBuf,
+    },
 }
 
 #[derive(Subcommand, Debug)]

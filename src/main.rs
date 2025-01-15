@@ -38,6 +38,10 @@ async fn main() -> eyre::Result<()> {
             let name = args.get_name().to_string();
             clap_complete::generate(shell, &mut args, name, &mut io::stdout());
         }
+        args::Scope::GenerateManpage { dest } => {
+            let cmd = Args::command();
+            clap_mangen::generate_to(cmd, dest)?;
+        }
     }
 
     Ok(())

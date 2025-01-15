@@ -48,6 +48,10 @@ in {
       nativeBuildInputs = [installShellFiles];
 
       preFixup = lib.optionalString canRunNf ''
+        mkdir man
+        ${nf} generate-manpage man
+        installManPage man/*
+
         installShellCompletion --cmd nf \
           --bash <(${nf} generate-completions bash) \
           --fish <(${nf} generate-completions fish) \

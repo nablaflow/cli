@@ -76,9 +76,9 @@ fn print_human(project: &ProjectV6WithSimulations) {
         table.add_row(vec![
             format!("{}", sim.id.inner()),
             format!("{}", sim.name),
-            format!("{:?}", sim.inputs.quality),
+            format!("{:?}", sim.inputs.quality).to_ascii_lowercase(),
             sim.inputs.yaw_angles.iter().map(|n| n.0).join(", "),
-            format!("{:?}", sim.status),
+            format!("{:?}", sim.status).to_ascii_lowercase(),
             format!("{}", sim.created_at),
             format!("{}", sim.browser_url),
         ]);

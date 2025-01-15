@@ -111,12 +111,6 @@ pub mod aerocloud {
         Closed,
     }
 
-    impl fmt::Display for ProjectStatus {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "{}", format!("{self:?}").to_ascii_lowercase())
-        }
-    }
-
     #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
     #[cynic(schema = "aerocloud")]
     pub struct User {

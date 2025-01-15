@@ -62,7 +62,7 @@ fn print_human(projects: &[ProjectV7]) {
         table.add_row(vec![
             format!("{}", project.id.inner()),
             format!("{}", project.name),
-            format!("{}", project.status),
+            format!("{:?}", project.status).to_ascii_lowercase(),
             format!("{}", project.browser_url),
         ]);
     }

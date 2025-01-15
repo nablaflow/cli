@@ -1,8 +1,10 @@
 use crate::config::{Config, Token};
 use color_eyre::eyre;
+use cynic::GraphQlError;
 use eyre::WrapErr;
+use itertools::Itertools;
 use reqwest::{header, Client, Url};
-use std::time::Duration;
+use std::{borrow::Cow, time::Duration};
 
 static USER_AGENT: &str = concat!("nf-cli", "/", env!("CARGO_PKG_VERSION"),);
 static TOKEN_HEADER: &str = "x-nablaflow-token";
@@ -29,4 +31,18 @@ fn build_client(token: &Token) -> eyre::Result<Client> {
         .default_headers(headers)
         .build()
         .wrap_err("building http client")
+}
+
+pub fn format_graphql_errors<ErrorExtensions>(
+    errors: Option<Vec<GraphQlError<ErrorExtensions>>>,
+) -> Cow<'static, str> {
+    let Some(errors) = errors else {
+        return "<unknown>".into();
+    };
+
+    errors
+        .into_iter()
+        .map(|error| error.message)
+        .join("\n")
+        .into()
 }

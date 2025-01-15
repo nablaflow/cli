@@ -18,8 +18,13 @@ pub async fn run(
             self::current_user::run(args, config).await
         }
         AeroCloudScope::V6 { command } => match command {
-            AeroCloudV6Command::ListProjects => {
-                self::v6::list_projects::run(args, config).await
+            AeroCloudV6Command::ListProjects {
+                status,
+                limit,
+                page,
+            } => {
+                self::v6::list_projects::run(args, config, *status, *limit, *page)
+                    .await
             }
             AeroCloudV6Command::ListSimulations { project_id } => {
                 self::v6::list_simulations::run(args, config, project_id).await
@@ -54,8 +59,13 @@ pub async fn run(
             }
         },
         AeroCloudScope::V7 { command } => match command {
-            AeroCloudV7Command::ListProjects => {
-                self::v7::list_projects::run(args, config).await
+            AeroCloudV7Command::ListProjects {
+                status,
+                limit,
+                page,
+            } => {
+                self::v7::list_projects::run(args, config, *status, *limit, *page)
+                    .await
             }
             AeroCloudV7Command::ListSimulations { project_id } => {
                 self::v7::list_simulations::run(args, config, project_id).await

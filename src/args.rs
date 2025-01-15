@@ -1,9 +1,15 @@
-use crate::config::{Config, Token};
+use crate::{
+    config::{Config, Token},
+    queries::aerocloud::ProjectStatus,
+};
 use clap::{Parser, Subcommand};
 use clap_complete::aot::Shell;
 use clap_stdin::{FileOrStdin, MaybeStdin};
 use reqwest::Url;
-use std::path::PathBuf;
+use std::{num::NonZeroU64, path::PathBuf};
+
+pub type Limit = u64;
+pub type Page = NonZeroU64;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -98,7 +104,16 @@ pub enum ConfigScope {
 
 #[derive(Subcommand, Debug)]
 pub enum AeroCloudV6Command {
-    ListProjects,
+    ListProjects {
+        #[arg(short = 's', long)]
+        status: Option<ProjectStatus>,
+
+        #[arg(short = 'l', long, default_value = "30")]
+        limit: Limit,
+
+        #[arg(short = 'p', long, default_value = "1")]
+        page: Page,
+    },
 
     ListSimulations {
         project_id: String,
@@ -139,7 +154,16 @@ PARAMS is a JSON file like:
 
 #[derive(Subcommand, Debug)]
 pub enum AeroCloudV7Command {
-    ListProjects,
+    ListProjects {
+        #[arg(short = 's', long)]
+        status: Option<ProjectStatus>,
+
+        #[arg(short = 'l', long, default_value = "30")]
+        limit: Limit,
+
+        #[arg(short = 'p', long, default_value = "1")]
+        page: Page,
+    },
 
     ListSimulations {
         project_id: String,

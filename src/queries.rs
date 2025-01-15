@@ -104,6 +104,19 @@ pub mod aerocloud {
         S3,
     }
 
+    #[derive(cynic::Enum, Debug, Clone, Copy, clap::ValueEnum)]
+    #[cynic(schema = "aerocloud")]
+    pub enum ProjectStatus {
+        Active,
+        Closed,
+    }
+
+    impl fmt::Display for ProjectStatus {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{}", format!("{self:?}").to_ascii_lowercase())
+        }
+    }
+
     #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
     #[cynic(schema = "aerocloud")]
     pub struct User {
@@ -142,6 +155,7 @@ pub mod aerocloud {
     pub struct ProjectV6 {
         pub id: Id,
         pub name: String,
+        pub status: ProjectStatus,
         pub browser_url: String,
     }
 
@@ -189,9 +203,21 @@ pub mod aerocloud {
     }
 
     #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(schema = "aerocloud", graphql_type = "RootQueryType")]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootQueryType",
+        variables = "ProjectsV6Arguments"
+    )]
     pub struct ProjectsV6Query {
+        #[arguments(status: $status, limit: $limit, offset: $offset)]
         pub projects_v6: Vec<ProjectV6>,
+    }
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct ProjectsV6Arguments {
+        pub limit: UnsignedInteger,
+        pub offset: UnsignedInteger,
+        pub status: Option<ProjectStatus>,
     }
 
     #[derive(cynic::QueryVariables, Debug)]
@@ -299,6 +325,7 @@ pub mod aerocloud {
     pub struct ProjectV7 {
         pub id: Id,
         pub name: String,
+        pub status: ProjectStatus,
         pub browser_url: String,
     }
 
@@ -340,9 +367,21 @@ pub mod aerocloud {
     }
 
     #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(schema = "aerocloud", graphql_type = "RootQueryType")]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootQueryType",
+        variables = "ProjectsV7Arguments"
+    )]
     pub struct ProjectsV7Query {
+        #[arguments(status: $status, limit: $limit, offset: $offset)]
         pub projects_v7: Vec<ProjectV7>,
+    }
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct ProjectsV7Arguments {
+        pub limit: UnsignedInteger,
+        pub offset: UnsignedInteger,
+        pub status: Option<ProjectStatus>,
     }
 
     #[derive(cynic::QueryVariables, Debug)]

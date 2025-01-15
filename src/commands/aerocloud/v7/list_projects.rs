@@ -1,18 +1,35 @@
 use crate::{
-    args::Args,
+    args::{Args, Limit, Page},
     config::Config,
-    http,
-    queries::aerocloud::{ProjectV7, ProjectsV7Query},
+    http::{self, format_graphql_errors},
+    queries::aerocloud::{
+        ProjectStatus, ProjectV7, ProjectsV7Arguments, ProjectsV7Query,
+        UnsignedInteger,
+    },
 };
 use color_eyre::eyre::{self, WrapErr};
 use cynic::{http::ReqwestExt, QueryBuilder};
 use tracing::debug;
 
-pub async fn run(args: &Args, config: &Config) -> eyre::Result<()> {
+pub async fn run(
+    args: &Args,
+    config: &Config,
+    status: Option<ProjectStatus>,
+    limit: Limit,
+    page: Page,
+) -> eyre::Result<()> {
     let (client, endpoint) = http::build_aerocloud_client_from_config(config)?;
 
-    let op = ProjectsV7Query::build(());
-    debug!("{endpoint}, {}", op.query);
+    let op_args = ProjectsV7Arguments {
+        status,
+        limit: UnsignedInteger(limit),
+        offset: UnsignedInteger((page.get() - 1).saturating_mul(limit)),
+    };
+    debug!("args = {op_args:?}");
+
+    let op = ProjectsV7Query::build(op_args);
+    debug!("endpoint = {endpoint}");
+    debug!("query = {}", op.query);
 
     let res = client
         .post(endpoint)
@@ -22,7 +39,7 @@ pub async fn run(args: &Args, config: &Config) -> eyre::Result<()> {
 
     let projects = res
         .data
-        .ok_or_else(|| eyre::eyre!("bad response"))?
+        .ok_or_else(|| eyre::eyre!(format_graphql_errors(res.errors)))?
         .projects_v7;
 
     if args.json {
@@ -39,12 +56,13 @@ fn print_human(projects: &[ProjectV7]) {
 
     table.load_preset(comfy_table::presets::UTF8_FULL);
     table.apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS);
-    table.set_header(vec!["Id", "Name", "Url"]);
+    table.set_header(vec!["Id", "Name", "Status", "Url"]);
 
     for project in projects {
         table.add_row(vec![
             format!("{}", project.id.inner()),
             format!("{}", project.name),
+            format!("{}", project.status),
             format!("{}", project.browser_url),
         ]);
     }

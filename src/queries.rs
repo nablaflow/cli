@@ -314,6 +314,29 @@ pub mod aerocloud {
         pub create_simulation_v6: SimulationV6,
     }
 
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct CreateProjectV6MutationParams {
+        pub input: InputProjectV6,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootMutationType",
+        variables = "CreateProjectV6MutationParams"
+    )]
+    pub struct CreateProjectV6Mutation {
+        #[arguments(input: $input)]
+        pub create_project_v6: ProjectV6,
+    }
+
+    #[derive(cynic::InputObject, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct InputProjectV6 {
+        pub name: String,
+        pub description: Option<String>,
+    }
+
     #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
     #[cynic(schema = "aerocloud")]
     pub struct ProjectV7 {
@@ -476,5 +499,28 @@ pub mod aerocloud {
     pub struct CreateSimulationV7Mutation {
         #[arguments(input: $input)]
         pub create_simulation_v7: SimulationV7,
+    }
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct CreateProjectV7MutationParams {
+        pub input: InputProjectV7,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootMutationType",
+        variables = "CreateProjectV7MutationParams"
+    )]
+    pub struct CreateProjectV7Mutation {
+        #[arguments(input: $input)]
+        pub create_project_v7: ProjectV7,
+    }
+
+    #[derive(cynic::InputObject, Debug)]
+    #[cynic(schema = "aerocloud")]
+    pub struct InputProjectV7 {
+        pub name: String,
+        pub description: Option<String>,
     }
 }

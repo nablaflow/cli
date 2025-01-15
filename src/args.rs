@@ -132,6 +132,13 @@ PARAMS is a JSON file like:
         params: FileOrStdin,
     },
 
+    CreateProject {
+        name: String,
+
+        #[arg(short = 'd', long)]
+        description: Option<String>,
+    },
+
     #[command(after_help = format!(r#"
 PARAMS is a JSON file like:
 
@@ -180,6 +187,13 @@ PARAMS is a JSON file like:
             help = "path to file containing params (pass - for reading file from stdin)"
         )]
         params: FileOrStdin,
+    },
+
+    CreateProject {
+        name: String,
+
+        #[arg(short = 'd', long)]
+        description: Option<String>,
     },
 
     #[command(after_help = format!(r#"

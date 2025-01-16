@@ -39,13 +39,13 @@ fn print_human(config: &Config, include_secrets: bool) {
     };
 
     let mut table = comfy_table::Table::new();
-
-    table.load_preset(comfy_table::presets::UTF8_FULL);
-    table.apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS);
-    table.set_header(vec!["Key", "Value"]);
-
-    table.add_row(vec!["Token", token_to_show]);
-    table.add_row(vec!["Hostname", config.hostname().as_ref()]);
+    table
+        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
+        .load_preset(comfy_table::presets::UTF8_FULL)
+        .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
+        .set_header(vec!["Key", "Value"])
+        .add_row(vec!["Token", token_to_show])
+        .add_row(vec!["Hostname", config.hostname().as_ref()]);
 
     println!("{table}");
 }

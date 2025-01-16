@@ -36,8 +36,34 @@ pub async fn run(
                 )
                 .await
             }
-            AeroCloudV6Command::ListSimulations { project_id } => {
-                self::v6::list_simulations::run(args, config, project_id).await
+            AeroCloudV6Command::ListSimulations {
+                project_id,
+                results: true,
+                quality,
+                speed,
+                yaw_angles,
+            } => {
+                self::v6::list_simulations_results::run(
+                    args,
+                    config,
+                    project_id,
+                    *quality,
+                    *speed,
+                    yaw_angles.as_deref(),
+                )
+                .await
+            }
+            AeroCloudV6Command::ListSimulations {
+                project_id,
+                results: false,
+                quality,
+                speed,
+                ..
+            } => {
+                self::v6::list_simulations::run(
+                    args, config, project_id, *quality, *speed,
+                )
+                .await
             }
             AeroCloudV6Command::CreateModel { params } => {
                 self::v6::create_model::run(
@@ -86,8 +112,34 @@ pub async fn run(
                 )
                 .await
             }
-            AeroCloudV7Command::ListSimulations { project_id } => {
-                self::v7::list_simulations::run(args, config, project_id).await
+            AeroCloudV7Command::ListSimulations {
+                project_id,
+                results: true,
+                quality,
+                speed,
+                yaw_angles,
+            } => {
+                self::v7::list_simulations_results::run(
+                    args,
+                    config,
+                    project_id,
+                    *quality,
+                    *speed,
+                    yaw_angles.as_deref(),
+                )
+                .await
+            }
+            AeroCloudV7Command::ListSimulations {
+                project_id,
+                results: false,
+                quality,
+                speed,
+                ..
+            } => {
+                self::v7::list_simulations::run(
+                    args, config, project_id, *quality, *speed,
+                )
+                .await
             }
             AeroCloudV7Command::CreateModel { params } => {
                 self::v7::create_model::run(

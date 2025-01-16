@@ -1,7 +1,7 @@
 use crate::{
     args::Args,
     config::Config,
-    http,
+    http::{self, format_graphql_errors},
     queries::aerocloud::{
         self, CreateModelV7Mutation, CreateModelV7MutationParams,
         FileUploadStrategy, InputFileV7, InputModelV7,
@@ -13,7 +13,7 @@ use reqwest::header::CONTENT_LENGTH;
 use serde::Deserialize;
 use std::{fs, path::PathBuf, time::Duration};
 use tokio::{fs::File as AsyncFile, task::JoinSet};
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -80,16 +80,16 @@ pub async fn run(args: &Args, config: &Config, params: &str) -> eyre::Result<()>
         }
     }
 
-    let op = CreateModelV7Mutation::build(CreateModelV7MutationParams {
-        input: model.clone().into(),
-    });
-
     let (client, endpoint) = http::build_aerocloud_client_from_config(config)?;
 
-    debug!(
-        "{endpoint}, query: {}, variables: {:?}",
-        op.query, op.variables
-    );
+    let op_args = CreateModelV7MutationParams {
+        input: model.clone().into(),
+    };
+    debug!("args = {op_args:#?}");
+
+    let op = CreateModelV7Mutation::build(op_args);
+    debug!("endpoint = {endpoint}");
+    debug!("query = {}", op.query);
 
     let res = client
         .post(endpoint)
@@ -97,12 +97,8 @@ pub async fn run(args: &Args, config: &Config, params: &str) -> eyre::Result<()>
         .await
         .wrap_err("failed to mutate")?;
 
-    if let Some(errors) = res.errors {
-        for error in errors {
-            error!("{}", error);
-        }
-
-        bail!("mutation returned errors");
+    if res.errors.is_some() {
+        return Err(eyre::eyre!(format_graphql_errors(res.errors)));
     }
 
     let model_for_upload = res

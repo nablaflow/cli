@@ -1,5 +1,6 @@
 pub mod aerocloud {
     use chrono::{DateTime, NaiveDate, Utc};
+    use convert_case::{Case, Casing};
     use cynic::Id;
     use std::fmt;
 
@@ -10,17 +11,83 @@ pub mod aerocloud {
     pub struct UnsignedInteger(pub u64);
 
     #[derive(cynic::Scalar, Debug)]
+    pub struct Area(pub f32);
+
+    impl fmt::Display for Area {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+            write!(f, "{n:.prec$e} m²", n = self.0, prec = 3)
+        }
+    }
+
+    #[derive(cynic::Scalar, Debug, Clone, Copy)]
     pub struct Speed(pub f32);
+
+    impl fmt::Display for Speed {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+            write!(f, "{:.1} m/s", self.0)
+        }
+    }
+
+    #[derive(cynic::Scalar, Debug)]
+    pub struct Force(pub f32);
+
+    impl fmt::Display for Force {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+            write!(f, "{n:.prec$e} N", n = self.0, prec = 3)
+        }
+    }
+
+    #[derive(cynic::Scalar, Debug)]
+    pub struct Torque(pub f32);
+
+    impl fmt::Display for Torque {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+            write!(f, "{n:.prec$e} N⋅m", n = self.0, prec = 3)
+        }
+    }
+
+    #[derive(cynic::Scalar, Debug)]
+    pub struct ThermalConductance(pub f32);
+
+    impl fmt::Display for ThermalConductance {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+            write!(f, "{n:.prec$e} W/K", n = self.0, prec = 3)
+        }
+    }
+
+    #[derive(cynic::Scalar, Debug)]
+    pub struct ThermalTransmittance(pub f32);
+
+    impl fmt::Display for ThermalTransmittance {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+            write!(f, "{n:.prec$e} W/m²·K", n = self.0, prec = 3)
+        }
+    }
+
+    #[derive(cynic::Scalar, Debug)]
+    pub struct Float(pub f32);
+
+    impl fmt::Display for Float {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+            write!(f, "{n:.prec$e}", n = self.0, prec = 3)
+        }
+    }
 
     #[derive(cynic::Scalar, Debug)]
     pub struct YawAngle(pub f32);
+
+    impl fmt::Display for YawAngle {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+            write!(f, "{:.1}°", self.0)
+        }
+    }
 
     #[derive(cynic::Scalar, Debug)]
     pub struct GroundOffset(pub f32);
 
     impl fmt::Display for UnsignedInteger {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "{}", self.0)
+            self.0.fmt(f)
         }
     }
 
@@ -34,12 +101,24 @@ pub mod aerocloud {
         Subscription,
     }
 
+    impl fmt::Display for Plan {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{}", format!("{self:?}").to_case(Case::Lower))
+        }
+    }
+
     #[derive(cynic::Enum, Debug, Clone, Copy)]
     #[cynic(schema = "aerocloud")]
     pub enum SubscriptionState {
         Active,
         Cancelled,
         Suspended,
+    }
+
+    impl fmt::Display for SubscriptionState {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{}", format!("{self:?}").to_case(Case::Lower))
+        }
     }
 
     #[derive(cynic::Enum, Debug, Clone, Copy)]
@@ -49,11 +128,23 @@ pub mod aerocloud {
         Yearly,
     }
 
+    impl fmt::Display for SubscriptionInterval {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{}", format!("{self:?}").to_case(Case::Lower))
+        }
+    }
+
     #[derive(cynic::Enum, Debug, Clone, Copy)]
     #[cynic(schema = "aerocloud")]
     pub enum SubscriptionSuspensionReason {
         PaymentRequiresAction,
         PaymentFailed,
+    }
+
+    impl fmt::Display for SubscriptionSuspensionReason {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{}", format!("{self:?}").to_case(Case::Lower))
+        }
     }
 
     #[derive(cynic::Enum, Debug, Clone, Copy)]
@@ -64,13 +155,25 @@ pub mod aerocloud {
         Success,
     }
 
-    #[derive(cynic::Enum, Debug, Clone, Copy)]
+    impl fmt::Display for SimulationStatus {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{}", format!("{self:?}").to_case(Case::Lower))
+        }
+    }
+
+    #[derive(cynic::Enum, Debug, Clone, Copy, clap::ValueEnum)]
     #[cynic(schema = "aerocloud")]
     pub enum SimulationQuality {
         Dummy,
         Basic,
         Standard,
         Pro,
+    }
+
+    impl fmt::Display for SimulationQuality {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{}", format!("{self:?}").to_case(Case::Lower))
+        }
     }
 
     #[derive(cynic::Enum, Debug, Clone, Copy)]
@@ -109,6 +212,12 @@ pub mod aerocloud {
     pub enum ProjectStatus {
         Active,
         Closed,
+    }
+
+    impl fmt::Display for ProjectStatus {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{}", format!("{self:?}").to_case(Case::Lower))
+        }
     }
 
     #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
@@ -183,10 +292,16 @@ pub mod aerocloud {
     }
 
     #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
-    #[cynic(schema = "aerocloud", graphql_type = "ProjectV6")]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "ProjectV6",
+        variables = "SimulationsInProjectV6Arguments"
+    )]
     pub struct ProjectV6WithSimulations {
         pub id: Id,
         pub name: String,
+
+        #[arguments(quality: $quality, speed: $speed)]
         pub simulations: Vec<SimulationV6>,
     }
 
@@ -217,6 +332,12 @@ pub mod aerocloud {
     #[derive(cynic::QueryVariables, Debug)]
     pub struct SimulationsInProjectV6Arguments {
         pub id: Id,
+
+        #[cynic(skip_serializing_if = "Option::is_none")]
+        pub quality: Option<SimulationQuality>,
+
+        #[cynic(skip_serializing_if = "Option::is_none")]
+        pub speed: Option<Speed>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
@@ -228,6 +349,121 @@ pub mod aerocloud {
     pub struct SimulationsInProjectV6Query {
         #[arguments(id: $id)]
         pub project_v6: Option<ProjectV6WithSimulations>,
+    }
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct SimulationsWithResultsInProjectV6Arguments {
+        pub id: Id,
+
+        #[cynic(skip_serializing_if = "Option::is_none")]
+        pub quality: Option<SimulationQuality>,
+
+        #[cynic(skip_serializing_if = "Option::is_none")]
+        pub speed: Option<Speed>,
+
+        #[cynic(skip_serializing_if = "Option::is_none")]
+        pub yaw_angles: Option<Vec<YawAngle>>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootQueryType",
+        variables = "SimulationsWithResultsInProjectV6Arguments"
+    )]
+    pub struct SimulationsWithResultsInProjectV6Query {
+        #[arguments(id: $id)]
+        pub project_v6: Option<ProjectV6WithSimulationsResults>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "ProjectV6",
+        variables = "SimulationsWithResultsInProjectV6Arguments"
+    )]
+    pub struct ProjectV6WithSimulationsResults {
+        pub id: Id,
+        pub name: String,
+        #[arguments(quality: $quality, speed: $speed)]
+        pub simulations: Vec<SimulationV6WithResults>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "SimulationV6",
+        variables = "SimulationsWithResultsInProjectV6Arguments"
+    )]
+    pub struct SimulationV6WithResults {
+        pub id: Id,
+        pub name: String,
+        pub browser_url: String,
+        pub status: SimulationStatus,
+        pub created_at: DateTime<Utc>,
+        pub inputs: SimulationInputsV6NoModel,
+        pub results: Option<ResultsV6>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(
+        schema = "aerocloud",
+        variables = "SimulationsWithResultsInProjectV6Arguments"
+    )]
+    pub struct ResultsV6 {
+        #[arguments(yawAngles: $yaw_angles)]
+        pub yaw_angles: Option<Vec<YawAngleResultsV6>>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct YawAngleResultsV6 {
+        pub degrees: YawAngle,
+        pub surface: Option<Area>,
+        pub force: YawAngleForceV6,
+        pub coefficient: YawAngleCoefficientV6,
+        pub coefficient_area: YawAngleCoefficientAreaV6,
+        pub moment: YawAngleMomentV6,
+        pub heat_transfer: HeatTransferV6,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct YawAngleForceV6 {
+        pub fd: Force,
+        pub fl: Force,
+        pub fs: Force,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct YawAngleCoefficientV6 {
+        pub cd: Float,
+        pub cl: Float,
+        pub cs: Float,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct YawAngleCoefficientAreaV6 {
+        pub cda: Area,
+        pub cla: Area,
+        pub csa: Area,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct YawAngleMomentV6 {
+        pub mr: Torque,
+        pub mp: Torque,
+        pub my: Torque,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct HeatTransferV6 {
+        pub value: Option<ThermalConductance>,
+        pub coefficient: Option<ThermalTransmittance>,
     }
 
     #[derive(cynic::InputObject, Debug)]
@@ -376,10 +612,16 @@ pub mod aerocloud {
     }
 
     #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
-    #[cynic(schema = "aerocloud", graphql_type = "ProjectV7")]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "ProjectV7",
+        variables = "SimulationsInProjectV7Arguments"
+    )]
     pub struct ProjectV7WithSimulations {
         pub id: Id,
         pub name: String,
+
+        #[arguments(quality: $quality, speed: $speed)]
         pub simulations: Vec<SimulationV7>,
     }
 
@@ -404,6 +646,12 @@ pub mod aerocloud {
     #[derive(cynic::QueryVariables, Debug)]
     pub struct SimulationsInProjectV7Arguments {
         pub id: Id,
+
+        #[cynic(skip_serializing_if = "Option::is_none")]
+        pub quality: Option<SimulationQuality>,
+
+        #[cynic(skip_serializing_if = "Option::is_none")]
+        pub speed: Option<Speed>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
@@ -522,5 +770,120 @@ pub mod aerocloud {
     pub struct InputProjectV7 {
         pub name: String,
         pub description: Option<String>,
+    }
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct SimulationsWithResultsInProjectV7Arguments {
+        pub id: Id,
+
+        #[cynic(skip_serializing_if = "Option::is_none")]
+        pub quality: Option<SimulationQuality>,
+
+        #[cynic(skip_serializing_if = "Option::is_none")]
+        pub speed: Option<Speed>,
+
+        #[cynic(skip_serializing_if = "Option::is_none")]
+        pub yaw_angles: Option<Vec<YawAngle>>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "RootQueryType",
+        variables = "SimulationsWithResultsInProjectV7Arguments"
+    )]
+    pub struct SimulationsWithResultsInProjectV7Query {
+        #[arguments(id: $id)]
+        pub project_v7: Option<ProjectV7WithSimulationsResults>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "ProjectV7",
+        variables = "SimulationsWithResultsInProjectV7Arguments"
+    )]
+    pub struct ProjectV7WithSimulationsResults {
+        pub id: Id,
+        pub name: String,
+        #[arguments(quality: $quality, speed: $speed)]
+        pub simulations: Vec<SimulationV7WithResults>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(
+        schema = "aerocloud",
+        graphql_type = "SimulationV7",
+        variables = "SimulationsWithResultsInProjectV7Arguments"
+    )]
+    pub struct SimulationV7WithResults {
+        pub id: Id,
+        pub name: String,
+        pub browser_url: String,
+        pub status: SimulationStatus,
+        pub created_at: DateTime<Utc>,
+        pub inputs: SimulationInputsV7NoModel,
+        pub results: Option<ResultsV7>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(
+        schema = "aerocloud",
+        variables = "SimulationsWithResultsInProjectV7Arguments"
+    )]
+    pub struct ResultsV7 {
+        #[arguments(yawAngles: $yaw_angles)]
+        pub yaw_angles: Option<Vec<YawAngleResultsV7>>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct YawAngleResultsV7 {
+        pub degrees: YawAngle,
+        pub surface: Area,
+        pub force: YawAngleForceV7,
+        pub coefficient: YawAngleCoefficientV7,
+        pub coefficient_area: YawAngleCoefficientAreaV7,
+        pub moment: YawAngleMomentV7,
+        pub heat_transfer: HeatTransferV7,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct YawAngleForceV7 {
+        pub fd: Force,
+        pub fl: Force,
+        pub fs: Force,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct YawAngleCoefficientV7 {
+        pub cd: Float,
+        pub cl: Float,
+        pub cs: Float,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct YawAngleCoefficientAreaV7 {
+        pub cda: Area,
+        pub cla: Area,
+        pub csa: Area,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct YawAngleMomentV7 {
+        pub mr: Torque,
+        pub mp: Torque,
+        pub my: Torque,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud")]
+    pub struct HeatTransferV7 {
+        pub value: ThermalConductance,
+        pub coefficient: ThermalTransmittance,
     }
 }

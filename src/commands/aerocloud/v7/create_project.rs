@@ -49,7 +49,7 @@ pub async fn run(
             }))?
         );
     } else {
-        println!("Created project `{name}` with id {}", project.id.inner());
+        println!("Created project `{name}` with id {}\n", project.id.inner());
         println!("Browser url: {}", project.browser_url);
     }
 

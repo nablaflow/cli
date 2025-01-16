@@ -1,6 +1,6 @@
 use crate::{
     config::{Config, Token},
-    queries::aerocloud::ProjectStatus,
+    queries::aerocloud::{ProjectStatus, SimulationQuality},
 };
 use clap::{Parser, Subcommand};
 use clap_complete::aot::Shell;
@@ -120,6 +120,28 @@ pub enum AeroCloudV6Command {
 
     ListSimulations {
         project_id: String,
+
+        #[arg(
+            short = 'r',
+            long,
+            default_value = "false",
+            help = "displays only completed simulations with their results"
+        )]
+        results: bool,
+
+        #[arg(short = 's', long, help = "filter by fluid speed")]
+        speed: Option<f32>,
+
+        #[arg(short = 'q', long, help = "filter by quality")]
+        quality: Option<SimulationQuality>,
+
+        #[arg(
+            short = 'y',
+            long,
+            value_delimiter = ',',
+            help = "filter by yaw angle (multiple can be specified like 0,-10,20"
+        )]
+        yaw_angles: Option<Vec<f32>>,
     },
 
     #[command(after_help = format!(r#"
@@ -177,6 +199,28 @@ pub enum AeroCloudV7Command {
 
     ListSimulations {
         project_id: String,
+
+        #[arg(
+            short = 'r',
+            long,
+            default_value = "false",
+            help = "displays only completed simulations with their results"
+        )]
+        results: bool,
+
+        #[arg(short = 's', long, help = "filter by fluid speed")]
+        speed: Option<f32>,
+
+        #[arg(short = 'q', long, help = "filter by quality")]
+        quality: Option<SimulationQuality>,
+
+        #[arg(
+            short = 'y',
+            long,
+            value_delimiter = ',',
+            help = "filter by yaw angle (multiple can be specified like 0,-10,20"
+        )]
+        yaw_angles: Option<Vec<f32>>,
     },
 
     #[command(after_help = format!(r#"

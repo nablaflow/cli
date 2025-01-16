@@ -260,7 +260,7 @@ type SimulationSharingStatusV7 {
 }
 
 type ResultsV7 {
-  yawAngles(degrees: [YawAngle!]): [YawAngleResultsV7!]
+  yawAngles(yawAngles: [YawAngle!]): [YawAngleResultsV7!]
   exports: ExportsV7!
 }
 
@@ -273,7 +273,7 @@ type ExportsV7 {
 
 type YawAngleResultsV7 {
   degrees: YawAngle!
-  surfaceArea: Float!
+  surface: Area!
   force: YawAngleForceV7!
   coefficient: YawAngleCoefficientV7!
   coefficientArea: YawAngleCoefficientAreaV7!
@@ -281,15 +281,10 @@ type YawAngleResultsV7 {
   heatTransfer: HeatTransferV7!
 }
 
-type HeatTransferV7 {
-  value: Float!
-  coefficient: Float!
-}
-
 type YawAngleForceV7 {
-  fd: Float!
-  fl: Float!
-  fs: Float!
+  fd: Force!
+  fl: Force!
+  fs: Force!
 }
 
 type YawAngleCoefficientV7 {
@@ -299,15 +294,20 @@ type YawAngleCoefficientV7 {
 }
 
 type YawAngleCoefficientAreaV7 {
-  cda: Float!
-  cla: Float!
-  csa: Float!
+  cda: Area!
+  cla: Area!
+  csa: Area!
 }
 
 type YawAngleMomentV7 {
-  mr: Float!
-  mp: Float!
-  my: Float!
+  mr: Torque!
+  mp: Torque!
+  my: Torque!
+}
+
+type HeatTransferV7 {
+  value: ThermalConductance!
+  coefficient: ThermalTransmittance!
 }
 
 "A project is a collection of comparable Aerocloud V7 simulations."
@@ -318,7 +318,7 @@ type ProjectV7 {
   status: ProjectStatus!
   createdAt: DateTime!
   updatedAt: DateTime!
-  simulations(limit: UnsignedInteger, offset: UnsignedInteger): [SimulationV7!]!
+  simulations(limit: UnsignedInteger, offset: UnsignedInteger, quality: SimulationQuality, speed: Speed): [SimulationV7!]!
 }
 
 "Inputs to the creation of a model."
@@ -446,7 +446,7 @@ type SimulationV6 {
 }
 
 type ResultsV6 {
-  yawAngles(degrees: [YawAngle!]): [YawAngleResultsV6!]
+  yawAngles(yawAngles: [YawAngle!]): [YawAngleResultsV6!]
   exports: ExportsV6!
 }
 
@@ -459,7 +459,7 @@ type ExportsV6 {
 
 type YawAngleResultsV6 {
   degrees: YawAngle!
-  surfaceArea: Float!
+  surface: Area
   force: YawAngleForceV6!
   coefficient: YawAngleCoefficientV6!
   coefficientArea: YawAngleCoefficientAreaV6!
@@ -467,15 +467,10 @@ type YawAngleResultsV6 {
   heatTransfer: HeatTransferV6!
 }
 
-type HeatTransferV6 {
-  value: Float!
-  coefficient: Float!
-}
-
 type YawAngleForceV6 {
-  fd: Float!
-  fl: Float!
-  fs: Float!
+  fd: Force!
+  fl: Force!
+  fs: Force!
 }
 
 type YawAngleCoefficientV6 {
@@ -485,15 +480,20 @@ type YawAngleCoefficientV6 {
 }
 
 type YawAngleCoefficientAreaV6 {
-  cda: Float!
-  cla: Float!
-  csa: Float!
+  cda: Area!
+  cla: Area!
+  csa: Area!
 }
 
 type YawAngleMomentV6 {
-  mr: Float!
-  mp: Float!
-  my: Float!
+  mr: Torque!
+  mp: Torque!
+  my: Torque!
+}
+
+type HeatTransferV6 {
+  value: ThermalConductance
+  coefficient: ThermalTransmittance
 }
 
 "A project is a collection of comparable Aerocloud V6 simulations."
@@ -504,7 +504,7 @@ type ProjectV6 {
   status: ProjectStatus!
   createdAt: DateTime!
   updatedAt: DateTime!
-  simulations(limit: UnsignedInteger, offset: UnsignedInteger): [SimulationV6!]!
+  simulations(limit: UnsignedInteger, offset: UnsignedInteger, quality: SimulationQuality, speed: Speed): [SimulationV6!]!
 }
 
 type User {
@@ -572,8 +572,23 @@ enum InputSimulationQuality {
   DUMMY
 }
 
-"Measured in m\/s, must be greater than or equal to 0"
+"Measured in m\/s, greater than 0"
 scalar Speed
+
+"Measured in m²"
+scalar Area
+
+"Measured in N"
+scalar Force
+
+"Measured in N⋅m"
+scalar Torque
+
+"Measured in W\/K"
+scalar ThermalConductance
+
+"Measured in W\/m²·K"
+scalar ThermalTransmittance
 
 """
 Quality represents how accurate the simulation is.

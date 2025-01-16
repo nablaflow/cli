@@ -8,7 +8,6 @@ use crate::{
     },
 };
 use color_eyre::eyre::{self, WrapErr};
-use convert_case::{Case, Casing};
 use cynic::{http::ReqwestExt, QueryBuilder};
 use tracing::debug;
 
@@ -26,7 +25,6 @@ pub async fn run(
         limit: UnsignedInteger(limit),
         offset: UnsignedInteger((page.get() - 1).saturating_mul(limit)),
     };
-
     debug!("args = {op_args:?}");
 
     let op = ProjectsV6Query::build(op_args);
@@ -55,16 +53,17 @@ pub async fn run(
 
 fn print_human(projects: &[ProjectV6]) {
     let mut table = comfy_table::Table::new();
-
-    table.load_preset(comfy_table::presets::UTF8_FULL);
-    table.apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS);
-    table.set_header(vec!["Id", "Name", "Status", "Url"]);
+    table
+        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
+        .load_preset(comfy_table::presets::UTF8_FULL)
+        .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
+        .set_header(vec!["Id", "Name", "Status", "Url"]);
 
     for project in projects {
         table.add_row(vec![
             format!("{}", project.id.inner()),
             format!("{}", project.name),
-            format!("{:?}", project.status).to_case(Case::Lower),
+            format!("{}", project.status),
             format!("{}", project.browser_url),
         ]);
     }

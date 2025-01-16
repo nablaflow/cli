@@ -2,11 +2,12 @@ use crate::{args::Args, config::Config};
 use clap::{CommandFactory, Parser};
 use color_eyre::eyre;
 use std::io;
-use tracing::Level;
+use tracing::{debug, Level};
 
 mod args;
 mod commands;
 mod config;
+mod fmt;
 mod http;
 mod queries;
 
@@ -23,6 +24,8 @@ async fn main() -> eyre::Result<()> {
             Level::INFO
         })
         .init();
+
+    debug!("args = {:?}", args.scope);
 
     let config = Config::load(&args).await?;
 

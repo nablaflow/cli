@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::path::{Path, PathBuf};
 use tokio::fs as tokio_fs;
 
-pub const DEFAULT_HOSTNAME: &str = "https://api.aerocloud.io";
+pub const DEFAULT_HOSTNAME: &str = "https://api.nablaflow.io";
 
 pub type Token = String;
 

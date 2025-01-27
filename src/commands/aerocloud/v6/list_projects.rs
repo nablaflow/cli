@@ -52,6 +52,11 @@ pub async fn run(
 }
 
 fn print_human(projects: &[ProjectV6]) {
+    if projects.is_empty() {
+        println!("<empty>");
+        return;
+    }
+
     let mut table = comfy_table::Table::new();
     table
         .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)

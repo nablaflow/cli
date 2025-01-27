@@ -67,8 +67,8 @@ type RootMutationType {
 }
 
 type RootSubscriptionType {
-  simulationV6Succeeded: SimulationV6
-  simulationV7Succeeded: SimulationV7
+  simulationV6Succeeded: SimulationV6!
+  simulationV7Succeeded: SimulationV7!
 }
 
 enum SimulationStatus {

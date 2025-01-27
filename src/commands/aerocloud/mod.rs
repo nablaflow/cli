@@ -93,6 +93,9 @@ pub async fn run(
                 )
                 .await
             }
+            AeroCloudV6Command::WaitForSimulations { ids } => {
+                self::v6::wait_for_simulations::run(args, config, ids).await
+            }
         },
         AeroCloudScope::V7 { command } => match command {
             AeroCloudV7Command::ListProjects {
@@ -168,6 +171,9 @@ pub async fn run(
                         .wrap_err("failed to read contents")?,
                 )
                 .await
+            }
+            AeroCloudV7Command::WaitForSimulations { ids } => {
+                self::v7::wait_for_simulations::run(args, config, ids).await
             }
         },
     }

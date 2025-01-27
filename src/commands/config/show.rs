@@ -21,6 +21,7 @@ fn print_json(config: &Config) -> eyre::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "token": config.token,
             "hostname": config.hostname().to_string(),
+            "ws_hostname": config.ws_hostname().to_string(),
         }))?
     );
 
@@ -45,7 +46,8 @@ fn print_human(config: &Config, include_secrets: bool) {
         .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
         .set_header(vec!["Key", "Value"])
         .add_row(vec!["Token", token_to_show])
-        .add_row(vec!["Hostname", config.hostname().as_ref()]);
+        .add_row(vec!["Hostname", config.hostname().as_ref()])
+        .add_row(vec!["Websockets hostname", config.ws_hostname().as_ref()]);
 
     println!("{table}");
 }

@@ -30,6 +30,15 @@ pub struct Args {
     pub hostname: Option<Url>,
 
     #[arg(
+        short = 'W',
+        long,
+        value_name = "URI",
+        help = "Websockets host to connect to. If specified will take precedence over the one set in config",
+        env = "NF_WS_HOSTNAME"
+    )]
+    pub ws_hostname: Option<Url>,
+
+    #[arg(
         short,
         long,
         env = "NF_TOKEN",
@@ -94,7 +103,15 @@ pub enum ConfigScope {
         #[arg(value_name = "HOSTNAME", help = "Hostname to set in config")]
         hostname: Url,
     },
+    SetWsHostname {
+        #[arg(
+            value_name = "WS_HOSTNAME",
+            help = "Websockets hostname to set in config"
+        )]
+        hostname: Url,
+    },
     UnsetHostname,
+    UnsetWsHostname,
     Show {
         #[arg(
             short = 's',
@@ -182,6 +199,14 @@ PARAMS is a JSON file like:
         )]
         params: FileOrStdin,
     },
+
+    #[command(
+        about = "Waits for simulations to succeed. If given IDs, will exit after all have succeeded."
+    )]
+    WaitForSimulations {
+        #[arg(help = "list of IDs to wait for and then exit")]
+        ids: Vec<String>,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -260,5 +285,13 @@ PARAMS is a JSON file like:
             help = "path to file containing params (pass - for reading file from stdin)"
         )]
         params: FileOrStdin,
+    },
+
+    #[command(
+        about = "Waits for simulations to succeed. If given IDs, will exit after all have succeeded."
+    )]
+    WaitForSimulations {
+        #[arg(help = "list of IDs to wait for and then exit")]
+        ids: Vec<String>,
     },
 }

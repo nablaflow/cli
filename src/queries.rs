@@ -292,6 +292,13 @@ pub mod aerocloud {
     }
 
     #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud", graphql_type = "SimulationV6")]
+    pub struct SimulationV6OnSubscription {
+        pub id: Id,
+        pub browser_url: String,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
     #[cynic(
         schema = "aerocloud",
         graphql_type = "ProjectV6",
@@ -571,6 +578,12 @@ pub mod aerocloud {
     pub struct InputProjectV6 {
         pub name: String,
         pub description: Option<String>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(schema = "aerocloud", graphql_type = "RootSubscriptionType")]
+    pub struct SimulationV6SucceededSubscription {
+        pub simulation_v6_succeeded: SimulationV6OnSubscription,
     }
 
     #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
@@ -885,5 +898,18 @@ pub mod aerocloud {
     pub struct HeatTransferV7 {
         pub value: ThermalConductance,
         pub coefficient: ThermalTransmittance,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(schema = "aerocloud", graphql_type = "RootSubscriptionType")]
+    pub struct SimulationV7SucceededSubscription {
+        pub simulation_v7_succeeded: SimulationV7OnSubscription,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+    #[cynic(schema = "aerocloud", graphql_type = "SimulationV7")]
+    pub struct SimulationV7OnSubscription {
+        pub id: Id,
+        pub browser_url: String,
     }
 }

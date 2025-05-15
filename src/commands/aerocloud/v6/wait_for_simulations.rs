@@ -19,11 +19,12 @@ pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
     let mut ids_to_wait_for: Vec<Uuid> =
         ids.iter().map(|id| **id).collect::<Vec<_>>();
 
-    if !args.json {
-        info!("Subscribed! Waiting for events...");
-    }
+    loop {
+        info!(
+            "waiting for {} simulation(s) to complete...",
+            ids_to_wait_for.len()
+        );
 
-    while !ids_to_wait_for.is_empty() {
         let mut found_ids = vec![];
 
         for id in &ids_to_wait_for {
@@ -41,7 +42,7 @@ pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
                         if args.json {
                             println!("{}", serde_json::to_string(&sim)?);
                         } else {
-                            info!(
+                            println!(
                                 "Simulation `{}` has completed. {}",
                                 sim.id,
                                 link(&sim.browser_url)
@@ -58,6 +59,10 @@ pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
         }
 
         ids_to_wait_for.retain(|id| !found_ids.contains(id));
+
+        if ids_to_wait_for.is_empty() {
+            break;
+        }
 
         tokio::time::sleep(Duration::from_secs(60)).await;
     }

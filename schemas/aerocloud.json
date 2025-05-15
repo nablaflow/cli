@@ -1,0 +1,3300 @@
+{
+  "components": {
+    "responses": {},
+    "schemas": {
+      "BillingPlan": {
+        "properties": {
+          "available_credits": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "ends_on": {
+            "$ref": "#/components/schemas/Date"
+          },
+          "monthly_credits": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next_monthly_cycle_starts_on": {
+            "$ref": "#/components/schemas/Date"
+          },
+          "renewal_interval": {
+            "enum": [
+              "monthly",
+              "yearly",
+              "custom"
+            ],
+            "type": "string"
+          },
+          "renews_on": {
+            "$ref": "#/components/schemas/Date"
+          },
+          "started_on": {
+            "$ref": "#/components/schemas/Date"
+          },
+          "state": {
+            "enum": [
+              "active",
+              "cancelled",
+              "suspended"
+            ],
+            "type": "string"
+          },
+          "suspension_reason": {
+            "enum": [
+              "payment_requires_action",
+              "payment_failed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "state",
+          "available_credits",
+          "renewal_interval",
+          "monthly_credits",
+          "started_on"
+        ],
+        "title": "BillingPlan",
+        "type": "object"
+      },
+      "CreateModelV6Params": {
+        "properties": {
+          "files": {
+            "items": {
+              "properties": {
+                "name": {
+                  "$ref": "#/components/schemas/Filename"
+                },
+                "rotation": {
+                  "$ref": "#/components/schemas/Quaternion"
+                },
+                "unit": {
+                  "$ref": "#/components/schemas/FileUnit"
+                }
+              },
+              "required": [
+                "name",
+                "unit"
+              ],
+              "type": "object"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reusable": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "files"
+        ],
+        "title": "CreateModelV6Params",
+        "type": "object"
+      },
+      "CreateModelV7Params": {
+        "properties": {
+          "files": {
+            "items": {
+              "properties": {
+                "name": {
+                  "$ref": "#/components/schemas/Filename"
+                },
+                "rotation": {
+                  "$ref": "#/components/schemas/Quaternion"
+                },
+                "unit": {
+                  "$ref": "#/components/schemas/FileUnit"
+                }
+              },
+              "required": [
+                "name",
+                "unit"
+              ],
+              "type": "object"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reusable": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "files"
+        ],
+        "title": "CreateModelV7Params",
+        "type": "object"
+      },
+      "CreateProjectV6Params": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CreateProjectV6Params",
+        "type": "object"
+      },
+      "CreateProjectV7Params": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CreateProjectV7Params",
+        "type": "object"
+      },
+      "CreateSimulationV6Params": {
+        "properties": {
+          "fluid": {
+            "$ref": "#/components/schemas/Fluid"
+          },
+          "fluid_speed": {
+            "$ref": "#/components/schemas/FluidSpeed"
+          },
+          "ground_offset": {
+            "$ref": "#/components/schemas/GroundOffset"
+          },
+          "has_ground": {
+            "type": "boolean"
+          },
+          "is_ground_moving": {
+            "type": "boolean"
+          },
+          "model_id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/SimulationQuality"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "yaw_angles": {
+            "$ref": "#/components/schemas/YawAngles"
+          }
+        },
+        "required": [
+          "name",
+          "project_id",
+          "model_id",
+          "yaw_angles",
+          "quality",
+          "fluid",
+          "fluid_speed",
+          "has_ground",
+          "is_ground_moving",
+          "ground_offset"
+        ],
+        "title": "CreateSimulationV6Params",
+        "type": "object"
+      },
+      "CreateSimulationV7Params": {
+        "properties": {
+          "fluid": {
+            "$ref": "#/components/schemas/Fluid"
+          },
+          "fluid_speed": {
+            "$ref": "#/components/schemas/FluidSpeed"
+          },
+          "ground_offset": {
+            "$ref": "#/components/schemas/GroundOffset"
+          },
+          "has_ground": {
+            "type": "boolean"
+          },
+          "is_ground_moving": {
+            "type": "boolean"
+          },
+          "model_id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/SimulationQuality"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "yaw_angles": {
+            "$ref": "#/components/schemas/YawAngles"
+          }
+        },
+        "required": [
+          "name",
+          "project_id",
+          "model_id",
+          "yaw_angles",
+          "quality",
+          "fluid",
+          "fluid_speed",
+          "has_ground",
+          "is_ground_moving",
+          "ground_offset"
+        ],
+        "title": "CreateSimulationV7Params",
+        "type": "object"
+      },
+      "Date": {
+        "example": "2025-05-08",
+        "format": "date",
+        "title": "Date",
+        "type": "string"
+      },
+      "DateTime": {
+        "example": "2025-05-12T08:33:34.782736Z",
+        "format": "date-time",
+        "title": "DateTime",
+        "type": "string"
+      },
+      "FileUnit": {
+        "enum": [
+          "mm",
+          "cm",
+          "m",
+          "inches"
+        ],
+        "example": "cm",
+        "title": "FileUnit",
+        "type": "string"
+      },
+      "Filename": {
+        "example": "model.obj",
+        "pattern": "^[^\\.]+\\.(obj|stl|jt)$",
+        "title": "Filename",
+        "type": "string"
+      },
+      "Fluid": {
+        "enum": [
+          "air",
+          "water"
+        ],
+        "example": "air",
+        "title": "Fluid",
+        "type": "string"
+      },
+      "FluidSpeed": {
+        "description": "in m/s",
+        "example": 30.0,
+        "maximum": 100.0,
+        "minimum": 0.001,
+        "title": "FluidSpeed",
+        "type": "number"
+      },
+      "GroundOffset": {
+        "description": "in meters",
+        "title": "GroundOffset",
+        "type": "number"
+      },
+      "ID": {
+        "example": "0196c865-bfce-7d05-a5ae-559160016764",
+        "format": "uuid",
+        "title": "ID",
+        "type": "string"
+      },
+      "IdempotencyKey": {
+        "example": "0196c865-bfd3-79dc-97c6-349079044370",
+        "title": "IdempotencyKey",
+        "type": "string"
+      },
+      "JsonErrorResponse": {
+        "properties": {
+          "errors": {
+            "items": {
+              "properties": {
+                "detail": {
+                  "example": "null value where string expected",
+                  "type": "string"
+                },
+                "source": {
+                  "properties": {
+                    "pointer": {
+                      "example": "/data/attributes/petName",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "pointer"
+                  ],
+                  "type": "object"
+                },
+                "title": {
+                  "example": "Invalid value",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "source",
+                "detail"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "errors"
+        ],
+        "title": "JsonErrorResponse",
+        "type": "object"
+      },
+      "ListPageModelsV6": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ModelV6"
+            },
+            "type": "array"
+          },
+          "nav": {
+            "$ref": "#/components/schemas/ListPageNav"
+          }
+        },
+        "required": [
+          "items",
+          "nav"
+        ],
+        "title": "ListPageModelsV6",
+        "type": "object"
+      },
+      "ListPageModelsV7": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ModelV7"
+            },
+            "type": "array"
+          },
+          "nav": {
+            "$ref": "#/components/schemas/ListPageNav"
+          }
+        },
+        "required": [
+          "items",
+          "nav"
+        ],
+        "title": "ListPageModelsV7",
+        "type": "object"
+      },
+      "ListPageNav": {
+        "properties": {
+          "current_offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "current_page": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "limit": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "next_offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "next_page": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "previous_offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "previous_page": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "total_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit",
+          "total_count",
+          "total_pages",
+          "current_offset",
+          "current_page"
+        ],
+        "title": "ListPageNav",
+        "type": "object"
+      },
+      "ListPageProjectsV6": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectV6"
+            },
+            "type": "array"
+          },
+          "nav": {
+            "$ref": "#/components/schemas/ListPageNav"
+          }
+        },
+        "required": [
+          "items",
+          "nav"
+        ],
+        "title": "ListPageProjectsV6",
+        "type": "object"
+      },
+      "ListPageProjectsV7": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectV7"
+            },
+            "type": "array"
+          },
+          "nav": {
+            "$ref": "#/components/schemas/ListPageNav"
+          }
+        },
+        "required": [
+          "items",
+          "nav"
+        ],
+        "title": "ListPageProjectsV7",
+        "type": "object"
+      },
+      "ListPageSimulationsV6": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SimulationV6"
+            },
+            "type": "array"
+          },
+          "nav": {
+            "$ref": "#/components/schemas/ListPageNav"
+          }
+        },
+        "required": [
+          "items",
+          "nav"
+        ],
+        "title": "ListPageSimulationsV6",
+        "type": "object"
+      },
+      "ListPageSimulationsV7": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SimulationV7"
+            },
+            "type": "array"
+          },
+          "nav": {
+            "$ref": "#/components/schemas/ListPageNav"
+          }
+        },
+        "required": [
+          "items",
+          "nav"
+        ],
+        "title": "ListPageSimulationsV7",
+        "type": "object"
+      },
+      "ModelV6": {
+        "properties": {
+          "created_at": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "files": {
+            "items": {
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/ID"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/Filename"
+                },
+                "parts": {
+                  "items": {
+                    "properties": {
+                      "darcy_coeff": {
+                        "type": "number"
+                      },
+                      "forchheimer_coeff": {
+                        "type": "number"
+                      },
+                      "id": {
+                        "$ref": "#/components/schemas/ID"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "rolling": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "rolling"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "rotation": {
+                  "$ref": "#/components/schemas/Quaternion"
+                },
+                "unit": {
+                  "$ref": "#/components/schemas/FileUnit"
+                },
+                "upload_url": {
+                  "$ref": "#/components/schemas/Url"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "unit",
+                "rotation",
+                "parts"
+              ],
+              "type": "object"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "type": "array"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "processed": {
+            "type": "boolean"
+          },
+          "reusable": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/DateTime"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "reusable",
+          "processed",
+          "created_at",
+          "updated_at",
+          "files"
+        ],
+        "title": "ModelV6",
+        "type": "object"
+      },
+      "ModelV7": {
+        "properties": {
+          "created_at": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "files": {
+            "items": {
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/ID"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/Filename"
+                },
+                "parts": {
+                  "items": {
+                    "properties": {
+                      "darcy_coeff": {
+                        "type": "number"
+                      },
+                      "forchheimer_coeff": {
+                        "type": "number"
+                      },
+                      "id": {
+                        "$ref": "#/components/schemas/ID"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "rolling": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "rolling"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "rotation": {
+                  "$ref": "#/components/schemas/Quaternion"
+                },
+                "unit": {
+                  "$ref": "#/components/schemas/FileUnit"
+                },
+                "upload_url": {
+                  "$ref": "#/components/schemas/Url"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "unit",
+                "rotation",
+                "parts"
+              ],
+              "type": "object"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "type": "array"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "processed": {
+            "type": "boolean"
+          },
+          "reusable": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/DateTime"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "reusable",
+          "processed",
+          "created_at",
+          "updated_at",
+          "files"
+        ],
+        "title": "ModelV7",
+        "type": "object"
+      },
+      "PaginationLimit": {
+        "default": 10,
+        "maximum": 20,
+        "minimum": 1,
+        "title": "PaginationLimit",
+        "type": "integer"
+      },
+      "PaginationOffset": {
+        "default": 0,
+        "minimum": 0,
+        "title": "PaginationOffset",
+        "type": "integer"
+      },
+      "ProjectV6": {
+        "properties": {
+          "browser_url": {
+            "$ref": "#/components/schemas/Url"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "closed"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/DateTime"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "browser_url",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProjectV6",
+        "type": "object"
+      },
+      "ProjectV7": {
+        "properties": {
+          "browser_url": {
+            "$ref": "#/components/schemas/Url"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "closed"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/DateTime"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "browser_url",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProjectV7",
+        "type": "object"
+      },
+      "Quaternion": {
+        "description": "Represents a rotation: <a href=\"https://danceswithcode.net/engineeringnotes/quaternions/quaternions.html\">read more</a>",
+        "example": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "items": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "type": "number"
+        },
+        "maxItems": 4,
+        "minItems": 4,
+        "title": "Quaternion",
+        "type": "array"
+      },
+      "SimulationParamsV6": {
+        "properties": {
+          "fluid": {
+            "$ref": "#/components/schemas/Fluid"
+          },
+          "fluid_speed": {
+            "$ref": "#/components/schemas/FluidSpeed"
+          },
+          "ground_offset": {
+            "$ref": "#/components/schemas/GroundOffset"
+          },
+          "has_ground": {
+            "type": "boolean"
+          },
+          "is_ground_moving": {
+            "type": "boolean"
+          },
+          "model_id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/SimulationQuality"
+          },
+          "yaw_angles": {
+            "$ref": "#/components/schemas/YawAngles"
+          }
+        },
+        "required": [
+          "model_id",
+          "yaw_angles",
+          "quality",
+          "fluid_speed",
+          "fluid",
+          "has_ground",
+          "is_ground_moving",
+          "ground_offset"
+        ],
+        "title": "SimulationParamsV6",
+        "type": "object"
+      },
+      "SimulationParamsV7": {
+        "properties": {
+          "fluid": {
+            "$ref": "#/components/schemas/Fluid"
+          },
+          "fluid_speed": {
+            "$ref": "#/components/schemas/FluidSpeed"
+          },
+          "ground_offset": {
+            "$ref": "#/components/schemas/GroundOffset"
+          },
+          "has_ground": {
+            "type": "boolean"
+          },
+          "is_ground_moving": {
+            "type": "boolean"
+          },
+          "model_id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/SimulationQuality"
+          },
+          "yaw_angles": {
+            "$ref": "#/components/schemas/YawAngles"
+          }
+        },
+        "required": [
+          "model_id",
+          "yaw_angles",
+          "quality",
+          "fluid",
+          "fluid_speed",
+          "has_ground",
+          "is_ground_moving",
+          "ground_offset"
+        ],
+        "title": "SimulationParamsV7",
+        "type": "object"
+      },
+      "SimulationQuality": {
+        "enum": [
+          "basic",
+          "standard",
+          "pro"
+        ],
+        "example": "pro",
+        "title": "SimulationQuality",
+        "type": "string"
+      },
+      "SimulationResultsV6": {
+        "properties": {
+          "attachments": {
+            "properties": {
+              "raw_data_expires_on": {
+                "$ref": "#/components/schemas/Date"
+              },
+              "raw_data_url": {
+                "$ref": "#/components/schemas/Url"
+              },
+              "report_url": {
+                "$ref": "#/components/schemas/Url"
+              },
+              "slice_images_expire_on": {
+                "$ref": "#/components/schemas/Date"
+              },
+              "slice_images_url": {
+                "$ref": "#/components/schemas/Url"
+              },
+              "spreadsheet_url": {
+                "$ref": "#/components/schemas/Url"
+              }
+            },
+            "type": "object"
+          },
+          "yaw_angles": {
+            "items": {
+              "properties": {
+                "cd": {
+                  "description": "coefficient",
+                  "type": "number"
+                },
+                "cda": {
+                  "description": "in m²",
+                  "type": "number"
+                },
+                "cl": {
+                  "description": "coefficient",
+                  "type": "number"
+                },
+                "cla": {
+                  "description": "in m²",
+                  "type": "number"
+                },
+                "cs": {
+                  "description": "coefficient",
+                  "type": "number"
+                },
+                "csa": {
+                  "description": "in m²",
+                  "type": "number"
+                },
+                "fd": {
+                  "description": "in N",
+                  "type": "number"
+                },
+                "fl": {
+                  "description": "in N",
+                  "type": "number"
+                },
+                "fs": {
+                  "description": "in N",
+                  "type": "number"
+                },
+                "heat_transfer": {
+                  "description": "in W/K",
+                  "type": "number"
+                },
+                "heat_transfer_coefficient": {
+                  "description": "W/m²K",
+                  "type": "number"
+                },
+                "mp": {
+                  "description": "in Nm",
+                  "type": "number"
+                },
+                "mr": {
+                  "description": "in Nm",
+                  "type": "number"
+                },
+                "my": {
+                  "description": "in Nm",
+                  "type": "number"
+                },
+                "surface_area": {
+                  "description": "in m²",
+                  "type": "number"
+                },
+                "yaw_angle": {
+                  "$ref": "#/components/schemas/YawAngle"
+                }
+              },
+              "required": [
+                "yaw_angle",
+                "fd",
+                "fl",
+                "fs",
+                "cd",
+                "cl",
+                "cs",
+                "cda",
+                "cla",
+                "csa",
+                "mr",
+                "my",
+                "mp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "yaw_angles",
+          "attachments"
+        ],
+        "title": "SimulationResultsV6",
+        "type": "object"
+      },
+      "SimulationResultsV7": {
+        "properties": {
+          "attachments": {
+            "properties": {
+              "raw_data_expires_on": {
+                "$ref": "#/components/schemas/Date"
+              },
+              "raw_data_url": {
+                "$ref": "#/components/schemas/Url"
+              },
+              "report_url": {
+                "$ref": "#/components/schemas/Url"
+              },
+              "slice_images_expire_on": {
+                "$ref": "#/components/schemas/Date"
+              },
+              "slice_images_url": {
+                "$ref": "#/components/schemas/Url"
+              },
+              "spreadsheet_url": {
+                "$ref": "#/components/schemas/Url"
+              }
+            },
+            "type": "object"
+          },
+          "yaw_angles": {
+            "items": {
+              "properties": {
+                "cd": {
+                  "description": "coefficient",
+                  "type": "number"
+                },
+                "cda": {
+                  "description": "in m²",
+                  "type": "number"
+                },
+                "cl": {
+                  "description": "coefficient",
+                  "type": "number"
+                },
+                "cla": {
+                  "description": "in m²",
+                  "type": "number"
+                },
+                "cs": {
+                  "description": "coefficient",
+                  "type": "number"
+                },
+                "csa": {
+                  "description": "in m²",
+                  "type": "number"
+                },
+                "fd": {
+                  "description": "in N",
+                  "type": "number"
+                },
+                "fl": {
+                  "description": "in N",
+                  "type": "number"
+                },
+                "fs": {
+                  "description": "in N",
+                  "type": "number"
+                },
+                "heat_transfer": {
+                  "description": "in W/K",
+                  "type": "number"
+                },
+                "heat_transfer_coefficient": {
+                  "description": "W/m²K",
+                  "type": "number"
+                },
+                "mp": {
+                  "description": "in Nm",
+                  "type": "number"
+                },
+                "mr": {
+                  "description": "in Nm",
+                  "type": "number"
+                },
+                "my": {
+                  "description": "in Nm",
+                  "type": "number"
+                },
+                "surface_area": {
+                  "description": "in m²",
+                  "type": "number"
+                },
+                "yaw_angle": {
+                  "$ref": "#/components/schemas/YawAngle"
+                }
+              },
+              "required": [
+                "yaw_angle",
+                "fd",
+                "fl",
+                "fs",
+                "cd",
+                "cl",
+                "cs",
+                "cda",
+                "cla",
+                "csa",
+                "mr",
+                "my",
+                "mp",
+                "heat_transfer",
+                "heat_transfer_coefficient",
+                "surface_area"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "yaw_angles",
+          "attachments"
+        ],
+        "title": "SimulationResultsV7",
+        "type": "object"
+      },
+      "SimulationSource": {
+        "enum": [
+          "web",
+          "api"
+        ],
+        "title": "SimulationSource",
+        "type": "string"
+      },
+      "SimulationStatus": {
+        "enum": [
+          "progress",
+          "quality_check",
+          "success",
+          "expired"
+        ],
+        "title": "SimulationStatus",
+        "type": "string"
+      },
+      "SimulationV6": {
+        "properties": {
+          "browser_url": {
+            "$ref": "#/components/schemas/Url"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SimulationParamsV6"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "results": {
+            "$ref": "#/components/schemas/SimulationResultsV6"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "share_status": {
+            "properties": {
+              "is_shared": {
+                "type": "boolean"
+              },
+              "password": {
+                "type": "string"
+              },
+              "token": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "is_shared"
+            ],
+            "type": "object"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SimulationSource"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SimulationStatus"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/DateTime"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "name",
+          "browser_url",
+          "share_status",
+          "source",
+          "status",
+          "params",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SimulationV6",
+        "type": "object"
+      },
+      "SimulationV7": {
+        "properties": {
+          "browser_url": {
+            "$ref": "#/components/schemas/Url"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SimulationParamsV7"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "results": {
+            "$ref": "#/components/schemas/SimulationResultsV7"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "share_status": {
+            "properties": {
+              "is_shared": {
+                "type": "boolean"
+              },
+              "password": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "is_shared"
+            ],
+            "type": "object"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SimulationSource"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SimulationStatus"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/DateTime"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "name",
+          "browser_url",
+          "share_status",
+          "source",
+          "status",
+          "params",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SimulationV7",
+        "type": "object"
+      },
+      "UpdatePartV6Params": {
+        "properties": {
+          "rolling": {
+            "type": "boolean"
+          }
+        },
+        "title": "UpdatePartV6Params",
+        "type": "object"
+      },
+      "UpdatePartV7Params": {
+        "properties": {
+          "rolling": {
+            "type": "boolean"
+          }
+        },
+        "title": "UpdatePartV7Params",
+        "type": "object"
+      },
+      "UpdateProjectV6Params": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "closed"
+            ],
+            "type": "string"
+          }
+        },
+        "title": "UpdateProjectV6Params",
+        "type": "object"
+      },
+      "UpdateProjectV7Params": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "closed"
+            ],
+            "type": "string"
+          }
+        },
+        "title": "UpdateProjectV7Params",
+        "type": "object"
+      },
+      "Url": {
+        "example": "https://example.com",
+        "format": "uri",
+        "title": "Url",
+        "type": "string"
+      },
+      "User": {
+        "properties": {
+          "billing_plan": {
+            "$ref": "#/components/schemas/BillingPlan"
+          },
+          "email": {
+            "description": "Email address",
+            "format": "email",
+            "type": "string"
+          },
+          "full_name": {
+            "description": "Full name",
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ID"
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ],
+        "title": "User",
+        "type": "object"
+      },
+      "YawAngle": {
+        "description": "in degrees",
+        "title": "YawAngle",
+        "type": "number"
+      },
+      "YawAngles": {
+        "items": {
+          "$ref": "#/components/schemas/YawAngle"
+        },
+        "minItems": 1,
+        "title": "YawAngles",
+        "type": "array"
+      }
+    },
+    "securitySchemes": {
+      "oauth2Token": {
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "personalAccessToken": {
+        "in": "header",
+        "name": "x-nablaflow-token",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "title": "AeroCloud",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/users/self": {
+      "get": {
+        "callbacks": {},
+        "operationId": "users.self",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "The calling user"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/v6/models": {
+      "post": {
+        "callbacks": {},
+        "operationId": "models_v6.create",
+        "parameters": [
+          {
+            "description": "",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/IdempotencyKey"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModelV6Params"
+              }
+            }
+          },
+          "description": "Model attributes",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelV6"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "models"
+        ]
+      }
+    },
+    "/v6/models/reusable": {
+      "get": {
+        "callbacks": {},
+        "operationId": "models_v6.list_reusable",
+        "parameters": [
+          {
+            "description": "",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimit"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationOffset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/ModelV6"
+                      },
+                      "type": "array"
+                    },
+                    "nav": {
+                      "$ref": "#/components/schemas/ListPageNav"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nav"
+                  ],
+                  "title": "ListPageModelsV6",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "models"
+        ]
+      }
+    },
+    "/v6/models/reusable/{id}": {
+      "delete": {
+        "callbacks": {},
+        "operationId": "models_v6.delete_reusable",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "content": {
+              "text/plain": {}
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "v6",
+          "models"
+        ]
+      }
+    },
+    "/v6/models/{id}": {
+      "get": {
+        "callbacks": {},
+        "operationId": "models_v6.get",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelV6"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "v6",
+          "models"
+        ]
+      }
+    },
+    "/v6/models/{id}/finalise": {
+      "post": {
+        "callbacks": {},
+        "operationId": "models_v6.finalise",
+        "parameters": [
+          {
+            "description": "",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/IdempotencyKey"
+            }
+          },
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelV6"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "models"
+        ]
+      }
+    },
+    "/v6/models/{model_id}/parts/{id}": {
+      "put": {
+        "callbacks": {},
+        "operationId": "parts_v6.update",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "model_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          },
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePartV6Params"
+              }
+            }
+          },
+          "description": "Part attributes",
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "content": {
+              "text/plain": {}
+            },
+            "description": "No Content"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "models"
+        ]
+      }
+    },
+    "/v6/projects": {
+      "get": {
+        "callbacks": {},
+        "operationId": "projects_v6.list",
+        "parameters": [
+          {
+            "description": "",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimit"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationOffset"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "active",
+              "enum": [
+                "all",
+                "active",
+                "closed"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/ProjectV6"
+                      },
+                      "type": "array"
+                    },
+                    "nav": {
+                      "$ref": "#/components/schemas/ListPageNav"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nav"
+                  ],
+                  "title": "ListPageProjectsV6",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "projects"
+        ]
+      },
+      "post": {
+        "callbacks": {},
+        "operationId": "projects_v6.create",
+        "parameters": [
+          {
+            "description": "",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/IdempotencyKey"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectV6Params"
+              }
+            }
+          },
+          "description": "Project attributes",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectV6"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "projects"
+        ]
+      }
+    },
+    "/v6/projects/{id}": {
+      "delete": {
+        "callbacks": {},
+        "operationId": "projects_v6.delete",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "content": {
+              "text/plain": {}
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "projects"
+        ]
+      },
+      "get": {
+        "callbacks": {},
+        "operationId": "projects_v6.get",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectV6"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "projects"
+        ]
+      },
+      "put": {
+        "callbacks": {},
+        "operationId": "projects_v6.update",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectV6Params"
+              }
+            }
+          },
+          "description": "Project attributes",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectV6"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "projects"
+        ]
+      }
+    },
+    "/v6/projects/{project_id}/simulations": {
+      "get": {
+        "callbacks": {},
+        "operationId": "simulations_v6.list",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimit"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationOffset"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "in-progress",
+                "completed"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "quality",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SimulationQuality"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "fluid-speed",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/FluidSpeed"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "yaw-angle",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/YawAngle"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/SimulationV6"
+                      },
+                      "type": "array"
+                    },
+                    "nav": {
+                      "$ref": "#/components/schemas/ListPageNav"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nav"
+                  ],
+                  "title": "ListPageSimulationsV6",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "simulations"
+        ]
+      }
+    },
+    "/v6/simulations": {
+      "post": {
+        "callbacks": {},
+        "operationId": "simulations_v6.create",
+        "parameters": [
+          {
+            "description": "",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/IdempotencyKey"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSimulationV6Params"
+              }
+            }
+          },
+          "description": "Simulation attributes",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationV6"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not enough credits"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "simulations"
+        ]
+      }
+    },
+    "/v6/simulations/{id}": {
+      "delete": {
+        "callbacks": {},
+        "operationId": "simulations_v6.delete",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "content": {
+              "text/plain": {}
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "v6",
+          "simulations"
+        ]
+      },
+      "get": {
+        "callbacks": {},
+        "operationId": "simulations_v6.get",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationV6"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v6",
+          "simulations"
+        ]
+      }
+    },
+    "/v7/models": {
+      "post": {
+        "callbacks": {},
+        "operationId": "models_v7.create",
+        "parameters": [
+          {
+            "description": "",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/IdempotencyKey"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModelV7Params"
+              }
+            }
+          },
+          "description": "Model attributes",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelV7"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "models"
+        ]
+      }
+    },
+    "/v7/models/reusable": {
+      "get": {
+        "callbacks": {},
+        "operationId": "models_v7.list_reusable",
+        "parameters": [
+          {
+            "description": "",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimit"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationOffset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/ModelV7"
+                      },
+                      "type": "array"
+                    },
+                    "nav": {
+                      "$ref": "#/components/schemas/ListPageNav"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nav"
+                  ],
+                  "title": "ListPageModelsV7",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "models"
+        ]
+      }
+    },
+    "/v7/models/reusable/{id}": {
+      "delete": {
+        "callbacks": {},
+        "operationId": "models_v7.delete_reusable",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "content": {
+              "text/plain": {}
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "v7",
+          "models"
+        ]
+      }
+    },
+    "/v7/models/{id}": {
+      "get": {
+        "callbacks": {},
+        "operationId": "models_v7.get",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelV7"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "v7",
+          "models"
+        ]
+      }
+    },
+    "/v7/models/{id}/finalise": {
+      "post": {
+        "callbacks": {},
+        "operationId": "models_v7.finalise",
+        "parameters": [
+          {
+            "description": "",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/IdempotencyKey"
+            }
+          },
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelV7"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "models"
+        ]
+      }
+    },
+    "/v7/models/{model_id}/parts/{id}": {
+      "put": {
+        "callbacks": {},
+        "operationId": "parts_v7.update",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "model_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          },
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePartV7Params"
+              }
+            }
+          },
+          "description": "Part attributes",
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "content": {
+              "text/plain": {}
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "models"
+        ]
+      }
+    },
+    "/v7/projects": {
+      "get": {
+        "callbacks": {},
+        "operationId": "projects_v7.list",
+        "parameters": [
+          {
+            "description": "",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimit"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationOffset"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "active",
+              "enum": [
+                "all",
+                "active",
+                "closed"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/ProjectV7"
+                      },
+                      "type": "array"
+                    },
+                    "nav": {
+                      "$ref": "#/components/schemas/ListPageNav"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nav"
+                  ],
+                  "title": "ListPageProjectsV7",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "projects"
+        ]
+      },
+      "post": {
+        "callbacks": {},
+        "operationId": "projects_v7.create",
+        "parameters": [
+          {
+            "description": "",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/IdempotencyKey"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectV7Params"
+              }
+            }
+          },
+          "description": "Project attributes",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectV7"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "projects"
+        ]
+      }
+    },
+    "/v7/projects/{id}": {
+      "delete": {
+        "callbacks": {},
+        "operationId": "projects_v7.delete",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "content": {
+              "text/plain": {}
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "projects"
+        ]
+      },
+      "get": {
+        "callbacks": {},
+        "operationId": "projects_v7.get",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectV7"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "projects"
+        ]
+      },
+      "put": {
+        "callbacks": {},
+        "operationId": "projects_v7.update",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectV7Params"
+              }
+            }
+          },
+          "description": "Project attributes",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectV7"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "projects"
+        ]
+      }
+    },
+    "/v7/projects/{project_id}/simulations": {
+      "get": {
+        "callbacks": {},
+        "operationId": "simulations_v7.list",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimit"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationOffset"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "in-progress",
+                "completed"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "quality",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SimulationQuality"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "fluid-speed",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/FluidSpeed"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "yaw-angle",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/YawAngle"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/SimulationV7"
+                      },
+                      "type": "array"
+                    },
+                    "nav": {
+                      "$ref": "#/components/schemas/ListPageNav"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nav"
+                  ],
+                  "title": "ListPageSimulationsV7",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "simulations"
+        ]
+      }
+    },
+    "/v7/simulations": {
+      "post": {
+        "callbacks": {},
+        "operationId": "simulations_v7.create",
+        "parameters": [
+          {
+            "description": "",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/IdempotencyKey"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSimulationV7Params"
+              }
+            }
+          },
+          "description": "Simulation attributes",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationV7"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not enough credits"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "simulations"
+        ]
+      }
+    },
+    "/v7/simulations/{id}": {
+      "delete": {
+        "callbacks": {},
+        "operationId": "simulations_v7.delete",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "content": {
+              "text/plain": {}
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "v7",
+          "simulations"
+        ]
+      },
+      "get": {
+        "callbacks": {},
+        "operationId": "simulations_v7.get",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationV7"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "tags": [
+          "v7",
+          "simulations"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "personalAccessToken": []
+    },
+    {
+      "oauth2Token": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://api.nablaflow.test:4000/aerocloud",
+      "variables": {}
+    }
+  ],
+  "tags": []
+}

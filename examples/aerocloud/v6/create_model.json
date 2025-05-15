@@ -3,10 +3,11 @@
   "reusable": false,
   "files": [
     {
-      "name": "ball.stl",
+      "path": "examples/aerocloud/v6/ball.stl",
       "unit": "m",
-      "orientation": [1.0, 0.0, 0.0, 0.0],
-      "path": "examples/aerocloud/v6/ball.stl"
+      "rotation": [1.0, 0.0, 0.0, 0.0]
     }
-  ]
+  ],
+  "all_rolling_parts": true,
+  "rolling_parts": ["part1", "part2"]
 }

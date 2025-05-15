@@ -1,15 +1,13 @@
 {
   "name": "sim",
-  "model_id": null,
-  "project_id": null,
+  "model_id": "00000000-0000-0000-0000-000000000000",
+  "project_id": "00000000-0000-0000-0000-000000000000",
   "quality": "basic",
   "revision": null,
-  "speed": 30.0,
+  "wind_speed": 30.0,
   "fluid": "air",
-  "ground": {
-    "enabled": true,
-    "moving": false,
-    "offset": 0.0
-  },
+  "has_ground": true,
+  "is_ground_moving": false,
+  "ground_offset": 0.0,
   "yaw_angles": [0.0]
 }

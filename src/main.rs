@@ -19,6 +19,7 @@ async fn main() -> eyre::Result<()> {
     let args = Args::parse();
 
     tracing_subscriber::fmt()
+        .with_writer(io::stderr)
         .with_max_level(if args.debug {
             Level::DEBUG
         } else {

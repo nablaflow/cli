@@ -112,7 +112,7 @@ pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()>
     if args.json {
         println!(
             "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
+            serde_json::to_string(&serde_json::json!({
                 "model_id": model_id,
             }))?
         );

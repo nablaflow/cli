@@ -9,7 +9,7 @@ pub async fn run(args: &Args, client: &Client) -> eyre::Result<()> {
     let user = client.users_self().await?.into_inner();
 
     if args.json {
-        println!("{}", &serde_json::to_string_pretty(&user)?);
+        println!("{}", &serde_json::to_string(&user)?);
     } else {
         print_human(&user);
     }

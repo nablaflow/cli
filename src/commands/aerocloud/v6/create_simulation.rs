@@ -33,7 +33,7 @@ pub async fn run(
         .into_inner();
 
     if args.json {
-        println!("{}", serde_json::to_string_pretty(&sim)?);
+        println!("{}", serde_json::to_string(&sim)?);
     } else {
         println!(
             "Created simulation `{}` with id {} {}",

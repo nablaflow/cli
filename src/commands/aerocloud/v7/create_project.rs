@@ -26,7 +26,7 @@ pub async fn run(
     if args.json {
         println!(
             "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
+            serde_json::to_string(&serde_json::json!({
                 "project_id": project.id,
             }))?
         );

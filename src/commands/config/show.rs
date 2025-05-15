@@ -18,7 +18,7 @@ pub fn run(
 fn print_json(config: &Config) -> eyre::Result<()> {
     println!(
         "{}",
-        serde_json::to_string_pretty(&serde_json::json!({
+        serde_json::to_string(&serde_json::json!({
             "token": config.token,
             "hostname": config.hostname().to_string(),
         }))?

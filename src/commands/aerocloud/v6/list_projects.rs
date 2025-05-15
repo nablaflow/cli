@@ -1,51 +1,43 @@
 use crate::{
-    args::{Args, Limit, Page},
-    config::Config,
-    http::{self, format_graphql_errors},
-    queries::aerocloud::{
-        ProjectStatus, ProjectV6, ProjectsV6Arguments, ProjectsV6Query,
-        UnsignedInteger,
+    aerocloud::{
+        Client,
+        types::{
+            ListPageProjectsV6, PaginationOffset, ProjectV6, ProjectsV6ListStatus,
+        },
     },
+    args::Args,
+    fmt::link,
 };
-use color_eyre::eyre::{self, WrapErr};
-use cynic::{http::ReqwestExt, QueryBuilder};
-use tracing::debug;
+use chrono::Local;
+use color_eyre::eyre;
 
 pub async fn run(
     args: &Args,
-    config: &Config,
-    status: Option<ProjectStatus>,
-    limit: Limit,
-    page: Page,
+    client: &Client,
+    status: Option<ProjectsV6ListStatus>,
 ) -> eyre::Result<()> {
-    let (client, endpoint) = http::build_aerocloud_client_from_config(config)?;
+    let mut all_items = vec![];
+    let mut offset = PaginationOffset(0u64);
 
-    let op_args = ProjectsV6Arguments {
-        status,
-        limit: UnsignedInteger(limit),
-        offset: UnsignedInteger((page.get() - 1).saturating_mul(limit)),
-    };
-    debug!("args = {op_args:?}");
+    loop {
+        let ListPageProjectsV6 { items, nav } = client
+            .projects_v6_list(None, Some(&offset), status)
+            .await?
+            .into_inner();
 
-    let op = ProjectsV6Query::build(op_args);
-    debug!("endpoint = {endpoint}");
-    debug!("query = {}", op.query);
+        all_items.extend(items);
 
-    let res = client
-        .post(endpoint)
-        .run_graphql(op)
-        .await
-        .wrap_err("failed to query")?;
-
-    let projects = res
-        .data
-        .ok_or_else(|| eyre::eyre!(format_graphql_errors(res.errors)))?
-        .projects_v6;
+        if let Some(next_offset) = nav.next_offset {
+            offset = PaginationOffset(next_offset);
+        } else {
+            break;
+        }
+    }
 
     if args.json {
-        println!("{}", &serde_json::to_string_pretty(&projects)?);
+        println!("{}", &serde_json::to_string_pretty(&all_items)?);
     } else {
-        print_human(&projects);
+        print_human(&all_items);
     }
 
     Ok(())
@@ -62,14 +54,15 @@ fn print_human(projects: &[ProjectV6]) {
         .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
         .load_preset(comfy_table::presets::UTF8_FULL)
         .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
-        .set_header(vec!["Id", "Name", "Status", "Url"]);
+        .set_header(vec!["Id", "Name", "Status", "Created at", ""]);
 
     for project in projects {
         table.add_row(vec![
-            format!("{}", project.id.inner()),
+            format!("{}", project.id),
             format!("{}", project.name),
             format!("{}", project.status),
-            format!("{}", project.browser_url),
+            format!("{}", project.created_at.with_timezone(&Local)),
+            link(&project.browser_url),
         ]);
     }
 

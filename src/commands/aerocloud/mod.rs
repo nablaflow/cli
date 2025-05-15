@@ -1,6 +1,7 @@
 use crate::{
     args::{AeroCloudScope, AeroCloudV6Command, AeroCloudV7Command, Args},
     config::Config,
+    http,
 };
 use color_eyre::eyre::{self, WrapErr};
 
@@ -14,23 +15,20 @@ pub async fn run(
     config: &Config,
     subcommand: &AeroCloudScope,
 ) -> eyre::Result<()> {
+    let client = http::build_aerocloud_client_from_config(config)?;
+
     match subcommand {
         AeroCloudScope::CurrentUser => {
-            self::current_user::run(args, config).await
+            self::current_user::run(args, &client).await
         }
         AeroCloudScope::V6 { command } => match command {
-            AeroCloudV6Command::ListProjects {
-                status,
-                limit,
-                page,
-            } => {
-                self::v6::list_projects::run(args, config, *status, *limit, *page)
-                    .await
+            AeroCloudV6Command::ListProjects { status } => {
+                self::v6::list_projects::run(args, &client, *status).await
             }
             AeroCloudV6Command::CreateProject { name, description } => {
                 self::v6::create_project::run(
                     args,
-                    config,
+                    &client,
                     name,
                     description.as_deref(),
                 )
@@ -38,37 +36,28 @@ pub async fn run(
             }
             AeroCloudV6Command::ListSimulations {
                 project_id,
-                results: true,
+                show_results,
+                status,
+                fluid_speed,
                 quality,
-                speed,
-                yaw_angles,
-            } => {
-                self::v6::list_simulations_results::run(
-                    args,
-                    config,
-                    project_id,
-                    *quality,
-                    *speed,
-                    yaw_angles.as_deref(),
-                )
-                .await
-            }
-            AeroCloudV6Command::ListSimulations {
-                project_id,
-                results: false,
-                quality,
-                speed,
-                ..
+                yaw_angle,
             } => {
                 self::v6::list_simulations::run(
-                    args, config, project_id, *quality, *speed,
+                    args,
+                    &client,
+                    project_id,
+                    *show_results,
+                    *status,
+                    *quality,
+                    fluid_speed.clone(),
+                    yaw_angle.clone(),
                 )
                 .await
             }
             AeroCloudV6Command::CreateModel { params } => {
                 self::v6::create_model::run(
                     args,
-                    config,
+                    &client,
                     &params
                         .clone()
                         .contents()
@@ -83,9 +72,9 @@ pub async fn run(
             } => {
                 self::v6::create_simulation::run(
                     args,
-                    config,
-                    model_id.as_deref(),
-                    project_id.as_deref(),
+                    &client,
+                    model_id.clone(),
+                    project_id.clone(),
                     &params
                         .clone()
                         .contents()
@@ -94,22 +83,17 @@ pub async fn run(
                 .await
             }
             AeroCloudV6Command::WaitForSimulations { ids } => {
-                self::v6::wait_for_simulations::run(args, config, ids).await
+                self::v6::wait_for_simulations::run(args, &client, ids).await
             }
         },
         AeroCloudScope::V7 { command } => match command {
-            AeroCloudV7Command::ListProjects {
-                status,
-                limit,
-                page,
-            } => {
-                self::v7::list_projects::run(args, config, *status, *limit, *page)
-                    .await
+            AeroCloudV7Command::ListProjects { status } => {
+                self::v7::list_projects::run(args, &client, *status).await
             }
             AeroCloudV7Command::CreateProject { name, description } => {
                 self::v7::create_project::run(
                     args,
-                    config,
+                    &client,
                     name,
                     description.as_deref(),
                 )
@@ -117,37 +101,28 @@ pub async fn run(
             }
             AeroCloudV7Command::ListSimulations {
                 project_id,
-                results: true,
+                show_results,
+                status,
+                fluid_speed,
                 quality,
-                speed,
-                yaw_angles,
-            } => {
-                self::v7::list_simulations_results::run(
-                    args,
-                    config,
-                    project_id,
-                    *quality,
-                    *speed,
-                    yaw_angles.as_deref(),
-                )
-                .await
-            }
-            AeroCloudV7Command::ListSimulations {
-                project_id,
-                results: false,
-                quality,
-                speed,
-                ..
+                yaw_angle,
             } => {
                 self::v7::list_simulations::run(
-                    args, config, project_id, *quality, *speed,
+                    args,
+                    &client,
+                    project_id,
+                    *show_results,
+                    *status,
+                    *quality,
+                    fluid_speed.clone(),
+                    yaw_angle.clone(),
                 )
                 .await
             }
             AeroCloudV7Command::CreateModel { params } => {
                 self::v7::create_model::run(
                     args,
-                    config,
+                    &client,
                     &params
                         .clone()
                         .contents()
@@ -162,9 +137,9 @@ pub async fn run(
             } => {
                 self::v7::create_simulation::run(
                     args,
-                    config,
-                    model_id.as_deref(),
-                    project_id.as_deref(),
+                    &client,
+                    model_id.clone(),
+                    project_id.clone(),
                     &params
                         .clone()
                         .contents()
@@ -173,7 +148,7 @@ pub async fn run(
                 .await
             }
             AeroCloudV7Command::WaitForSimulations { ids } => {
-                self::v7::wait_for_simulations::run(args, config, ids).await
+                self::v7::wait_for_simulations::run(args, &client, ids).await
             }
         },
     }

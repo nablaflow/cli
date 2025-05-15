@@ -1,145 +1,191 @@
 use crate::{
-    args::Args,
-    config::Config,
-    http::{self, format_graphql_errors},
-    queries::aerocloud::{
-        self, CreateModelV6Mutation, CreateModelV6MutationParams,
-        FileUploadStrategy, InputFileV6, InputModelV6,
+    aerocloud::{
+        Client, new_idempotency_key,
+        types::{
+            CreateModelV6Params, CreateModelV6ParamsFilesItem, FileUnit, ModelV6,
+            ModelV6FilesItem, Quaternion, UpdatePartV6Params,
+        },
     },
+    args::Args,
 };
-use color_eyre::eyre::{self, bail, WrapErr};
-use cynic::{http::ReqwestExt, MutationBuilder};
+use color_eyre::eyre::{self, WrapErr, bail};
 use reqwest::header::CONTENT_LENGTH;
-use serde::Deserialize;
-use std::{fs, path::PathBuf, time::Duration};
-use tokio::{fs::File as AsyncFile, task::JoinSet};
+use std::path::PathBuf;
+use tokio::{
+    fs::{self, File as AsyncFile},
+    task::JoinSet,
+};
 use tracing::{debug, info};
 
-#[derive(Deserialize, Debug, Clone, Copy)]
-#[serde(rename_all = "lowercase")]
-pub enum FileUnit {
-    Mm,
-    Cm,
-    M,
-    Inches,
+#[derive(Debug, serde::Deserialize, Clone)]
+struct CreateModelParams {
+    name: String,
+    reusable: bool,
+    files: Vec<CreateModelFileParams>,
+
+    #[serde(default)]
+    all_rolling_parts: bool,
+
+    #[serde(default)]
+    rolling_parts: Vec<String>,
 }
 
-impl From<FileUnit> for aerocloud::FileUnit {
-    fn from(val: FileUnit) -> Self {
-        match val {
-            FileUnit::Mm => Self::Mm,
-            FileUnit::Cm => Self::Cm,
-            FileUnit::M => Self::M,
-            FileUnit::Inches => Self::Inches,
-        }
+#[derive(Debug, serde::Deserialize, Clone)]
+struct CreateModelFileParams {
+    path: PathBuf,
+    unit: FileUnit,
+    rotation: Option<Quaternion>,
+}
+
+impl TryInto<CreateModelV6Params> for CreateModelParams {
+    type Error = eyre::Error;
+
+    fn try_into(self) -> eyre::Result<CreateModelV6Params> {
+        Ok(CreateModelV6Params {
+            name: self.name,
+            reusable: self.reusable,
+            files: self
+                .files
+                .into_iter()
+                .map(|file_params| {
+                    Ok(CreateModelV6ParamsFilesItem {
+                        name: file_params
+                            .path
+                            .file_name()
+                            .ok_or_else(|| {
+                                eyre::eyre!(
+                                    "file {:?} does not have a file name",
+                                    file_params.path
+                                )
+                            })?
+                            .to_str()
+                            .ok_or_else(|| {
+                                eyre::eyre!(
+                                    "{:?} contains invalid utf-8 chars",
+                                    file_params.path
+                                )
+                            })?
+                            .try_into()
+                            .wrap_err("putting back filename into file name")?,
+                        unit: file_params.unit,
+                        rotation: file_params.rotation,
+                    })
+                })
+                .collect::<eyre::Result<_>>()?,
+        })
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct File {
-    pub name: String,
-    pub unit: FileUnit,
-    pub orientation: Option<[f64; 4]>,
-    pub path: PathBuf,
-}
+pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()> {
+    let idempotency_key = new_idempotency_key();
 
-impl From<File> for InputFileV6 {
-    fn from(val: File) -> Self {
-        Self {
-            name: val.name,
-            unit: val.unit.into(),
-            orientation: val.orientation,
-        }
-    }
-}
+    let params = serde_json::from_str::<CreateModelParams>(params)
+        .wrap_err("failed to parse json")?;
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct Model {
-    pub name: String,
-    pub reusable: bool,
-    pub files: Vec<File>,
-}
-
-impl From<Model> for InputModelV6 {
-    fn from(val: Model) -> Self {
-        Self {
-            name: val.name,
-            reusable: val.reusable,
-            files: val.files.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-pub async fn run(args: &Args, config: &Config, params: &str) -> eyre::Result<()> {
-    let model =
-        serde_json::from_str::<Model>(params).wrap_err("failed to parse json")?;
-
-    for file in &model.files {
-        if !fs::exists(&file.path)? {
+    for file in &params.files {
+        if !fs::try_exists(&file.path).await? {
             bail!("file {:?} does not exist", file.path);
         }
     }
 
-    let (client, endpoint) = http::build_aerocloud_client_from_config(config)?;
+    let ModelV6 {
+        id: model_id,
+        files,
+        ..
+    } = client
+        .models_v6_create(&idempotency_key, &params.clone().try_into()?)
+        .await?
+        .into_inner();
 
-    let op_args = CreateModelV6MutationParams {
-        input: model.clone().into(),
-    };
-    debug!("args = {op_args:#?}");
+    debug!("model created with id {model_id}");
 
-    let op = CreateModelV6Mutation::build(op_args);
-    debug!("endpoint = {endpoint}");
-    debug!("query = {}", op.query);
+    upload_files(client, &files, &params).await?;
 
-    let res = client
-        .post(endpoint)
-        .run_graphql(op)
-        .await
-        .wrap_err("failed to mutate")?;
+    let idempotency_key = new_idempotency_key();
 
-    if res.errors.is_some() {
-        return Err(eyre::eyre!(format_graphql_errors(res.errors)));
-    }
+    let model = client
+        .models_v6_finalise(&model_id, &idempotency_key)
+        .await?;
 
-    let model_for_upload = res
-        .data
-        .ok_or_else(|| eyre::eyre!("bad response"))?
-        .create_model_v6;
-
-    debug!("model created with id {}", model_for_upload.id.inner());
-
-    let mut set = JoinSet::new();
-
-    let s3_client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .wrap_err("building http client")?;
-
-    for file in model_for_upload.files {
-        assert_eq!(FileUploadStrategy::S3, file.strategy);
-
-        let input_file =
-            model.files.iter().find(|f| f.name == file.name).unwrap();
-        set.spawn(upload_file(
-            file.upload_url.clone(),
-            input_file.path.clone(),
-            s3_client.clone(),
-        ));
-    }
-
-    for res in set.join_all().await {
-        let () = res.wrap_err("failed to upload file")?;
-    }
+    mark_parts_as_rolling(client, &model, &params).await?;
 
     if args.json {
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
-                "model_id": model_for_upload.id,
+                "model_id": model_id,
             }))?
         );
     } else {
-        println!("Created model with id {}", model_for_upload.id.inner());
+        println!("Created model with id {model_id}");
+    }
+
+    Ok(())
+}
+
+async fn mark_parts_as_rolling(
+    client: &Client,
+    model: &ModelV6,
+    params: &CreateModelParams,
+) -> eyre::Result<()> {
+    let mut part_to_mark_as_rolling = model
+        .files
+        .iter()
+        .flat_map(|file| file.parts.iter())
+        .collect::<Vec<_>>();
+
+    if !params.all_rolling_parts {
+        part_to_mark_as_rolling
+            .retain(|part| params.rolling_parts.contains(&part.name));
+    }
+
+    for part in part_to_mark_as_rolling {
+        let _ = client
+            .parts_v6_update(
+                &model.id,
+                &part.id,
+                &UpdatePartV6Params {
+                    rolling: Some(true),
+                },
+            )
+            .await?;
+
+        info!("marked part `{}` as rolling", part.id);
+    }
+
+    Ok(())
+}
+
+async fn upload_files(
+    client: &Client,
+    files: &[ModelV6FilesItem],
+    params: &CreateModelParams,
+) -> eyre::Result<()> {
+    let mut set = JoinSet::new();
+
+    for file in &params.files {
+        let returned_file = files
+            .iter()
+            .find(|f| {
+                Some(f.name.as_ref())
+                    == file.path.file_name().and_then(|s| s.to_str())
+            })
+            .unwrap();
+
+        let upload_url = returned_file
+            .upload_url
+            .clone()
+            .ok_or_else(|| eyre::eyre!("no upload url found in response"))?;
+
+        set.spawn(upload_file(
+            upload_url.into(),
+            file.path.clone(),
+            client.client().clone(),
+        ));
+    }
+
+    for res in set.join_all().await {
+        let () = res.wrap_err("failed to upload file")?;
     }
 
     Ok(())
@@ -165,7 +211,7 @@ async fn upload_file(
         .wrap_err_with(|| format!("failed to upload file {path:?}"))?;
 
     if res.status() != 200 {
-        return Err(eyre::eyre!("failed to upload file {path:?}: {:?}", res));
+        bail!("failed to upload file {path:?}: {res:?}");
     }
 
     info!("uploaded {:?}", path);

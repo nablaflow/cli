@@ -1,45 +1,27 @@
 use crate::{
+    aerocloud::{Client, new_idempotency_key, types::CreateProjectV6Params},
     args::Args,
-    config::Config,
-    http::{self, format_graphql_errors},
-    queries::aerocloud::{
-        CreateProjectV6Mutation, CreateProjectV6MutationParams, InputProjectV6,
-    },
 };
-use color_eyre::eyre::{self, WrapErr};
-use cynic::{http::ReqwestExt, MutationBuilder};
-use tracing::debug;
+use color_eyre::eyre;
 
 pub async fn run(
     args: &Args,
-    config: &Config,
+    client: &Client,
     name: &str,
     description: Option<&str>,
 ) -> eyre::Result<()> {
-    let (client, endpoint) = http::build_aerocloud_client_from_config(config)?;
+    let idempotency_key = new_idempotency_key();
 
-    let op_params = CreateProjectV6MutationParams {
-        input: InputProjectV6 {
-            name: name.into(),
-            description: description.map(Into::into),
-        },
-    };
-    debug!("args = {op_params:?}");
-
-    let op = CreateProjectV6Mutation::build(op_params);
-    debug!("endpoint = {endpoint}");
-    debug!("query = {}", op.query);
-
-    let res = client
-        .post(endpoint)
-        .run_graphql(op)
-        .await
-        .wrap_err("failed to query")?;
-
-    let project = res
-        .data
-        .ok_or_else(|| eyre::eyre!(format_graphql_errors(res.errors)))?
-        .create_project_v6;
+    let project = client
+        .projects_v6_create(
+            &idempotency_key,
+            &CreateProjectV6Params {
+                name: name.into(),
+                description: description.map(ToOwned::to_owned),
+            },
+        )
+        .await?
+        .into_inner();
 
     if args.json {
         println!(
@@ -49,7 +31,7 @@ pub async fn run(
             }))?
         );
     } else {
-        println!("Created project `{name}` with id {}\n", project.id.inner());
+        println!("Created project `{name}` with id {}\n", project.id);
         println!("Browser url: {}", project.browser_url);
     }
 

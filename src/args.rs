@@ -1,15 +1,16 @@
 use crate::{
+    aerocloud::types::{
+        FluidSpeed, Id, ProjectsV6ListStatus, ProjectsV7ListStatus,
+        SimulationQuality, SimulationsV6ListStatus, SimulationsV7ListStatus,
+        YawAngle,
+    },
     config::{Config, Token},
-    queries::aerocloud::{ProjectStatus, SimulationQuality},
 };
 use clap::{Parser, Subcommand};
 use clap_complete::aot::Shell;
 use clap_stdin::{FileOrStdin, MaybeStdin};
 use reqwest::Url;
-use std::{num::NonZeroU64, path::PathBuf};
-
-pub type Limit = u64;
-pub type Page = NonZeroU64;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -28,15 +29,6 @@ pub struct Args {
         env = "NF_HOSTNAME"
     )]
     pub hostname: Option<Url>,
-
-    #[arg(
-        short = 'W',
-        long,
-        value_name = "URI",
-        help = "Websockets host to connect to. If specified will take precedence over the one set in config",
-        env = "NF_WS_HOSTNAME"
-    )]
-    pub ws_hostname: Option<Url>,
 
     #[arg(
         short,
@@ -103,15 +95,7 @@ pub enum ConfigScope {
         #[arg(value_name = "HOSTNAME", help = "Hostname to set in config")]
         hostname: Url,
     },
-    SetWsHostname {
-        #[arg(
-            value_name = "WS_HOSTNAME",
-            help = "Websockets hostname to set in config"
-        )]
-        hostname: Url,
-    },
     UnsetHostname,
-    UnsetWsHostname,
     Show {
         #[arg(
             short = 's',
@@ -126,17 +110,10 @@ pub enum ConfigScope {
 pub enum AeroCloudV6Command {
     ListProjects {
         #[arg(short = 's', long)]
-        status: Option<ProjectStatus>,
-
-        #[arg(short = 'l', long, default_value = "30")]
-        limit: Limit,
-
-        #[arg(short = 'p', long, default_value = "1")]
-        page: Page,
+        status: Option<ProjectsV6ListStatus>,
     },
-
     ListSimulations {
-        project_id: String,
+        project_id: Id,
 
         #[arg(
             short = 'r',
@@ -144,68 +121,62 @@ pub enum AeroCloudV6Command {
             default_value = "false",
             help = "displays only completed simulations with their results"
         )]
-        results: bool,
+        show_results: bool,
+
+        #[arg(short = 't', long, help = "filter by status")]
+        status: Option<SimulationsV6ListStatus>,
 
         #[arg(short = 's', long, help = "filter by fluid speed")]
-        speed: Option<f32>,
+        fluid_speed: Option<FluidSpeed>,
 
         #[arg(short = 'q', long, help = "filter by quality")]
         quality: Option<SimulationQuality>,
 
-        #[arg(
-            short = 'y',
-            long,
-            value_delimiter = ',',
-            help = "filter by yaw angle (multiple can be specified like 0,-10,20"
-        )]
-        yaw_angles: Option<Vec<f32>>,
+        #[arg(short = 'y', long, help = "filter by yaw angle")]
+        yaw_angle: Option<YawAngle>,
     },
-
     #[command(after_help = format!(r#"
-PARAMS is a JSON file like:
+     PARAMS is a JSON file like:
 
-```json
-{}```
-"#, include_str!("../examples/aerocloud/v6/create_model.json")))]
+     ```json
+     {}```
+     "#, include_str!("../examples/aerocloud/v6/create_model.json")))]
     CreateModel {
         #[arg(
             help = "path to file containing params (pass - for reading file from stdin)"
         )]
         params: FileOrStdin,
     },
-
     CreateProject {
         name: String,
 
         #[arg(short = 'd', long)]
         description: Option<String>,
     },
-
     #[command(after_help = format!(r#"
-PARAMS is a JSON file like:
+     PARAMS is a JSON file like:
 
-```json
-{}```
-"#, include_str!("../examples/aerocloud/v6/create_simulation.json")))]
+     ```json
+     {}```
+     "#, include_str!("../examples/aerocloud/v6/create_simulation.json")))]
     CreateSimulation {
         #[arg(short, long)]
-        model_id: Option<String>,
+        model_id: Option<Id>,
 
         #[arg(short, long)]
-        project_id: Option<String>,
+        project_id: Option<Id>,
 
         #[arg(
             help = "path to file containing params (pass - for reading file from stdin)"
         )]
         params: FileOrStdin,
     },
-
     #[command(
         about = "Waits for simulations to succeed. If given IDs, will exit after all have succeeded."
     )]
     WaitForSimulations {
         #[arg(help = "list of IDs to wait for and then exit")]
-        ids: Vec<String>,
+        ids: Vec<Id>,
     },
 }
 
@@ -213,17 +184,11 @@ PARAMS is a JSON file like:
 pub enum AeroCloudV7Command {
     ListProjects {
         #[arg(short = 's', long)]
-        status: Option<ProjectStatus>,
-
-        #[arg(short = 'l', long, default_value = "30")]
-        limit: Limit,
-
-        #[arg(short = 'p', long, default_value = "1")]
-        page: Page,
+        status: Option<ProjectsV7ListStatus>,
     },
 
     ListSimulations {
-        project_id: String,
+        project_id: Id,
 
         #[arg(
             short = 'r',
@@ -231,67 +196,61 @@ pub enum AeroCloudV7Command {
             default_value = "false",
             help = "displays only completed simulations with their results"
         )]
-        results: bool,
+        show_results: bool,
+
+        #[arg(short = 't', long, help = "filter by status")]
+        status: Option<SimulationsV7ListStatus>,
 
         #[arg(short = 's', long, help = "filter by fluid speed")]
-        speed: Option<f32>,
+        fluid_speed: Option<FluidSpeed>,
 
         #[arg(short = 'q', long, help = "filter by quality")]
         quality: Option<SimulationQuality>,
 
-        #[arg(
-            short = 'y',
-            long,
-            value_delimiter = ',',
-            help = "filter by yaw angle (multiple can be specified like 0,-10,20"
-        )]
-        yaw_angles: Option<Vec<f32>>,
+        #[arg(short = 'y', long, help = "filter by yaw angle")]
+        yaw_angle: Option<YawAngle>,
     },
-
     #[command(after_help = format!(r#"
-PARAMS is a JSON file like:
+     PARAMS is a JSON file like:
 
-```json
-{}```
-"#, include_str!("../examples/aerocloud/v7/create_model.json")))]
+     ```json
+     {}```
+     "#, include_str!("../examples/aerocloud/v7/create_model.json")))]
     CreateModel {
         #[arg(
             help = "path to file containing params (pass - for reading file from stdin)"
         )]
         params: FileOrStdin,
     },
-
     CreateProject {
         name: String,
 
         #[arg(short = 'd', long)]
         description: Option<String>,
     },
-
     #[command(after_help = format!(r#"
-PARAMS is a JSON file like:
+    PARAMS is a JSON file like:
 
-```json
-{}```
-"#, include_str!("../examples/aerocloud/v7/create_simulation.json")))]
+    ```json
+    {}```
+    "#, include_str!("../examples/aerocloud/v7/create_simulation.json")))]
     CreateSimulation {
         #[arg(short, long)]
-        model_id: Option<String>,
+        model_id: Option<Id>,
 
         #[arg(short, long)]
-        project_id: Option<String>,
+        project_id: Option<Id>,
 
         #[arg(
             help = "path to file containing params (pass - for reading file from stdin)"
         )]
         params: FileOrStdin,
     },
-
     #[command(
         about = "Waits for simulations to succeed. If given IDs, will exit after all have succeeded."
     )]
     WaitForSimulations {
         #[arg(help = "list of IDs to wait for and then exit")]
-        ids: Vec<String>,
+        ids: Vec<Id>,
     },
 }

@@ -2,14 +2,15 @@ use crate::{args::Args, config::Config};
 use clap::{CommandFactory, Parser};
 use color_eyre::eyre;
 use std::io;
-use tracing::{debug, Level};
+use tracing::{Level, debug};
 
+mod aerocloud;
 mod args;
 mod commands;
 mod config;
 mod fmt;
 mod http;
-mod queries;
+mod utils;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> eyre::Result<()> {

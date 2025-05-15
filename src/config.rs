@@ -6,7 +6,6 @@ use std::path::{Path, PathBuf};
 use tokio::fs as tokio_fs;
 
 pub const DEFAULT_HOSTNAME: &str = "https://api.nablaflow.io";
-pub const DEFAULT_WS_HOSTNAME: &str = "wss://api.nablaflow.io";
 
 pub type Token = String;
 
@@ -22,14 +21,6 @@ pub struct Config {
         default
     )]
     pub hostname: Option<Url>,
-
-    #[serde(
-        serialize_with = "serialize_url",
-        deserialize_with = "deserialize_url",
-        skip_serializing_if = "Option::is_none",
-        default
-    )]
-    pub ws_hostname: Option<Url>,
 }
 
 impl Config {
@@ -42,7 +33,6 @@ impl Config {
 
         config.token = args.token.clone().or(config.token);
         config.hostname = args.hostname.clone().or(config.hostname);
-        config.ws_hostname = args.ws_hostname.clone().or(config.ws_hostname);
 
         Ok(config)
     }
@@ -70,10 +60,6 @@ impl Config {
         self.hostname.clone().unwrap_or_else(default_hostname)
     }
 
-    pub fn ws_hostname(&self) -> Url {
-        self.ws_hostname.clone().unwrap_or_else(default_ws_hostname)
-    }
-
     async fn load_from_path(path: &Path) -> eyre::Result<Self> {
         if path.exists() {
             let buf: Vec<u8> = tokio_fs::read(path)
@@ -92,10 +78,6 @@ impl Config {
 
 pub fn default_hostname() -> Url {
     Url::parse(DEFAULT_HOSTNAME).unwrap()
-}
-
-pub fn default_ws_hostname() -> Url {
-    Url::parse(DEFAULT_WS_HOSTNAME).unwrap()
 }
 
 #[allow(clippy::ref_option)]

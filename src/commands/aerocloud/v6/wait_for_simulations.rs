@@ -1,75 +1,65 @@
 use crate::{
+    aerocloud::{
+        Client,
+        types::{Id, SimulationStatus},
+    },
     args::Args,
-    config::Config,
-    http::{self, format_graphql_errors},
-    queries::aerocloud::SimulationV6SucceededSubscription,
+    fmt::link,
 };
-use color_eyre::eyre::{self, WrapErr};
-use cynic::{Id, SubscriptionBuilder};
-use futures_util::StreamExt;
-use std::collections::HashSet;
+use color_eyre::eyre::{self, bail};
+use std::time::Duration;
 use tracing::{debug, info, warn};
+use uuid::Uuid;
 
-pub async fn run(
-    args: &Args,
-    config: &Config,
-    ids: &[String],
-) -> eyre::Result<()> {
-    let (client, endpoint) =
-        http::build_aerocloud_ws_client_from_config(config).await?;
+pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
+    if ids.is_empty() {
+        bail!("No ids were specified!");
+    }
 
-    debug!("endpoint = {endpoint}");
-
-    let op = SimulationV6SucceededSubscription::build(());
-
-    let mut stream = client
-        .subscribe(op)
-        .await
-        .wrap_err("subscribing to endpoint")?;
-
-    let mut ids_to_wait_for = ids.iter().map(Id::new).collect::<HashSet<_>>();
+    let mut ids_to_wait_for: Vec<Uuid> =
+        ids.iter().map(|id| **id).collect::<Vec<_>>();
 
     if !args.json {
-        if ids_to_wait_for.is_empty() {
-            warn!("No ids were specified, will never exit!");
-        }
-
         info!("Subscribed! Waiting for events...");
     }
 
-    while let Some(res) = stream.next().await {
-        let inner_res = res.wrap_err("reading next item")?;
-        let sim = inner_res
-            .data
-            .ok_or_else(|| eyre::eyre!(format_graphql_errors(inner_res.errors)))?
-            .simulation_v6_succeeded;
+    while !ids_to_wait_for.is_empty() {
+        let mut found_ids = vec![];
 
-        if !ids_to_wait_for.contains(&sim.id) {
-            continue;
+        for id in &ids_to_wait_for {
+            debug!("polling sim `{id}`...");
+
+            match client.simulations_v6_get(&Id(*id)).await {
+                Ok(res) => {
+                    let sim = res.into_inner();
+
+                    if let SimulationStatus::Success | SimulationStatus::Expired =
+                        sim.status
+                    {
+                        found_ids.push(*id);
+
+                        if args.json {
+                            println!("{}", serde_json::to_string(&sim)?);
+                        } else {
+                            info!(
+                                "Simulation `{}` has completed. {}",
+                                sim.id,
+                                link(&sim.browser_url)
+                            );
+                        }
+                    } else {
+                        debug!("sim `{id}` still in progress...");
+                    }
+                }
+                Err(err) => {
+                    warn!("failed to poll sim `{id}`: {err}. will retry later.");
+                }
+            }
         }
 
-        ids_to_wait_for.remove(&sim.id);
+        ids_to_wait_for.retain(|id| !found_ids.contains(id));
 
-        if args.json {
-            println!(
-                "{}",
-                serde_json::to_string(&serde_json::json!({
-                    "simulation_id": sim.id,
-                    "browser_url": sim.browser_url,
-                }))?
-            );
-        } else {
-            info!(
-                "Simulation `{}` has been published. You can see results at {}",
-                sim.id.inner(),
-                sim.browser_url
-            );
-        }
-
-        if ids_to_wait_for.is_empty() {
-            info!("All ids were waited for, exiting.");
-            break;
-        }
+        tokio::time::sleep(Duration::from_secs(60)).await;
     }
 
     Ok(())

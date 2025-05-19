@@ -1,8 +1,7 @@
 use crate::{
     aerocloud::types::{
-        FluidSpeed, Id, ProjectsV6ListStatus, ProjectsV7ListStatus,
-        SimulationQuality, SimulationsV6ListStatus, SimulationsV7ListStatus,
-        YawAngle,
+        FluidSpeed, Id, ProjectStatus, SimulationQuality,
+        SimulationsV6ListStatus, SimulationsV7ListStatus, YawAngle,
     },
     config::{Config, Token},
 };
@@ -110,7 +109,7 @@ pub enum ConfigScope {
 pub enum AeroCloudV6Command {
     ListProjects {
         #[arg(short = 's', long)]
-        status: Option<ProjectsV6ListStatus>,
+        status: Option<ProjectStatus>,
     },
     ListSimulations {
         project_id: Id,
@@ -184,7 +183,7 @@ pub enum AeroCloudV6Command {
 pub enum AeroCloudV7Command {
     ListProjects {
         #[arg(short = 's', long)]
-        status: Option<ProjectsV7ListStatus>,
+        status: Option<ProjectStatus>,
     },
 
     ListSimulations {

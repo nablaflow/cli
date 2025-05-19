@@ -275,13 +275,13 @@
         "type": "object"
       },
       "Date": {
-        "example": "2025-05-08",
+        "example": "2025-05-14",
         "format": "date",
         "title": "Date",
         "type": "string"
       },
       "DateTime": {
-        "example": "2025-05-12T08:33:34.782736Z",
+        "example": "2025-05-16T18:07:26.636088Z",
         "format": "date-time",
         "title": "DateTime",
         "type": "string"
@@ -308,13 +308,11 @@
           "air",
           "water"
         ],
-        "example": "air",
         "title": "Fluid",
         "type": "string"
       },
       "FluidSpeed": {
         "description": "in m/s",
-        "example": 30.0,
         "maximum": 100.0,
         "minimum": 0.001,
         "title": "FluidSpeed",
@@ -326,13 +324,13 @@
         "type": "number"
       },
       "ID": {
-        "example": "0196c865-bfce-7d05-a5ae-559160016764",
+        "example": "0196e7c7-d746-7709-a2ca-a71b42af0a43",
         "format": "uuid",
         "title": "ID",
         "type": "string"
       },
       "IdempotencyKey": {
-        "example": "0196c865-bfd3-79dc-97c6-349079044370",
+        "example": "0196e7c7-d747-7636-9436-306c43845455",
         "title": "IdempotencyKey",
         "type": "string"
       },
@@ -740,6 +738,14 @@
         "title": "PaginationOffset",
         "type": "integer"
       },
+      "ProjectStatus": {
+        "enum": [
+          "active",
+          "closed"
+        ],
+        "title": "ProjectStatus",
+        "type": "string"
+      },
       "ProjectV6": {
         "properties": {
           "browser_url": {
@@ -758,11 +764,7 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "active",
-              "closed"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ProjectStatus"
           },
           "updated_at": {
             "$ref": "#/components/schemas/DateTime"
@@ -797,11 +799,7 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "active",
-              "closed"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ProjectStatus"
           },
           "updated_at": {
             "$ref": "#/components/schemas/DateTime"
@@ -922,7 +920,6 @@
           "standard",
           "pro"
         ],
-        "example": "pro",
         "title": "SimulationQuality",
         "type": "string"
       },
@@ -1839,13 +1836,7 @@
             "name": "status",
             "required": false,
             "schema": {
-              "default": "active",
-              "enum": [
-                "all",
-                "active",
-                "closed"
-              ],
-              "type": "string"
+              "$ref": "#/components/schemas/ProjectStatus"
             }
           }
         ],
@@ -2742,13 +2733,7 @@
             "name": "status",
             "required": false,
             "schema": {
-              "default": "active",
-              "enum": [
-                "all",
-                "active",
-                "closed"
-              ],
-              "type": "string"
+              "$ref": "#/components/schemas/ProjectStatus"
             }
           }
         ],

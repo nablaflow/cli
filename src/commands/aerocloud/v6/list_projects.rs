@@ -1,9 +1,7 @@
 use crate::{
     aerocloud::{
         Client,
-        types::{
-            ListPageProjectsV6, PaginationOffset, ProjectV6, ProjectsV6ListStatus,
-        },
+        types::{ListPageProjectsV6, PaginationOffset, ProjectStatus, ProjectV6},
     },
     args::Args,
     fmt::link,
@@ -14,7 +12,7 @@ use color_eyre::eyre;
 pub async fn run(
     args: &Args,
     client: &Client,
-    status: Option<ProjectsV6ListStatus>,
+    status: Option<ProjectStatus>,
 ) -> eyre::Result<()> {
     let mut all_items = vec![];
     let mut offset = PaginationOffset(0u64);

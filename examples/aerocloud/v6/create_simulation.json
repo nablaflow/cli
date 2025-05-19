@@ -4,7 +4,7 @@
   "project_id": "00000000-0000-0000-0000-000000000000",
   "quality": "basic",
   "revision": null,
-  "wind_speed": 30.0,
+  "fluid_speed": 30.0,
   "fluid": "air",
   "has_ground": true,
   "is_ground_moving": false,

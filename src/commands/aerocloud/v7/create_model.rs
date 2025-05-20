@@ -54,15 +54,15 @@ impl TryInto<CreateModelV7Params> for CreateModelParams {
                             .file_name()
                             .ok_or_else(|| {
                                 eyre::eyre!(
-                                    "file {:?} does not have a file name",
-                                    file_params.path
+                                    "file {} does not have a file name",
+                                    file_params.path.display()
                                 )
                             })?
                             .to_str()
                             .ok_or_else(|| {
                                 eyre::eyre!(
-                                    "{:?} contains invalid utf-8 chars",
-                                    file_params.path
+                                    "{} contains invalid utf-8 chars",
+                                    file_params.path.display()
                                 )
                             })?
                             .try_into()
@@ -84,7 +84,7 @@ pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()>
 
     for file in &params.files {
         if !fs::try_exists(&file.path).await? {
-            bail!("file {:?} does not exist", file.path);
+            bail!("file {} does not exist", file.path.display());
         }
     }
 
@@ -198,7 +198,7 @@ async fn upload_file(
 ) -> eyre::Result<()> {
     let body = AsyncFile::open(&path)
         .await
-        .wrap_err_with(|| format!("failed to open file {path:?}"))?;
+        .wrap_err_with(|| format!("failed to open file {}", path.display()))?;
 
     let metadata = body.metadata().await?;
 
@@ -208,13 +208,13 @@ async fn upload_file(
         .header(CONTENT_LENGTH, metadata.len().to_string())
         .send()
         .await
-        .wrap_err_with(|| format!("failed to upload file {path:?}"))?;
+        .wrap_err_with(|| format!("failed to upload file {}", path.display()))?;
 
     if res.status() != 200 {
-        bail!("failed to upload file {path:?}: {res:?}");
+        bail!("failed to upload file {}: {res:?}", path.display());
     }
 
-    info!("uploaded {:?}", path);
+    info!("uploaded {}", path.display());
 
     Ok(())
 }

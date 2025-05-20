@@ -64,7 +64,7 @@ impl Config {
         if path.exists() {
             let buf: Vec<u8> = tokio_fs::read(path)
                 .await
-                .wrap_err_with(|| format!("reading {path:?}"))?;
+                .wrap_err_with(|| format!("reading {}", path.display()))?;
 
             Ok(
                 serde_json::from_slice(&buf)

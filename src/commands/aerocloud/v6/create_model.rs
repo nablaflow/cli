@@ -9,6 +9,7 @@ use crate::{
     args::Args,
 };
 use color_eyre::eyre::{self, WrapErr, bail};
+use progenitor_client::ClientInfo;
 use reqwest::header::CONTENT_LENGTH;
 use std::path::PathBuf;
 use tokio::{

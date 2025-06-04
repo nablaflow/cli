@@ -134,48 +134,11 @@ pub enum AeroCloudV6Command {
         #[arg(short = 'y', long, help = "filter by yaw angle")]
         yaw_angle: Option<YawAngle>,
     },
-    #[command(after_help = format!(r#"
-     PARAMS is a JSON file like:
-
-     ```json
-     {}```
-     "#, include_str!("../examples/aerocloud/v6/create_model.json")))]
-    CreateModel {
-        #[arg(
-            help = "path to file containing params (pass - for reading file from stdin)"
-        )]
-        params: FileOrStdin,
-    },
     CreateProject {
         name: String,
 
         #[arg(short = 'd', long)]
         description: Option<String>,
-    },
-    #[command(after_help = format!(r#"
-     PARAMS is a JSON file like:
-
-     ```json
-     {}```
-     "#, include_str!("../examples/aerocloud/v6/create_simulation.json")))]
-    CreateSimulation {
-        #[arg(short, long)]
-        model_id: Option<Id>,
-
-        #[arg(short, long)]
-        project_id: Option<Id>,
-
-        #[arg(
-            help = "path to file containing params (pass - for reading file from stdin)"
-        )]
-        params: FileOrStdin,
-    },
-    #[command(
-        about = "Waits for simulations to succeed. If given IDs, will exit after all have succeeded."
-    )]
-    WaitForSimulations {
-        #[arg(help = "list of IDs to wait for and then exit")]
-        ids: Vec<Id>,
     },
 }
 

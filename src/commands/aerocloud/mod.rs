@@ -54,37 +54,6 @@ pub async fn run(
                 )
                 .await
             }
-            AeroCloudV6Command::CreateModel { params } => {
-                self::v6::create_model::run(
-                    args,
-                    &client,
-                    &params
-                        .clone()
-                        .contents()
-                        .wrap_err("failed to read contents")?,
-                )
-                .await
-            }
-            AeroCloudV6Command::CreateSimulation {
-                params,
-                project_id,
-                model_id,
-            } => {
-                self::v6::create_simulation::run(
-                    args,
-                    &client,
-                    model_id.clone(),
-                    project_id.clone(),
-                    &params
-                        .clone()
-                        .contents()
-                        .wrap_err("failed to read contents")?,
-                )
-                .await
-            }
-            AeroCloudV6Command::WaitForSimulations { ids } => {
-                self::v6::wait_for_simulations::run(args, &client, ids).await
-            }
         },
         AeroCloudScope::V7 { command } => match command {
             AeroCloudV7Command::ListProjects { status } => {

@@ -275,13 +275,13 @@
         "type": "object"
       },
       "Date": {
-        "example": "2025-05-14",
+        "example": "2025-05-30",
         "format": "date",
         "title": "Date",
         "type": "string"
       },
       "DateTime": {
-        "example": "2025-05-16T18:07:26.636088Z",
+        "example": "2025-06-01T23:07:44.017205Z",
         "format": "date-time",
         "title": "DateTime",
         "type": "string"
@@ -324,13 +324,13 @@
         "type": "number"
       },
       "ID": {
-        "example": "0196e7c7-d746-7709-a2ca-a71b42af0a43",
+        "example": "019739ec-8abe-737d-ac25-eac92dd4594d",
         "format": "uuid",
         "title": "ID",
         "type": "string"
       },
       "IdempotencyKey": {
-        "example": "0196e7c7-d747-7636-9436-306c43845455",
+        "example": "019739ec-8ac2-7ac3-be26-268afaf763f3",
         "title": "IdempotencyKey",
         "type": "string"
       },
@@ -1475,6 +1475,7 @@
     "/v6/models": {
       "post": {
         "callbacks": {},
+        "deprecated": true,
         "operationId": "models_v6.create",
         "parameters": [
           {
@@ -1528,6 +1529,16 @@
               }
             },
             "description": "Forbidden"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
           },
           "422": {
             "content": {
@@ -1739,6 +1750,7 @@
     "/v6/models/{id}/finalise": {
       "post": {
         "callbacks": {},
+        "deprecated": true,
         "operationId": "models_v6.finalise",
         "parameters": [
           {
@@ -1801,6 +1813,16 @@
             },
             "description": "Not Found"
           },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1821,6 +1843,7 @@
     "/v6/models/{model_id}/parts/{id}": {
       "put": {
         "callbacks": {},
+        "deprecated": true,
         "operationId": "parts_v6.update",
         "parameters": [
           {
@@ -1889,6 +1912,16 @@
               }
             },
             "description": "Not Found"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
           },
           "422": {
             "content": {
@@ -2408,6 +2441,7 @@
     "/v6/simulations": {
       "post": {
         "callbacks": {},
+        "deprecated": true,
         "operationId": "simulations_v6.create",
         "parameters": [
           {
@@ -2471,6 +2505,16 @@
               }
             },
             "description": "Forbidden"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
           },
           "422": {
             "content": {
@@ -2665,6 +2709,16 @@
               }
             },
             "description": "Forbidden"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
           },
           "422": {
             "content": {
@@ -2938,6 +2992,16 @@
             },
             "description": "Not Found"
           },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -3026,6 +3090,16 @@
               }
             },
             "description": "Not Found"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
           },
           "422": {
             "content": {
@@ -3608,6 +3682,16 @@
               }
             },
             "description": "Forbidden"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
           },
           "422": {
             "content": {

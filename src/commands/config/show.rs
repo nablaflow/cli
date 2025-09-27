@@ -28,11 +28,9 @@ fn print_json(config: &Config) -> eyre::Result<()> {
 }
 
 fn print_human(config: &Config, include_secrets: bool) {
-    let token_to_show = if let Some(ref token) = config.token {
+    let token_to_show = config.token.as_ref().map_or("<UNSET>", |token| {
         if include_secrets { token } else { "<SECRET>" }
-    } else {
-        "<UNSET>"
-    };
+    });
 
     let mut table = comfy_table::Table::new();
     table

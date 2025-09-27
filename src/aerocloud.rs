@@ -2,6 +2,7 @@
     clippy::default_trait_access,
     clippy::doc_markdown,
     clippy::unused_self,
+    clippy::match_same_arms,
     dead_code
 )]
 

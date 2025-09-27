@@ -71,7 +71,7 @@ impl Config {
                     .wrap_err("parsing config as json")?,
             )
         } else {
-            Ok(Config::default())
+            Ok(Self::default())
         }
     }
 }

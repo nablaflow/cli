@@ -34,6 +34,9 @@ pub async fn run(
                 )
                 .await
             }
+            AeroCloudV6Command::DeleteProjects { project_ids } => {
+                self::v6::delete_projects::run(args, &client, project_ids).await
+            }
             AeroCloudV6Command::ListSimulations {
                 project_id,
                 show_results,
@@ -67,6 +70,9 @@ pub async fn run(
                     description.as_deref(),
                 )
                 .await
+            }
+            AeroCloudV7Command::DeleteProjects { project_ids } => {
+                self::v7::delete_projects::run(args, &client, project_ids).await
             }
             AeroCloudV7Command::ListSimulations {
                 project_id,

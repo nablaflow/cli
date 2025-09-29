@@ -140,6 +140,10 @@ pub enum AeroCloudV6Command {
         #[arg(short = 'd', long)]
         description: Option<String>,
     },
+    DeleteProjects {
+        #[arg(required = true)]
+        project_ids: Vec<Id>,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -212,7 +216,11 @@ pub enum AeroCloudV7Command {
         about = "Waits for simulations to succeed. If given IDs, will exit after all have succeeded."
     )]
     WaitForSimulations {
-        #[arg(help = "list of IDs to wait for and then exit")]
+        #[arg(required = true, help = "list of IDs to wait for and then exit")]
         ids: Vec<Id>,
+    },
+    DeleteProjects {
+        #[arg(required = true)]
+        project_ids: Vec<Id>,
     },
 }

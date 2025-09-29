@@ -134,6 +134,10 @@ pub enum AeroCloudV6Command {
         #[arg(short = 'y', long, help = "filter by yaw angle")]
         yaw_angle: Option<YawAngle>,
     },
+    DeleteSimulations {
+        #[arg(required = true)]
+        simulation_ids: Vec<Id>,
+    },
     CreateProject {
         name: String,
 
@@ -193,6 +197,10 @@ pub enum AeroCloudV7Command {
 
         #[arg(short = 'd', long)]
         description: Option<String>,
+    },
+    DeleteSimulations {
+        #[arg(required = true)]
+        simulation_ids: Vec<Id>,
     },
     #[command(after_help = format!(r#"
     PARAMS is a JSON file like:

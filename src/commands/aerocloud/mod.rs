@@ -57,6 +57,10 @@ pub async fn run(
                 )
                 .await
             }
+            AeroCloudV6Command::DeleteSimulations { simulation_ids } => {
+                self::v6::delete_simulations::run(args, &client, simulation_ids)
+                    .await
+            }
         },
         AeroCloudScope::V7 { command } => match command {
             AeroCloudV7Command::ListProjects { status } => {
@@ -121,6 +125,10 @@ pub async fn run(
                         .wrap_err("failed to read contents")?,
                 )
                 .await
+            }
+            AeroCloudV7Command::DeleteSimulations { simulation_ids } => {
+                self::v7::delete_simulations::run(args, &client, simulation_ids)
+                    .await
             }
             AeroCloudV7Command::WaitForSimulations { ids } => {
                 self::v7::wait_for_simulations::run(args, &client, ids).await

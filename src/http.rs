@@ -11,9 +11,10 @@ static TOKEN_HEADER: &str = "x-nablaflow-token";
 
 pub fn build_aerocloud_client_from_config(
     config: &Config,
+    timeout: &Duration,
 ) -> eyre::Result<aerocloud::Client> {
     let base_url = config.hostname().join("/aerocloud")?;
-    let http_client = build_http_client(config.token_or_fail()?)?;
+    let http_client = build_http_client(config.token_or_fail()?, timeout)?;
 
     Ok(aerocloud::Client::new_with_client(
         base_url.as_ref(),
@@ -21,7 +22,7 @@ pub fn build_aerocloud_client_from_config(
     ))
 }
 
-fn build_http_client(token: &Token) -> eyre::Result<Client> {
+fn build_http_client(token: &Token, timeout: &Duration) -> eyre::Result<Client> {
     let mut headers = header::HeaderMap::new();
 
     let mut token_value = header::HeaderValue::from_str(token)
@@ -31,7 +32,7 @@ fn build_http_client(token: &Token) -> eyre::Result<Client> {
 
     reqwest::Client::builder()
         .user_agent(USER_AGENT)
-        .timeout(Duration::from_secs(15))
+        .timeout(*timeout)
         .default_headers(headers)
         .build()
         .wrap_err("building http client")

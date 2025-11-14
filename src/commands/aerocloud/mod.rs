@@ -15,7 +15,8 @@ pub async fn run(
     config: &Config,
     subcommand: &AeroCloudScope,
 ) -> eyre::Result<()> {
-    let client = http::build_aerocloud_client_from_config(config)?;
+    let client =
+        http::build_aerocloud_client_from_config(config, &args.http_timeout())?;
 
     match subcommand {
         AeroCloudScope::CurrentUser => {

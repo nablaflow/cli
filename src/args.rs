@@ -9,7 +9,7 @@ use clap::{Parser, Subcommand};
 use clap_complete::aot::Shell;
 use clap_stdin::{FileOrStdin, MaybeStdin};
 use reqwest::Url;
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -19,6 +19,9 @@ pub struct Args {
 
     #[arg(short, long, env = "NF_JSON")]
     pub json: bool,
+
+    #[arg(short = 't', long, env = "NF_HTTP_TIMEOUT_SECS", default_value_t = 60)]
+    pub http_timeout_secs: u64,
 
     #[arg(
         short = 'H',
@@ -30,7 +33,7 @@ pub struct Args {
     pub hostname: Option<Url>,
 
     #[arg(
-        short,
+        short = 'T',
         long,
         env = "NF_TOKEN",
         value_name = "TOKEN",
@@ -50,6 +53,12 @@ pub struct Args {
 
     #[command(subcommand)]
     pub scope: Scope,
+}
+
+impl Args {
+    pub fn http_timeout(&self) -> Duration {
+        Duration::from_secs(self.http_timeout_secs)
+    }
 }
 
 #[derive(Subcommand, Debug)]

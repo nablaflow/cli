@@ -274,14 +274,18 @@
         "title": "CreateSimulationV7Params",
         "type": "object"
       },
+      "DarcyCoeff": {
+        "title": "DarcyCoeff",
+        "type": "number"
+      },
       "Date": {
-        "example": "2025-05-30",
+        "example": "2025-11-20",
         "format": "date",
         "title": "Date",
         "type": "string"
       },
       "DateTime": {
-        "example": "2025-06-01T23:07:44.017205Z",
+        "example": "2025-11-20T13:18:29.117286Z",
         "format": "date-time",
         "title": "DateTime",
         "type": "string"
@@ -299,7 +303,7 @@
       },
       "Filename": {
         "example": "model.obj",
-        "pattern": "^[^\\.]+\\.(obj|stl|jt)$",
+        "pattern": "^[^/]+\\.(obj|stl|jt)$",
         "title": "Filename",
         "type": "string"
       },
@@ -318,19 +322,23 @@
         "title": "FluidSpeed",
         "type": "number"
       },
+      "ForchheimerCoef": {
+        "title": "ForchheimerCoef",
+        "type": "number"
+      },
       "GroundOffset": {
         "description": "in meters",
         "title": "GroundOffset",
         "type": "number"
       },
       "ID": {
-        "example": "019739ec-8abe-737d-ac25-eac92dd4594d",
+        "example": "019aba97-b529-755c-8778-9fd0868ff363",
         "format": "uuid",
         "title": "ID",
         "type": "string"
       },
       "IdempotencyKey": {
-        "example": "019739ec-8ac2-7ac3-be26-268afaf763f3",
+        "example": "019aba97-b530-79e3-b47c-783d35c6721f",
         "title": "IdempotencyKey",
         "type": "string"
       },
@@ -657,6 +665,12 @@
                       },
                       "id": {
                         "$ref": "#/components/schemas/ID"
+                      },
+                      "is_porous": {
+                        "type": "boolean"
+                      },
+                      "is_watertight": {
+                        "type": "boolean"
                       },
                       "name": {
                         "type": "string"
@@ -1332,6 +1346,15 @@
       },
       "UpdatePartV7Params": {
         "properties": {
+          "darcy_coeff": {
+            "$ref": "#/components/schemas/DarcyCoeff"
+          },
+          "forchheimer_coeff": {
+            "$ref": "#/components/schemas/ForchheimerCoef"
+          },
+          "is_porous": {
+            "type": "boolean"
+          },
           "rolling": {
             "type": "boolean"
           }

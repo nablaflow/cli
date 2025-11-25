@@ -2,33 +2,28 @@ use crate::{
     aerocloud::{
         Client, fmt_progenitor_err, new_idempotency_key,
         types::{
-            CreateModelV7Params, CreateModelV7ParamsFilesItem, FileUnit, ModelV7,
-            ModelV7FilesItem, Quaternion, UpdatePartV7Params,
+            CreateModelV7Params, CreateModelV7ParamsFilesItem, FileUnit, Id,
+            ModelV7, ModelV7FilesItem, Quaternion, UpdatePartV7Params,
         },
     },
     args::Args,
 };
 use color_eyre::eyre::{self, WrapErr, bail};
+use itertools::Itertools;
 use progenitor_client::ClientInfo;
 use reqwest::header::CONTENT_LENGTH;
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 use tokio::{
     fs::{self, File as AsyncFile},
     task::JoinSet,
 };
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 #[derive(Debug, serde::Deserialize, Clone)]
 struct CreateModelParams {
     name: String,
     reusable: bool,
     files: Vec<CreateModelFileParams>,
-
-    #[serde(default)]
-    all_rolling_parts: bool,
-
-    #[serde(default)]
-    rolling_parts: Vec<String>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]
@@ -36,6 +31,7 @@ struct CreateModelFileParams {
     path: PathBuf,
     unit: FileUnit,
     rotation: Option<Quaternion>,
+    parts: HashMap<String, UpdatePartV7Params>,
 }
 
 impl TryInto<CreateModelV7Params> for CreateModelParams {
@@ -102,17 +98,25 @@ pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()>
 
     debug!("model created with id {model_id}");
 
-    upload_files(client, &files, &params).await?;
+    upload_files(client, &files, &params)
+        .await
+        .wrap_err("uploading files")?;
 
     let idempotency_key = new_idempotency_key();
 
-    let model = client
+    let ModelV7 {
+        id: model_id,
+        files,
+        ..
+    } = client
         .models_v7_finalise(&model_id, &idempotency_key)
         .await
         .map_err(fmt_progenitor_err)?
         .into_inner();
 
-    mark_parts_as_rolling(client, &model, &params).await?;
+    update_parts(client, &model_id, &files, &params)
+        .await
+        .wrap_err("updating parts")?;
 
     if args.json {
         println!(
@@ -128,34 +132,63 @@ pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()>
     Ok(())
 }
 
-async fn mark_parts_as_rolling(
+async fn update_parts(
     client: &Client,
-    model: &ModelV7,
+    model_id: &Id,
+    files: &[ModelV7FilesItem],
     params: &CreateModelParams,
 ) -> eyre::Result<()> {
-    let mut part_to_mark_as_rolling = model
-        .files
-        .iter()
-        .flat_map(|file| file.parts.iter())
-        .collect::<Vec<_>>();
+    let mut set = JoinSet::new();
 
-    if !params.all_rolling_parts {
-        part_to_mark_as_rolling
-            .retain(|part| params.rolling_parts.contains(&part.name));
+    for file in &params.files {
+        let returned_file = files
+            .iter()
+            .find(|f| {
+                Some(f.name.as_ref())
+                    == file.path.file_name().and_then(|s| s.to_str())
+            })
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "file in given params was not returned from the server"
+                )
+            })?;
+
+        for (part_name, part_params) in &file.parts {
+            let Some(part_id) = returned_file
+                .parts
+                .iter()
+                .find(|part| part.name == *part_name)
+                .map(|part| &part.id)
+            else {
+                warn!(
+                    "part named `{part_name}` was not found in uploaded file `{:?}`",
+                    returned_file.name
+                );
+                continue;
+            };
+
+            let client = client.clone();
+            let model_id = model_id.clone();
+            let part_params = part_params.clone();
+            let part_id = part_id.clone();
+
+            set.spawn(async move {
+                client
+                    .parts_v7_update(&model_id, &part_id, &part_params)
+                    .await
+                    .map_err(fmt_progenitor_err)
+                    .map(|_| {
+                        info!(
+                            "updated part `{}` with {:?}",
+                            part_id, part_params
+                        );
+                    })
+            });
+        }
     }
 
-    for part in part_to_mark_as_rolling {
-        let _ = client
-            .parts_v7_update(
-                &model.id,
-                &part.id,
-                &UpdatePartV7Params {
-                    rolling: Some(true),
-                },
-            )
-            .await?;
-
-        info!("marked part `{}` as rolling", part.id);
+    for res in set.join_all().await {
+        let () = res.wrap_err("failed to update part")?;
     }
 
     Ok(())

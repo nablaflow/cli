@@ -1,5 +1,8 @@
 use crate::{
-    aerocloud::{Client, new_idempotency_key, types::CreateProjectV7Params},
+    aerocloud::{
+        Client, fmt_progenitor_err, new_idempotency_key,
+        types::CreateProjectV7Params,
+    },
     args::Args,
 };
 use color_eyre::eyre;
@@ -20,7 +23,8 @@ pub async fn run(
                 description: description.map(ToOwned::to_owned),
             },
         )
-        .await?
+        .await
+        .map_err(fmt_progenitor_err)?
         .into_inner();
 
     if args.json {

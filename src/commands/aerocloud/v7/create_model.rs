@@ -1,6 +1,6 @@
 use crate::{
     aerocloud::{
-        Client, new_idempotency_key,
+        Client, fmt_progenitor_err, new_idempotency_key,
         types::{
             CreateModelV7Params, CreateModelV7ParamsFilesItem, FileUnit, ModelV7,
             ModelV7FilesItem, Quaternion, UpdatePartV7Params,
@@ -55,19 +55,24 @@ impl TryInto<CreateModelV7Params> for CreateModelParams {
                             .file_name()
                             .ok_or_else(|| {
                                 eyre::eyre!(
-                                    "file {} does not have a file name",
+                                    "file `{}` does not have a file name",
                                     file_params.path.display()
                                 )
                             })?
                             .to_str()
                             .ok_or_else(|| {
                                 eyre::eyre!(
-                                    "{} contains invalid utf-8 chars",
+                                    "file `{}` contains invalid utf-8 chars",
                                     file_params.path.display()
                                 )
                             })?
                             .try_into()
-                            .wrap_err("putting back filename into file name")?,
+                            .wrap_err_with(|| {
+                                format!(
+                                    "file `{}` is not compatible",
+                                    file_params.path.display()
+                                )
+                            })?,
                         unit: file_params.unit,
                         rotation: file_params.rotation,
                     })
@@ -80,14 +85,10 @@ impl TryInto<CreateModelV7Params> for CreateModelParams {
 pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()> {
     let idempotency_key = new_idempotency_key();
 
-    let params = serde_json::from_str::<CreateModelParams>(params)
-        .wrap_err("failed to parse json")?;
+    let params: CreateModelParams =
+        serde_json::from_str(params).wrap_err("failed to parse json")?;
 
-    for file in &params.files {
-        if !fs::try_exists(&file.path).await? {
-            bail!("file {} does not exist", file.path.display());
-        }
-    }
+    validate_files(&params.files).await?;
 
     let ModelV7 {
         id: model_id,
@@ -95,7 +96,8 @@ pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()>
         ..
     } = client
         .models_v7_create(&idempotency_key, &params.clone().try_into()?)
-        .await?
+        .await
+        .map_err(fmt_progenitor_err)?
         .into_inner();
 
     debug!("model created with id {model_id}");
@@ -106,7 +108,9 @@ pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()>
 
     let model = client
         .models_v7_finalise(&model_id, &idempotency_key)
-        .await?;
+        .await
+        .map_err(fmt_progenitor_err)?
+        .into_inner();
 
     mark_parts_as_rolling(client, &model, &params).await?;
 
@@ -171,7 +175,11 @@ async fn upload_files(
                 Some(f.name.as_ref())
                     == file.path.file_name().and_then(|s| s.to_str())
             })
-            .unwrap();
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "file in given params was not returned from the server"
+                )
+            })?;
 
         let upload_url = returned_file
             .upload_url
@@ -216,6 +224,24 @@ async fn upload_file(
     }
 
     info!("uploaded {}", path.display());
+
+    Ok(())
+}
+
+async fn validate_files(files: &[CreateModelFileParams]) -> eyre::Result<()> {
+    for file in files {
+        let attr = fs::metadata(&file.path).await.with_context(|| {
+            format!("checking file `{}`", file.path.display())
+        })?;
+
+        if !attr.is_file() {
+            bail!("file {} does not exist", file.path.display());
+        }
+    }
+
+    if !files.iter().map(|file| file.path.file_name()).all_unique() {
+        bail!("all file names must be unique");
+    }
 
     Ok(())
 }

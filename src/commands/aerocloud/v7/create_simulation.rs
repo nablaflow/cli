@@ -1,6 +1,6 @@
 use crate::{
     aerocloud::{
-        Client, new_idempotency_key,
+        Client, fmt_progenitor_err, new_idempotency_key,
         types::{CreateSimulationV7Params, Id},
     },
     args::Args,
@@ -29,7 +29,8 @@ pub async fn run(
 
     let sim = client
         .simulations_v7_create(&idempotency_key, &params)
-        .await?
+        .await
+        .map_err(fmt_progenitor_err)?
         .into_inner();
 
     if args.json {

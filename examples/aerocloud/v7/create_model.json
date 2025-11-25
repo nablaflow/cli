@@ -3,11 +3,22 @@
   "reusable": false,
   "files": [
     {
-      "path": "examples/aerocloud/v7/ball.stl",
+      "path": "examples/aerocloud/v7/model.obj",
       "unit": "m",
-      "rotation": [1.0, 0.0, 0.0, 0.0]
+      "rotation": [1.0, 0.0, 0.0, 0.0],
+      "parts": {
+        "left": {
+          "rolling": true
+        },
+        "right": {
+          "rolling": true
+        },
+        "cube": {
+          "is_porous": true,
+          "darcy_coeff": 5.3e-09,
+          "forchheimer_coeff": 13745
+        }
+      }
     }
-  ],
-  "all_rolling_parts": true,
-  "rolling_parts": ["part1", "part2"]
+  ]
 }

@@ -24,7 +24,7 @@ TODO
 
 ## Aerocloud
 
-As NablaFlow's API requires authentication, you first need to get a personal access token [here](https://aerocloud.nablaflow.io/developer/api)
+As NablaFlow's API requires authentication, you first need to [get a personal access token](https://aerocloud.nablaflow.io/developer/api).  
 Once you have one, set it using `nf aerocloud set-auth-token $TOKEN`.
 
 ### AeroCloud v7

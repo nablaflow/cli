@@ -33,7 +33,7 @@ async fn main() -> eyre::Result<()> {
 
     match args.scope {
         args::Scope::Config { ref command } => {
-            commands::config::run(&args, &config, command).await?;
+            commands::config::run(&args, config, command).await?;
         }
         args::Scope::AeroCloud { ref command } => {
             commands::aerocloud::run(&args, &config, command).await?;

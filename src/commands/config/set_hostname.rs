@@ -4,10 +4,9 @@ use reqwest::Url;
 
 pub async fn run(
     args: &Args,
-    config: &Config,
+    mut config: Config,
     hostname: &Url,
 ) -> eyre::Result<()> {
-    let mut config = config.clone();
     config.hostname = Some(hostname.to_owned());
 
     config.write(&args.config_path).await

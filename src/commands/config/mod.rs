@@ -10,7 +10,7 @@ pub mod unset_hostname;
 
 pub async fn run(
     args: &Args,
-    config: &Config,
+    config: Config,
     subcommand: &ConfigScope,
 ) -> eyre::Result<()> {
     match subcommand {
@@ -20,6 +20,6 @@ pub async fn run(
         ConfigScope::UnsetHostname => {
             self::unset_hostname::run(args, config).await
         }
-        ConfigScope::Show => self::show::run(args, config),
+        ConfigScope::Show => self::show::run(args, &config),
     }
 }

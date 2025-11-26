@@ -4,6 +4,10 @@ version = "0.1.0"
 description = "CLI app to interact with NablaFlow's API"
 edition = "2024"
 publish = false
+license = "MIT"
+authors = [
+  "NablaFlow Engineering <engineering@nablaflow.io>"
+]
 
 [dependencies]
 chrono = { version = "~0.4.42", features = ["serde"] }

@@ -1,15 +1,10 @@
 # NablaFlow CLI &nbsp; [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
-> [!TIP]
-> The CLI is already in the development environment of AeroCloud starting from v7, so you don't need to install it.
-
-Can be run directly via `nix run git+ssh://git@github.com/nablaflow/cli`.
-
 ## Installation
 
 ### As flake
 
-TODO, see example [here](https://github.com/nablaflow/aerocloud/blob/324600cb9b4f66638a060f301df83fe05eb6743a/flake.nix#L50)
+Can be run directly via `nix run git+ssh://git@github.com/nablaflow/cli`.
 
 ### Stand-alone (Linux, macOS, Windows)
 

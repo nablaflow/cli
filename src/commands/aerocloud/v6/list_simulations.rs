@@ -99,6 +99,7 @@ fn print_human(project: &ProjectV6, items: &[SimulationV6]) {
                 SimulationStatus::Success => "✅".into(),
                 SimulationStatus::QualityCheck => "🔍".into(),
                 SimulationStatus::Expired => "♽".into(),
+                SimulationStatus::Draft => "📝".into(),
             },
             format!("{}", sim.params.quality),
             sim.params

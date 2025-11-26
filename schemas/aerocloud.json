@@ -1191,7 +1191,8 @@
           "progress",
           "quality_check",
           "success",
-          "expired"
+          "expired",
+          "draft"
         ],
         "title": "SimulationStatus",
         "type": "string"
@@ -3552,7 +3553,8 @@
             "schema": {
               "enum": [
                 "in-progress",
-                "completed"
+                "completed",
+                "draft"
               ],
               "type": "string"
             }

@@ -14,7 +14,8 @@ pub fn build_aerocloud_client_from_config(
     timeout: &Duration,
 ) -> eyre::Result<aerocloud::Client> {
     let base_url = config.hostname().join("/aerocloud")?;
-    let http_client = build_http_client(config.token_or_fail()?, timeout)?;
+    let http_client =
+        build_http_client(config.aerocloud_token_or_fail()?, timeout)?;
 
     Ok(aerocloud::Client::new_with_client(
         base_url.as_ref(),

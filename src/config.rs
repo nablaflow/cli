@@ -12,7 +12,7 @@ pub type Token = String;
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub token: Option<String>,
+    pub aerocloud_token: Option<String>,
 
     #[serde(
         serialize_with = "serialize_url",
@@ -31,7 +31,8 @@ impl Config {
     pub async fn load(args: &Args) -> eyre::Result<Self> {
         let mut config = Self::load_from_path(&args.config_path).await?;
 
-        config.token = args.token.clone().or(config.token);
+        config.aerocloud_token =
+            args.aerocloud_token.clone().or(config.aerocloud_token);
         config.hostname = args.hostname.clone().or(config.hostname);
 
         Ok(config)
@@ -50,8 +51,8 @@ impl Config {
         tokio_fs::write(path, &buf).await.wrap_err("writing config")
     }
 
-    pub fn token_or_fail(&self) -> eyre::Result<&Token> {
-        self.token
+    pub fn aerocloud_token_or_fail(&self) -> eyre::Result<&Token> {
+        self.aerocloud_token
             .as_ref()
             .ok_or_else(|| eyre::eyre!("no token provided"))
     }

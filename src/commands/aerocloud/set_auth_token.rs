@@ -10,7 +10,7 @@ pub async fn run(
     token: &Token,
 ) -> eyre::Result<()> {
     let mut config = config.clone();
-    config.token = Some(token.to_owned());
+    config.aerocloud_token = Some(token.to_owned());
 
     config.write(&args.config_path).await
 }

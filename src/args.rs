@@ -35,11 +35,11 @@ pub struct Args {
     #[arg(
         short = 'T',
         long,
-        env = "NF_TOKEN",
-        value_name = "TOKEN",
-        help = "Token to use during requests. If specified will take precedence over the one set in config"
+        env = "NF_AEROCLOUD_AUTH_TOKEN",
+        value_name = "AEROCLOUD_AUTH_TOKEN",
+        help = "AeroCloud auth token to use during requests. If specified will take precedence over the one set in config"
     )]
-    pub token: Option<Token>,
+    pub aerocloud_token: Option<Token>,
 
     #[arg(
         short,
@@ -83,6 +83,10 @@ pub enum Scope {
 #[derive(Subcommand, Debug)]
 pub enum AeroCloudScope {
     CurrentUser,
+    SetAuthToken {
+        #[arg(value_name = "TOKEN", help = "Token to set in config")]
+        token: MaybeStdin<Token>,
+    },
     V6 {
         #[command(subcommand)]
         command: AeroCloudV6Command,
@@ -95,23 +99,12 @@ pub enum AeroCloudScope {
 
 #[derive(Subcommand, Debug)]
 pub enum ConfigScope {
-    SetAuthToken {
-        #[arg(value_name = "TOKEN", help = "Token to set in config")]
-        token: MaybeStdin<Token>,
-    },
     SetHostname {
         #[arg(value_name = "HOSTNAME", help = "Hostname to set in config")]
         hostname: Url,
     },
     UnsetHostname,
-    Show {
-        #[arg(
-            short = 's',
-            long,
-            help = "Do not remove secrets from output (only applies to non-json output)"
-        )]
-        include_secrets: bool,
-    },
+    Show,
 }
 
 #[derive(Subcommand, Debug)]

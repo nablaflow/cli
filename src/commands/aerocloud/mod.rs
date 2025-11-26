@@ -6,6 +6,7 @@ use crate::{
 use color_eyre::eyre::{self, WrapErr};
 
 pub mod current_user;
+pub mod set_auth_token;
 pub mod v6;
 pub mod v7;
 
@@ -21,6 +22,9 @@ pub async fn run(
     match subcommand {
         AeroCloudScope::CurrentUser => {
             self::current_user::run(args, &client).await
+        }
+        AeroCloudScope::SetAuthToken { token } => {
+            self::set_auth_token::run(args, config, token).await
         }
         AeroCloudScope::V6 { command } => match command {
             AeroCloudV6Command::ListProjects { status } => {

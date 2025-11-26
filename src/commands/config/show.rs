@@ -1,4 +1,4 @@
-use crate::{args::Args, config::Config};
+use crate::{args::Args, config::Config, utils::new_dynamic_table};
 use color_eyre::eyre;
 
 pub fn run(args: &Args, config: &Config) -> eyre::Result<()> {
@@ -23,11 +23,8 @@ fn print_json(config: &Config) -> eyre::Result<()> {
 }
 
 fn print_human(config: &Config) {
-    let mut table = comfy_table::Table::new();
+    let mut table = new_dynamic_table();
     table
-        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
-        .load_preset(comfy_table::presets::UTF8_FULL)
-        .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
         .set_header(vec!["Key", "Value"])
         .add_row(vec!["Hostname", config.hostname().as_ref()]);
 

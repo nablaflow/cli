@@ -6,7 +6,10 @@
     dead_code
 )]
 
-use crate::aerocloud::types::{IdempotencyKey, JsonErrorResponse};
+use crate::{
+    aerocloud::types::{IdempotencyKey, JsonErrorResponse},
+    utils::new_dynamic_table,
+};
 use color_eyre::eyre::Report;
 use uuid::Uuid;
 
@@ -19,12 +22,8 @@ pub fn fmt_progenitor_err(err: Error<JsonErrorResponse>) -> Report {
         return err.into();
     };
 
-    let mut table = comfy_table::Table::new();
-    table
-        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
-        .load_preset(comfy_table::presets::UTF8_FULL)
-        .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
-        .set_header(vec!["Attribute", "Reason"]);
+    let mut table = new_dynamic_table();
+    table.set_header(vec!["Attribute", "Reason"]);
 
     for error in &res.errors {
         table.add_row(vec![&error.source.pointer, &error.detail]);

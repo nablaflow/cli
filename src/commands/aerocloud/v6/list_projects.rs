@@ -5,6 +5,7 @@ use crate::{
     },
     args::Args,
     fmt::link,
+    utils::new_dynamic_table,
 };
 use chrono::Local;
 use color_eyre::eyre;
@@ -47,12 +48,8 @@ fn print_human(projects: &[ProjectV6]) {
         return;
     }
 
-    let mut table = comfy_table::Table::new();
-    table
-        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
-        .load_preset(comfy_table::presets::UTF8_FULL)
-        .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
-        .set_header(vec!["Id", "Name", "Status", "Created at", ""]);
+    let mut table = new_dynamic_table();
+    table.set_header(vec!["Id", "Name", "Status", "Created at", ""]);
 
     for project in projects {
         table.add_row(vec![

@@ -9,6 +9,7 @@ use crate::{
     },
     args::Args,
     fmt::{NOT_AVAILABLE, link},
+    utils::new_dynamic_table,
 };
 use chrono::Local;
 use color_eyre::eyre;
@@ -79,21 +80,17 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
         return;
     }
 
-    let mut table = comfy_table::Table::new();
-    table
-        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
-        .load_preset(comfy_table::presets::UTF8_FULL)
-        .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
-        .set_header(vec![
-            "Name",
-            "Status",
-            "Quality",
-            "Yaw angle(s)",
-            "Fluid & Speed",
-            "Ground",
-            "Created at",
-            "",
-        ]);
+    let mut table = new_dynamic_table();
+    table.set_header(vec![
+        "Name",
+        "Status",
+        "Quality",
+        "Yaw angle(s)",
+        "Fluid & Speed",
+        "Ground",
+        "Created at",
+        "",
+    ]);
 
     for sim in items {
         table.add_row(vec![
@@ -163,33 +160,28 @@ fn print_results_human(project: &ProjectV7, items: &[SimulationV7]) {
         return;
     }
 
-    let mut table = comfy_table::Table::new();
-
-    table
-        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
-        .load_preset(comfy_table::presets::UTF8_FULL)
-        .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
-        .set_header(vec![
-            "Name",
-            "Quality",
-            "Yaw angle",
-            "Fluid & Speed",
-            "Surface",
-            "Fd",
-            "Fl",
-            "Fs",
-            "Cd",
-            "Cl",
-            "Cs",
-            "Cda",
-            "Cla",
-            "Csa",
-            "Mr",
-            "My",
-            "Mp",
-            "Heat transfer",
-            "Heat transfer coeff",
-        ]);
+    let mut table = new_dynamic_table();
+    table.set_header(vec![
+        "Name",
+        "Quality",
+        "Yaw angle",
+        "Fluid & Speed",
+        "Surface",
+        "Fd",
+        "Fl",
+        "Fs",
+        "Cd",
+        "Cl",
+        "Cs",
+        "Cda",
+        "Cla",
+        "Csa",
+        "Mr",
+        "My",
+        "Mp",
+        "Heat transfer",
+        "Heat transfer coeff",
+    ]);
 
     for (sim, res) in items {
         table.add_row(vec![

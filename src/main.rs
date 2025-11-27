@@ -36,7 +36,7 @@ async fn main() -> eyre::Result<()> {
             commands::config::run(&args, config, command).await?;
         }
         args::Scope::AeroCloud { ref command } => {
-            commands::aerocloud::run(&args, &config, command).await?;
+            commands::aerocloud::run(&args, config, command).await?;
         }
         args::Scope::GenerateCompletions { shell } => {
             let mut args = Args::command();

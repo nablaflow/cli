@@ -5,6 +5,7 @@ use crate::{
 };
 use color_eyre::eyre::{self, WrapErr};
 
+pub mod current_token;
 pub mod current_user;
 pub mod set_auth_token;
 pub mod v6;
@@ -13,15 +14,18 @@ pub mod v7;
 #[allow(clippy::too_many_lines)]
 pub async fn run(
     args: &Args,
-    config: &Config,
+    config: Config,
     subcommand: &AeroCloudScope,
 ) -> eyre::Result<()> {
     let client =
-        http::build_aerocloud_client_from_config(config, &args.http_timeout())?;
+        http::build_aerocloud_client_from_config(&config, &args.http_timeout())?;
 
     match subcommand {
         AeroCloudScope::CurrentUser => {
             self::current_user::run(args, &client).await
+        }
+        AeroCloudScope::CurrentToken => {
+            self::current_token::run(args, &client).await
         }
         AeroCloudScope::SetAuthToken { token } => {
             self::set_auth_token::run(args, config, token).await

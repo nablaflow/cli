@@ -83,6 +83,7 @@ pub enum Scope {
 #[derive(Subcommand, Debug)]
 pub enum AeroCloudScope {
     CurrentUser,
+    CurrentToken,
     SetAuthToken {
         #[arg(value_name = "TOKEN", help = "Token to set in config")]
         token: MaybeStdin<Token>,

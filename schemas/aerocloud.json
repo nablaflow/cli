@@ -752,6 +752,39 @@
         "title": "PaginationOffset",
         "type": "integer"
       },
+      "PersonalAccessToken": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "enum": [
+                "read",
+                "write"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "expires_at",
+          "created_at",
+          "scopes"
+        ],
+        "title": "PersonalAccessToken",
+        "type": "object"
+      },
       "ProjectStatus": {
         "enum": [
           "active",
@@ -1336,6 +1369,18 @@
         "title": "SimulationV7",
         "type": "object"
       },
+      "Token": {
+        "discriminator": {
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PersonalAccessToken"
+          }
+        ],
+        "title": "Token",
+        "type": "object"
+      },
       "UpdatePartV6Params": {
         "properties": {
           "rolling": {
@@ -1464,6 +1509,38 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/tokens/caller": {
+      "get": {
+        "callbacks": {},
+        "operationId": "tokens.caller",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            },
+            "description": "Information about the token used"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "tokens"
+        ]
+      }
+    },
     "/users/self": {
       "get": {
         "callbacks": {},

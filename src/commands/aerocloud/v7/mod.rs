@@ -6,3 +6,4 @@ pub mod delete_simulations;
 pub mod list_projects;
 pub mod list_simulations;
 pub mod wait_for_simulations;
+pub mod wizard;

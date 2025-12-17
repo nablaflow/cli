@@ -18,7 +18,14 @@ async fn main() -> eyre::Result<()> {
 
     let args = Args::parse();
 
+    // let logfile = std::fs::OpenOptions::new()
+    //     .append(true)
+    //     .create(true)
+    //     .open("output.log")
+    //     .unwrap();
+
     tracing_subscriber::fmt()
+        // .with_writer(logfile)
         .with_writer(io::stderr)
         .with_max_level(if args.debug {
             Level::DEBUG

@@ -1,0 +1,10 @@
+{
+  "quality": "standard",
+  "revision": "rev 1",
+  "fluid_speed": 10.0,
+  "fluid": "air",
+  "has_ground": false,
+  "is_ground_moving": false,
+  "ground_offset": 5.0,
+  "yaw_angles": [0.0, 1.0]
+}

@@ -293,9 +293,56 @@ impl Wizard {
 
         let [left_area, right_area] = area.layout(&layout);
 
-        let sims_list_block = Block::bordered()
+        Self::render_sims_list(
+            state,
+            simulations,
+            sims_list_state,
+            left_area,
+            buf,
+        );
+
+        Self::render_sim_detail(
+            state,
+            simulations,
+            sims_list_state,
+            sim_detail_scrollbar_state,
+            right_area,
+            buf,
+        );
+
+        if let ActiveState::ConfirmExit { .. } = state {
+            Wizard::render_exit_popup(area, buf);
+        }
+    }
+
+    fn render_sim_detail(
+        state: &ActiveState,
+        simulations: &[SimulationParams],
+        sims_list_state: &ListState,
+        sim_detail_scrollbar_state: &mut ScrollbarState,
+        area: Rect,
+        buf: &mut Buffer,
+    ) {
+        let detail = SimulationDetail {
+            focus: matches!(state, ActiveState::ViewingDetail),
+            sim: sims_list_state
+                .selected()
+                .and_then(|idx| simulations.get(idx)),
+        };
+
+        StatefulWidget::render(&detail, area, buf, sim_detail_scrollbar_state);
+    }
+
+    fn render_sims_list(
+        state: &ActiveState,
+        simulations: &[SimulationParams],
+        sims_list_state: &mut ListState,
+        area: Rect,
+        buf: &mut Buffer,
+    ) {
+        let block = Block::bordered()
             .title(
-                Line::from(format!("Simulations ({})", simulations.len()))
+                Line::from(format!(" Simulations ({}) ", simulations.len()))
                     .centered(),
             )
             .border_set(border::PLAIN)
@@ -305,35 +352,17 @@ impl Wizard {
                 STYLE_DIMMED
             });
 
-        let sims_list = List::new(simulations.iter())
-            .block(sims_list_block)
+        let list = List::new(simulations.iter())
+            .block(block)
             .highlight_spacing(HighlightSpacing::Always)
             .highlight_symbol(">> ")
             .highlight_style(STYLE_ACCENT);
 
-        StatefulWidget::render(sims_list, left_area, buf, sims_list_state);
-
-        let sim_detail = SimulationDetail {
-            focus: matches!(state, ActiveState::ViewingDetail),
-            sim: sims_list_state
-                .selected()
-                .and_then(|idx| simulations.get(idx)),
-        };
-
-        StatefulWidget::render(
-            &sim_detail,
-            right_area,
-            buf,
-            sim_detail_scrollbar_state,
-        );
-
-        if let ActiveState::ConfirmExit { .. } = state {
-            Wizard::render_exit_popup(area, buf);
-        }
+        StatefulWidget::render(list, area, buf, sims_list_state);
     }
 
     fn render_exit_popup(area: Rect, buf: &mut Buffer) {
-        let popup_area = center(
+        let area = center(
             area,
             Constraint::Percentage(40),
             Constraint::Length(5), // top and bottom border + content
@@ -347,24 +376,24 @@ impl Wizard {
             Span::raw(") no "),
         ]);
 
-        let popup_block = Block::bordered()
+        let block = Block::bordered()
             .title(
-                Line::from(Span::styled("Confirmation", STYLE_BOLD)).centered(),
+                Line::from(Span::styled(" Confirmation ", STYLE_BOLD)).centered(),
             )
             .title_bottom(instructions.centered())
             .border_set(border::THICK)
             .style(STYLE_ERROR);
 
-        let exit_popup = Paragraph::new(vec![
+        let paragraph = Paragraph::new(vec![
             Line::default(),
-            Line::raw("Are you sure you want to exit? (y/n)").centered(),
+            Line::raw("Are you sure you want to exit?").centered(),
             Line::default(),
         ])
-        .block(popup_block)
+        .block(block)
         .wrap(Wrap { trim: false });
 
-        Widget::render(&Clear, popup_area, buf);
-        Widget::render(&exit_popup, popup_area, buf);
+        Widget::render(&Clear, area, buf);
+        Widget::render(&paragraph, area, buf);
     }
 
     fn render_template(&self, area: Rect, buf: &mut Buffer) {
@@ -376,7 +405,7 @@ impl Wizard {
 
         let title: Cow<'_, str> =
             if let State::Active { ref project, .. } = self.state {
-                format!(" AeroCloud v7 (project: `{}`)", project.name).into()
+                format!(" AeroCloud v7 (project: `{}`) ", project.name).into()
             } else {
                 " AeroCloud v7 ".into()
             };
@@ -399,7 +428,7 @@ impl Wizard {
             .title_bottom(instructions.style(style).centered())
             .border_set(border::THICK);
 
-        block.render(area, buf);
+        Widget::render(&block, area, buf);
     }
 }
 

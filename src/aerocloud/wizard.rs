@@ -1,20 +1,19 @@
 use crate::aerocloud::{
     Client,
-    extra_types::CreateSimulationV7ParamsFromJson,
     types::ProjectV7,
     wizard::{
         project_picker::{ProjectPicker, WidgetResult as ProjectPickerResult},
         simulation_detail::SimulationDetail,
-        simulation_params::{ModelState, SimulationParams},
+        simulation_params::SimulationParams,
     },
 };
-use color_eyre::eyre;
+use color_eyre::eyre::{self, WrapErr};
 use crossterm::event::{Event, EventStream, KeyCode, KeyEventKind, KeyModifiers};
 use futures_util::StreamExt;
 use ratatui::{
     DefaultTerminal, Frame,
     buffer::Buffer,
-    layout::{Constraint, Flex, Layout, Rect, Spacing},
+    layout::{Constraint, Flex, Layout, Rect, Size, Spacing},
     style::Style,
     symbols::border,
     text::{Line, Span, Text},
@@ -39,9 +38,17 @@ const STYLE_ACCENT: Style = Style::new().blue().bold();
 const STYLE_ERROR: Style = Style::new().red().bold();
 const STYLE_WARNING: Style = Style::new().yellow().bold();
 
+const MIN_TERM_SIZE: Size = Size::new(100, 38);
+
 pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
     let sims = if let Some(root_dir) = root_dir {
-        SimulationParams::many_from_root_dir(root_dir)?
+        let sims = SimulationParams::many_from_root_dir(root_dir)?;
+
+        if sims.is_empty() {
+            eyre::bail!("no simulations found in `{}`", root_dir.display());
+        }
+
+        sims
     } else {
         vec![]
     };
@@ -61,6 +68,7 @@ struct Wizard {
     client: Client,
     running: bool,
     event_stream: EventStream,
+    term_size: Size,
 
     simulations: Vec<SimulationParams>,
 
@@ -107,6 +115,7 @@ impl Wizard {
                 picker: ProjectPicker::new(client.clone()),
             },
             running: false,
+            term_size: Size::default(),
             simulations,
             event_stream: EventStream::default(),
             client,
@@ -118,6 +127,7 @@ impl Wizard {
             Duration::from_secs_f32(1.0 / Self::FRAMES_PER_SECOND),
         );
 
+        self.term_size = terminal.size().wrap_err("getting term size")?;
         self.running = true;
 
         while self.running {
@@ -132,6 +142,10 @@ impl Wizard {
             ) else {
                 continue;
             };
+
+            if let Event::Resize(w, h) = event {
+                self.term_size = Size::new(w, h);
+            }
 
             match self.state {
                 State::PickingProject { .. } => {
@@ -156,10 +170,6 @@ impl Wizard {
         match picker.handle_event(event) {
             Some(ProjectPickerResult::Exit) => self.immediate_exit(),
             Some(ProjectPickerResult::Selected(project)) => {
-                if self.simulations.is_empty() {
-                    self.simulations.push(build_new_sim());
-                }
-
                 self.state = State::Active {
                     project,
                     state: ActiveState::ViewingList,
@@ -487,18 +497,45 @@ impl Wizard {
 
         Widget::render(&block, area, buf);
     }
-}
 
-fn build_new_sim() -> SimulationParams {
-    SimulationParams {
-        params: CreateSimulationV7ParamsFromJson::default(),
-        model_state: ModelState::Pending,
-        files: vec![],
+    fn is_term_size_not_enough(&self) -> bool {
+        self.term_size.width < MIN_TERM_SIZE.width
+            || self.term_size.height < MIN_TERM_SIZE.height
+    }
+
+    fn show_min_term_size_notice(&self, area: Rect, buf: &mut Buffer) {
+        let paragraph = Paragraph::new(vec![
+            Line::default(),
+            Line::raw(format!(
+                "Terminal size is too small ({}x{}).",
+                self.term_size.width, self.term_size.height,
+            ))
+            .centered(),
+            Line::raw(format!(
+                "Need at least {}x{}",
+                MIN_TERM_SIZE.width, MIN_TERM_SIZE.height
+            ))
+            .centered(),
+            Line::default(),
+        ])
+        .block(
+            Block::bordered()
+                .border_set(border::THICK)
+                .style(STYLE_ERROR),
+        )
+        .wrap(Wrap { trim: false });
+
+        Widget::render(&paragraph, area, buf);
     }
 }
 
 impl Widget for &mut Wizard {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        if self.is_term_size_not_enough() {
+            self.show_min_term_size_notice(area, buf);
+            return;
+        }
+
         match self.state {
             State::PickingProject { ref picker } => {
                 Wizard::render_state_picking_project(picker, area, buf);

@@ -110,7 +110,7 @@ impl ProjectPicker {
         frame.render_widget(self, frame.area());
     }
 
-    pub fn handle_event(&mut self, event: &Event) -> Option<WidgetResult> {
+    pub fn handle_event(&self, event: &Event) -> Option<WidgetResult> {
         match event {
             Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                 match *self.state.write().expect("failed to get write lock") {

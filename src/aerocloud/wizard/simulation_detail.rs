@@ -9,7 +9,10 @@ use ratatui::{
     layout::Rect,
     symbols::border,
     text::{Line, Span, Text},
-    widgets::{Block, Paragraph, Widget},
+    widgets::{
+        Block, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+        StatefulWidget, Widget,
+    },
 };
 use std::borrow::Cow;
 
@@ -234,8 +237,15 @@ impl<'a> SimulationDetail<'a> {
     }
 }
 
-impl Widget for &SimulationDetail<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
+impl StatefulWidget for &SimulationDetail<'_> {
+    type State = ScrollbarState;
+
+    fn render(
+        self,
+        area: Rect,
+        buf: &mut Buffer,
+        scrollbar_state: &mut Self::State,
+    ) {
         let block = self.block();
 
         let Some(sim) = self.sim else {
@@ -253,7 +263,16 @@ impl Widget for &SimulationDetail<'_> {
 
         SimulationDetail::files_lines(sim, &mut lines);
 
-        Paragraph::new(lines).block(block).render(area, buf);
+        *scrollbar_state = scrollbar_state.content_length(lines.len());
+
+        Paragraph::new(lines)
+            .scroll((u16::try_from(scrollbar_state.get_position()).unwrap(), 0))
+            .block(block)
+            .render(area, buf);
+
+        let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight);
+
+        StatefulWidget::render(scrollbar, area, buf, scrollbar_state);
     }
 }
 

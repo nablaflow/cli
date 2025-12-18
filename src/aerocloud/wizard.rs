@@ -19,8 +19,8 @@ use ratatui::{
     symbols::border,
     text::{Line, Span, Text},
     widgets::{
-        Block, HighlightSpacing, List, ListItem, ListState, StatefulWidget,
-        Widget,
+        Block, HighlightSpacing, List, ListItem, ListState, ScrollbarState,
+        StatefulWidget, Widget,
     },
 };
 use std::{borrow::Cow, path::Path, time::Duration};
@@ -91,7 +91,8 @@ enum State {
     Active {
         focus: ActiveFocus,
         project: ProjectV7,
-        list_state: ListState,
+        sims_list_state: ListState,
+        sim_detail_scrollbar_state: ScrollbarState,
     },
 }
 
@@ -131,50 +132,10 @@ impl Wizard {
             };
 
             match self.state {
-                State::PickingProject { ref mut picker } => {
-                    match picker.handle_event(&event) {
-                        Some(ProjectPickerResult::Exit) => self.exit(),
-                        Some(ProjectPickerResult::Selected(project)) => {
-                            if self.simulations.is_empty() {
-                                self.simulations.push(build_new_sim());
-                            }
-
-                            self.state = State::Active {
-                                project,
-                                focus: ActiveFocus::List,
-                                list_state: ListState::default()
-                                    .with_selected(Some(0)),
-                            };
-                        }
-                        _ => {}
-                    }
+                State::PickingProject { .. } => {
+                    self.handle_event_state_picking_project(&event);
                 }
-                State::Active {
-                    ref focus,
-                    ref mut list_state,
-                    ..
-                } => {
-                    match focus {
-                        ActiveFocus::List => {
-                            if let Event::Key(key_event) = event
-                                && key_event.kind == KeyEventKind::Press
-                            {
-                                match key_event.code {
-                                    KeyCode::Up => {
-                                        list_state.select_previous();
-                                    }
-                                    KeyCode::Down => {
-                                        list_state.select_next();
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-                        ActiveFocus::Detail => {}
-                    }
-
-                    self.handle_event(&event);
-                }
+                State::Active { .. } => self.handle_event_state_active(&event),
             }
         }
 
@@ -185,38 +146,89 @@ impl Wizard {
         frame.render_widget(self, frame.area());
     }
 
-    fn handle_event(&mut self, event: &Event) {
-        if let Event::Key(key_event) = event
-            && key_event.kind == KeyEventKind::Press
-        {
-            if key_event.code == KeyCode::Esc
-                || (key_event.code == KeyCode::Char('c')
-                    && key_event.modifiers == KeyModifiers::CONTROL)
-            {
-                self.exit();
-            }
+    fn handle_event_state_picking_project(&mut self, event: &Event) {
+        let State::PickingProject { ref mut picker } = self.state else {
+            return;
+        };
 
-            if let State::Active {
-                ref mut focus,
-                ref mut list_state,
-                ..
-            } = self.state
-            {
-                match key_event.code {
-                    KeyCode::Tab => {
-                        focus.toggle();
-                    }
-                    KeyCode::Up if key_event.modifiers == KeyModifiers::SHIFT => {
-                        list_state.select_previous();
-                    }
-                    KeyCode::Down
-                        if key_event.modifiers == KeyModifiers::SHIFT =>
-                    {
-                        list_state.select_next();
-                    }
-                    _ => {}
+        match picker.handle_event(event) {
+            Some(ProjectPickerResult::Exit) => self.exit(),
+            Some(ProjectPickerResult::Selected(project)) => {
+                if self.simulations.is_empty() {
+                    self.simulations.push(build_new_sim());
                 }
+
+                self.state = State::Active {
+                    project,
+                    focus: ActiveFocus::List,
+                    sims_list_state: ListState::default().with_selected(Some(0)),
+                    sim_detail_scrollbar_state: ScrollbarState::default(),
+                };
             }
+            _ => {}
+        }
+    }
+
+    fn handle_event_state_active(&mut self, event: &Event) {
+        let State::Active {
+            ref mut focus,
+            ref mut sims_list_state,
+            ref mut sim_detail_scrollbar_state,
+            ..
+        } = self.state
+        else {
+            return;
+        };
+
+        let Event::Key(key_event) = event else {
+            return;
+        };
+
+        if key_event.kind != KeyEventKind::Press {
+            return;
+        }
+
+        match (key_event.code, key_event.modifiers) {
+            (KeyCode::Esc, _) | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                self.exit();
+                return;
+            }
+            (KeyCode::Tab, _) => {
+                focus.toggle();
+                return;
+            }
+            _ => {}
+        }
+
+        match focus {
+            ActiveFocus::List => match key_event.code {
+                KeyCode::Up => {
+                    sims_list_state.select_previous();
+                    sim_detail_scrollbar_state.first();
+                }
+                KeyCode::Down => {
+                    sims_list_state.select_next();
+                    sim_detail_scrollbar_state.first();
+                }
+                _ => {}
+            },
+            ActiveFocus::Detail => match (key_event.code, key_event.modifiers) {
+                (KeyCode::Up, KeyModifiers::SHIFT) => {
+                    sims_list_state.select_previous();
+                    sim_detail_scrollbar_state.first();
+                }
+                (KeyCode::Down, KeyModifiers::SHIFT) => {
+                    sims_list_state.select_next();
+                    sim_detail_scrollbar_state.first();
+                }
+                (KeyCode::Up, _) => {
+                    sim_detail_scrollbar_state.prev();
+                }
+                (KeyCode::Down, _) => {
+                    sim_detail_scrollbar_state.next();
+                }
+                _ => {}
+            },
         }
     }
 
@@ -254,7 +266,8 @@ impl Widget for &mut Wizard {
             }
             State::Active {
                 ref focus,
-                ref mut list_state,
+                ref mut sims_list_state,
+                ref mut sim_detail_scrollbar_state,
                 ..
             } => {
                 let layout = Layout::horizontal([
@@ -287,15 +300,26 @@ impl Widget for &mut Wizard {
                     .highlight_symbol(">> ")
                     .highlight_style(STYLE_ACCENT);
 
-                StatefulWidget::render(sims_list, left_area, buf, list_state);
+                StatefulWidget::render(
+                    sims_list,
+                    left_area,
+                    buf,
+                    sims_list_state,
+                );
 
-                SimulationDetail {
+                let sim_detail = SimulationDetail {
                     focus: matches!(focus, ActiveFocus::Detail),
-                    sim: list_state
+                    sim: sims_list_state
                         .selected()
                         .and_then(|idx| self.simulations.get(idx)),
-                }
-                .render(right_area, buf);
+                };
+
+                StatefulWidget::render(
+                    &sim_detail,
+                    right_area,
+                    buf,
+                    sim_detail_scrollbar_state,
+                );
             }
         }
 

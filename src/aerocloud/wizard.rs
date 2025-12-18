@@ -19,8 +19,8 @@ use ratatui::{
     symbols::border,
     text::{Line, Span, Text},
     widgets::{
-        Block, HighlightSpacing, List, ListItem, ListState, ScrollbarState,
-        StatefulWidget, Widget,
+        Block, Clear, HighlightSpacing, List, ListItem, ListState, Paragraph,
+        ScrollbarState, StatefulWidget, Widget, Wrap,
     },
 };
 use std::{borrow::Cow, path::Path, time::Duration};
@@ -67,18 +67,19 @@ struct Wizard {
     state: State,
 }
 
-#[derive(Debug, Default)]
-enum ActiveFocus {
-    #[default]
-    List,
-    Detail,
+#[derive(Debug, Clone)]
+enum ActiveState {
+    ViewingList,
+    ViewingDetail,
+    ConfirmExit { prev: Box<ActiveState> },
 }
 
-impl ActiveFocus {
-    fn toggle(&mut self) {
+impl ActiveState {
+    fn toggle_viewing_focus(&mut self) {
         match self {
-            Self::List => *self = Self::Detail,
-            Self::Detail => *self = Self::List,
+            Self::ViewingList => *self = Self::ViewingDetail,
+            Self::ViewingDetail => *self = Self::ViewingList,
+            Self::ConfirmExit { .. } => {}
         }
     }
 }
@@ -89,7 +90,7 @@ enum State {
         picker: ProjectPicker,
     },
     Active {
-        focus: ActiveFocus,
+        state: ActiveState,
         project: ProjectV7,
         sims_list_state: ListState,
         sim_detail_scrollbar_state: ScrollbarState,
@@ -152,7 +153,7 @@ impl Wizard {
         };
 
         match picker.handle_event(event) {
-            Some(ProjectPickerResult::Exit) => self.exit(),
+            Some(ProjectPickerResult::Exit) => self.immediate_exit(),
             Some(ProjectPickerResult::Selected(project)) => {
                 if self.simulations.is_empty() {
                     self.simulations.push(build_new_sim());
@@ -160,7 +161,7 @@ impl Wizard {
 
                 self.state = State::Active {
                     project,
-                    focus: ActiveFocus::List,
+                    state: ActiveState::ViewingList,
                     sims_list_state: ListState::default().with_selected(Some(0)),
                     sim_detail_scrollbar_state: ScrollbarState::default(),
                 };
@@ -171,7 +172,7 @@ impl Wizard {
 
     fn handle_event_state_active(&mut self, event: &Event) {
         let State::Active {
-            ref mut focus,
+            ref mut state,
             ref mut sims_list_state,
             ref mut sim_detail_scrollbar_state,
             ..
@@ -188,141 +189,185 @@ impl Wizard {
             return;
         }
 
-        match (key_event.code, key_event.modifiers) {
-            (KeyCode::Esc, _) | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
-                self.exit();
-                return;
+        match state {
+            ActiveState::ViewingList => {
+                match (key_event.code, key_event.modifiers) {
+                    (KeyCode::Up, _) => {
+                        sims_list_state.select_previous();
+                        sim_detail_scrollbar_state.first();
+                    }
+                    (KeyCode::Down, _) => {
+                        sims_list_state.select_next();
+                        sim_detail_scrollbar_state.first();
+                    }
+                    (KeyCode::Esc, _)
+                    | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                        *state = ActiveState::ConfirmExit {
+                            prev: Box::new(state.clone()),
+                        };
+                    }
+                    (KeyCode::Tab, _) => {
+                        state.toggle_viewing_focus();
+                    }
+                    _ => {}
+                }
             }
-            (KeyCode::Tab, _) => {
-                focus.toggle();
-                return;
+            ActiveState::ViewingDetail => {
+                match (key_event.code, key_event.modifiers) {
+                    (KeyCode::Up, KeyModifiers::SHIFT) => {
+                        sims_list_state.select_previous();
+                        sim_detail_scrollbar_state.first();
+                    }
+                    (KeyCode::Down, KeyModifiers::SHIFT) => {
+                        sims_list_state.select_next();
+                        sim_detail_scrollbar_state.first();
+                    }
+                    (KeyCode::Up, _) => {
+                        sim_detail_scrollbar_state.prev();
+                    }
+                    (KeyCode::Down, _) => {
+                        sim_detail_scrollbar_state.next();
+                    }
+                    (KeyCode::Esc, _)
+                    | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                        *state = ActiveState::ConfirmExit {
+                            prev: Box::new(state.clone()),
+                        };
+                    }
+                    (KeyCode::Tab, _) => {
+                        state.toggle_viewing_focus();
+                    }
+                    _ => {}
+                }
             }
-            _ => {}
-        }
-
-        match focus {
-            ActiveFocus::List => match key_event.code {
-                KeyCode::Up => {
-                    sims_list_state.select_previous();
-                    sim_detail_scrollbar_state.first();
+            ActiveState::ConfirmExit { prev } => match key_event.code {
+                KeyCode::Char('y') => {
+                    self.immediate_exit();
                 }
-                KeyCode::Down => {
-                    sims_list_state.select_next();
-                    sim_detail_scrollbar_state.first();
-                }
-                _ => {}
-            },
-            ActiveFocus::Detail => match (key_event.code, key_event.modifiers) {
-                (KeyCode::Up, KeyModifiers::SHIFT) => {
-                    sims_list_state.select_previous();
-                    sim_detail_scrollbar_state.first();
-                }
-                (KeyCode::Down, KeyModifiers::SHIFT) => {
-                    sims_list_state.select_next();
-                    sim_detail_scrollbar_state.first();
-                }
-                (KeyCode::Up, _) => {
-                    sim_detail_scrollbar_state.prev();
-                }
-                (KeyCode::Down, _) => {
-                    sim_detail_scrollbar_state.next();
+                KeyCode::Char('n') => {
+                    *state = *prev.clone();
                 }
                 _ => {}
             },
         }
     }
 
-    fn exit(&mut self) {
-        // TODO: ask for confirmation
+    fn immediate_exit(&mut self) {
         self.running = false;
     }
-}
 
-fn build_new_sim() -> SimulationParams {
-    SimulationParams {
-        params: CreateSimulationV7ParamsFromJson::default(),
-        model_state: ModelState::Pending,
-        files: vec![],
+    fn render_state_picking_project(
+        picker: &ProjectPicker,
+        area: Rect,
+        buf: &mut Buffer,
+    ) {
+        let [upper, lower] = area.layout(
+            &Layout::vertical([Constraint::Min(8), Constraint::Fill(1)])
+                .flex(Flex::Center)
+                .vertical_margin(5)
+                .horizontal_margin(10)
+                .spacing(Spacing::Space(2)),
+        );
+
+        Text::from(LOGO_ASCII_ART)
+            .centered()
+            .render(upper.centered_vertically(Constraint::Ratio(1, 2)), buf);
+
+        Widget::render(picker, lower, buf);
     }
-}
 
-impl Widget for &mut Wizard {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        match self.state {
-            State::PickingProject { ref picker } => {
-                let [upper, lower] = area.layout(
-                    &Layout::vertical([Constraint::Min(8), Constraint::Fill(1)])
-                        .flex(Flex::Center)
-                        .vertical_margin(5)
-                        .horizontal_margin(10)
-                        .spacing(Spacing::Space(2)),
-                );
+    fn render_state_active(
+        state: &ActiveState,
+        simulations: &[SimulationParams],
+        sims_list_state: &mut ListState,
+        sim_detail_scrollbar_state: &mut ScrollbarState,
+        area: Rect,
+        buf: &mut Buffer,
+    ) {
+        let layout = Layout::horizontal([
+            Constraint::Percentage(30),
+            Constraint::Percentage(70),
+        ])
+        .vertical_margin(1)
+        .horizontal_margin(2);
 
-                Text::from(LOGO_ASCII_ART).centered().render(
-                    upper.centered_vertically(Constraint::Ratio(1, 2)),
-                    buf,
-                );
-                picker.render(lower, buf);
-            }
-            State::Active {
-                ref focus,
-                ref mut sims_list_state,
-                ref mut sim_detail_scrollbar_state,
-                ..
-            } => {
-                let layout = Layout::horizontal([
-                    Constraint::Percentage(30),
-                    Constraint::Percentage(70),
-                ])
-                .vertical_margin(1)
-                .horizontal_margin(2);
+        let [left_area, right_area] = area.layout(&layout);
 
-                let [left_area, right_area] = area.layout(&layout);
+        let sims_list_block = Block::bordered()
+            .title(
+                Line::from(format!("Simulations ({})", simulations.len()))
+                    .centered(),
+            )
+            .border_set(border::PLAIN)
+            .style(if matches!(state, ActiveState::ViewingList) {
+                STYLE_NORMAL
+            } else {
+                STYLE_DIMMED
+            });
 
-                let sims_list_block = Block::bordered()
-                    .title(
-                        Line::from(format!(
-                            "Simulations ({})",
-                            self.simulations.len()
-                        ))
-                        .centered(),
-                    )
-                    .border_set(border::PLAIN)
-                    .style(if let ActiveFocus::List = focus {
-                        STYLE_NORMAL
-                    } else {
-                        STYLE_DIMMED
-                    });
+        let sims_list = List::new(simulations.iter())
+            .block(sims_list_block)
+            .highlight_spacing(HighlightSpacing::Always)
+            .highlight_symbol(">> ")
+            .highlight_style(STYLE_ACCENT);
 
-                let sims_list = List::new(self.simulations.iter())
-                    .block(sims_list_block)
-                    .highlight_spacing(HighlightSpacing::Always)
-                    .highlight_symbol(">> ")
-                    .highlight_style(STYLE_ACCENT);
+        StatefulWidget::render(sims_list, left_area, buf, sims_list_state);
 
-                StatefulWidget::render(
-                    sims_list,
-                    left_area,
-                    buf,
-                    sims_list_state,
-                );
+        let sim_detail = SimulationDetail {
+            focus: matches!(state, ActiveState::ViewingDetail),
+            sim: sims_list_state
+                .selected()
+                .and_then(|idx| simulations.get(idx)),
+        };
 
-                let sim_detail = SimulationDetail {
-                    focus: matches!(focus, ActiveFocus::Detail),
-                    sim: sims_list_state
-                        .selected()
-                        .and_then(|idx| self.simulations.get(idx)),
-                };
+        StatefulWidget::render(
+            &sim_detail,
+            right_area,
+            buf,
+            sim_detail_scrollbar_state,
+        );
 
-                StatefulWidget::render(
-                    &sim_detail,
-                    right_area,
-                    buf,
-                    sim_detail_scrollbar_state,
-                );
-            }
+        if let ActiveState::ConfirmExit { .. } = state {
+            Wizard::render_exit_popup(area, buf);
         }
+    }
 
+    fn render_exit_popup(area: Rect, buf: &mut Buffer) {
+        let popup_area = center(
+            area,
+            Constraint::Percentage(40),
+            Constraint::Length(5), // top and bottom border + content
+        );
+
+        let instructions = Line::from(vec![
+            Span::raw(" ("),
+            Span::styled("y", STYLE_ERROR),
+            Span::raw(") yes | ("),
+            Span::styled("n", STYLE_ERROR),
+            Span::raw(") no "),
+        ]);
+
+        let popup_block = Block::bordered()
+            .title(
+                Line::from(Span::styled("Confirmation", STYLE_BOLD)).centered(),
+            )
+            .title_bottom(instructions.centered())
+            .border_set(border::THICK)
+            .style(STYLE_ERROR);
+
+        let exit_popup = Paragraph::new(vec![
+            Line::default(),
+            Line::raw("Are you sure you want to exit? (y/n)").centered(),
+            Line::default(),
+        ])
+        .block(popup_block)
+        .wrap(Wrap { trim: false });
+
+        Widget::render(&Clear, popup_area, buf);
+        Widget::render(&exit_popup, popup_area, buf);
+    }
+
+    fn render_template(&self, area: Rect, buf: &mut Buffer) {
         let style = if matches!(self.state, State::Active { .. }) {
             STYLE_NORMAL
         } else {
@@ -358,6 +403,41 @@ impl Widget for &mut Wizard {
     }
 }
 
+fn build_new_sim() -> SimulationParams {
+    SimulationParams {
+        params: CreateSimulationV7ParamsFromJson::default(),
+        model_state: ModelState::Pending,
+        files: vec![],
+    }
+}
+
+impl Widget for &mut Wizard {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        match self.state {
+            State::PickingProject { ref picker } => {
+                Wizard::render_state_picking_project(picker, area, buf);
+            }
+            State::Active {
+                ref state,
+                ref mut sims_list_state,
+                ref mut sim_detail_scrollbar_state,
+                ..
+            } => {
+                Wizard::render_state_active(
+                    state,
+                    &self.simulations,
+                    sims_list_state,
+                    sim_detail_scrollbar_state,
+                    area,
+                    buf,
+                );
+            }
+        }
+
+        self.render_template(area, buf);
+    }
+}
+
 impl From<&SimulationParams> for ListItem<'_> {
     fn from(p: &SimulationParams) -> Self {
         ListItem::from(Line::from(vec![
@@ -366,4 +446,12 @@ impl From<&SimulationParams> for ListItem<'_> {
             Span::styled(format!("({})", p.params.quality), STYLE_ACCENT),
         ]))
     }
+}
+
+fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+    let [area] = Layout::horizontal([horizontal])
+        .flex(Flex::Center)
+        .areas(area);
+    let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
+    area
 }

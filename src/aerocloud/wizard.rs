@@ -72,6 +72,7 @@ enum ActiveState {
     ViewingList,
     ViewingDetail,
     ConfirmExit { prev: Box<ActiveState> },
+    ConfirmSubmit,
 }
 
 impl ActiveState {
@@ -79,7 +80,7 @@ impl ActiveState {
         match self {
             Self::ViewingList => *self = Self::ViewingDetail,
             Self::ViewingDetail => *self = Self::ViewingList,
-            Self::ConfirmExit { .. } => {}
+            _ => {}
         }
     }
 }
@@ -209,6 +210,9 @@ impl Wizard {
                     (KeyCode::Tab, _) => {
                         state.toggle_viewing_focus();
                     }
+                    (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
+                        *state = ActiveState::ConfirmSubmit;
+                    }
                     _ => {}
                 }
             }
@@ -237,6 +241,9 @@ impl Wizard {
                     (KeyCode::Tab, _) => {
                         state.toggle_viewing_focus();
                     }
+                    (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
+                        *state = ActiveState::ConfirmSubmit;
+                    }
                     _ => {}
                 }
             }
@@ -246,6 +253,15 @@ impl Wizard {
                 }
                 KeyCode::Char('n') => {
                     *state = *prev.clone();
+                }
+                _ => {}
+            },
+            ActiveState::ConfirmSubmit => match key_event.code {
+                KeyCode::Char('y') => {
+                    *state = ActiveState::ViewingList;
+                }
+                KeyCode::Char('n') => {
+                    *state = ActiveState::ViewingList;
                 }
                 _ => {}
             },
@@ -310,8 +326,14 @@ impl Wizard {
             buf,
         );
 
-        if let ActiveState::ConfirmExit { .. } = state {
-            Wizard::render_exit_popup(area, buf);
+        match state {
+            ActiveState::ConfirmExit { .. } => {
+                Wizard::render_exit_popup(area, buf);
+            }
+            ActiveState::ConfirmSubmit => {
+                Wizard::render_submit_confirmation_popup(area, buf);
+            }
+            _ => {}
         }
     }
 
@@ -364,7 +386,7 @@ impl Wizard {
     fn render_exit_popup(area: Rect, buf: &mut Buffer) {
         let area = center(
             area,
-            Constraint::Percentage(40),
+            Constraint::Percentage(38),
             Constraint::Length(5), // top and bottom border + content
         );
 
@@ -396,6 +418,41 @@ impl Wizard {
         Widget::render(&paragraph, area, buf);
     }
 
+    fn render_submit_confirmation_popup(area: Rect, buf: &mut Buffer) {
+        let area = center(
+            area,
+            Constraint::Percentage(38),
+            Constraint::Length(5), // top and bottom border + content
+        );
+
+        let instructions = Line::from(vec![
+            Span::raw(" ("),
+            Span::styled("y", STYLE_ACCENT),
+            Span::raw(") yes | ("),
+            Span::styled("n", STYLE_ACCENT),
+            Span::raw(") no "),
+        ]);
+
+        let block = Block::bordered()
+            .title(
+                Line::from(Span::styled(" Launching batch ", STYLE_BOLD))
+                    .centered(),
+            )
+            .title_bottom(instructions.centered())
+            .border_set(border::THICK);
+
+        let paragraph = Paragraph::new(vec![
+            Line::default(),
+            Line::raw("Are you sure you want to continue?").centered(),
+            Line::default(),
+        ])
+        .block(block)
+        .wrap(Wrap { trim: false });
+
+        Widget::render(&Clear, area, buf);
+        Widget::render(&paragraph, area, buf);
+    }
+
     fn render_template(&self, area: Rect, buf: &mut Buffer) {
         let style = if matches!(self.state, State::Active { .. }) {
             STYLE_NORMAL
@@ -414,8 +471,8 @@ impl Wizard {
             " (".into(),
             Span::styled("tab", STYLE_ACCENT),
             ") cycle list<->detail | (".into(),
-            Span::styled("ctrl+l", STYLE_ACCENT),
-            ") launch batch | (".into(),
+            Span::styled("ctrl+o", STYLE_ACCENT),
+            ") submit batch | (".into(),
             Span::styled("esc", STYLE_ACCENT),
             ") quit ".into(),
         ]);

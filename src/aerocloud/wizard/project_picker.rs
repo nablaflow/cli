@@ -1,12 +1,11 @@
 use crate::aerocloud::{
     Client, fmt_progenitor_err,
     types::{ListPageProjectsV7, PaginationOffset, ProjectStatus, ProjectV7},
-    wizard::{STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR},
+    wizard::{Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR},
 };
 use color_eyre::eyre;
-use crossterm::event::{Event, KeyCode, KeyEventKind};
+use crossterm::event::KeyCode;
 use ratatui::{
-    Frame,
     buffer::Buffer,
     layout::{Constraint, Rect},
     symbols::border,
@@ -16,154 +15,146 @@ use ratatui::{
         Table, TableState, Widget, Wrap,
     },
 };
-use std::sync::{Arc, RwLock};
+use tokio::sync::mpsc;
 
-#[derive(Debug)]
-pub enum WidgetResult {
-    Exit,
-    Selected(ProjectV7),
-}
+#[derive(Debug, Clone)]
+pub struct ProjectPicker;
 
 #[derive(Debug, Default)]
-enum State {
+pub enum ProjectPickerState {
     #[default]
     Loading,
-    Failed(String),
+    Failed(eyre::Report),
     Selecting {
         projects: Vec<ProjectV7>,
         table_state: TableState,
     },
 }
 
-#[derive(Debug, Clone)]
-pub struct ProjectPicker {
-    client: Client,
-    state: Arc<RwLock<State>>,
+pub fn refresh_projects_in_background(client: Client, tx: mpsc::Sender<Event>) {
+    tokio::spawn(async move {
+        if let Err(err) = fetch_projects(client, tx.clone()).await {
+            tx.send(Event::ProjectsLoadingFailed(err))
+                .await
+                .expect("failed to send");
+        }
+    });
 }
 
-impl ProjectPicker {
-    pub fn new(client: Client) -> Self {
-        let this = Self {
-            client,
-            state: Default::default(),
-        };
-        this.refresh_projects();
-        this
+async fn fetch_projects(
+    client: Client,
+    tx: mpsc::Sender<Event>,
+) -> eyre::Result<()> {
+    tx.send(Event::ProjectsLoading).await?;
+
+    let mut projects = vec![];
+    let mut offset = PaginationOffset(0u64);
+
+    loop {
+        let ListPageProjectsV7 { items, nav } = client
+            .projects_v7_list(None, Some(&offset), Some(ProjectStatus::Active))
+            .await
+            .map_err(fmt_progenitor_err)?
+            .into_inner();
+
+        projects.extend(items);
+
+        if let Some(next_offset) = nav.next_offset {
+            offset = PaginationOffset(next_offset);
+        } else {
+            break;
+        }
     }
 
-    fn refresh_projects(&self) {
-        let this = self.clone();
+    tx.send(Event::ProjectsUpdated(projects)).await?;
 
-        tokio::spawn(async move {
-            if let Err(err) = this.fetch_projects().await {
-                *this.state.write().expect("failed to get write lock") =
-                    State::Failed(err.to_string());
-            }
-        });
-    }
+    Ok(())
+}
 
-    async fn fetch_projects(&self) -> eyre::Result<()> {
+impl ProjectPickerState {
+    pub async fn handle_event(
+        &mut self,
+        event: Event,
+        client: Client,
+        tx: mpsc::Sender<Event>,
+    ) -> eyre::Result<()> {
+        if let Event::KeyPressed(key_event) = &event
+            && key_event.code == KeyCode::Esc
         {
-            *self.state.write().expect("failed to get write lock") =
-                State::Loading;
+            tx.send(Event::Exit).await?;
+
+            return Ok(());
         }
 
-        let mut projects = vec![];
-        let mut offset = PaginationOffset(0u64);
-
-        loop {
-            let ListPageProjectsV7 { items, nav } = self
-                .client
-                .projects_v7_list(
-                    None,
-                    Some(&offset),
-                    Some(ProjectStatus::Active),
-                )
-                .await
-                .map_err(fmt_progenitor_err)?
-                .into_inner();
-
-            projects.extend(items);
-
-            if let Some(next_offset) = nav.next_offset {
-                offset = PaginationOffset(next_offset);
-            } else {
-                break;
-            }
-        }
-
-        {
+        if let Event::ProjectsUpdated(projects) = event {
             let mut table_state = TableState::default();
             table_state.select_first();
 
-            *self.state.write().expect("failed to get write lock") =
-                State::Selecting {
-                    projects,
-                    table_state,
-                };
+            *self = Self::Selecting {
+                projects,
+                table_state,
+            };
+
+            return Ok(());
+        }
+
+        if let Event::ProjectsLoading = event {
+            *self = Self::Loading;
+
+            return Ok(());
+        }
+
+        match self {
+            Self::Loading => {
+                if let Event::ProjectsLoadingFailed(err) = event {
+                    *self = Self::Failed(err);
+                }
+            }
+            Self::Failed(..) => match event {
+                Event::KeyPressed(key_event)
+                    if key_event.code == KeyCode::Char('r') =>
+                {
+                    refresh_projects_in_background(client, tx);
+                }
+                _ => {}
+            },
+            Self::Selecting {
+                projects,
+                table_state,
+            } => match event {
+                Event::KeyPressed(key_event) if key_event.code == KeyCode::Up => {
+                    table_state.select_previous();
+                }
+                Event::KeyPressed(key_event)
+                    if key_event.code == KeyCode::Down =>
+                {
+                    table_state.select_next();
+                }
+                Event::KeyPressed(key_event)
+                    if key_event.code == KeyCode::Char('r') =>
+                {
+                    refresh_projects_in_background(client, tx);
+                }
+                Event::KeyPressed(key_event)
+                    if key_event.code == KeyCode::Enter =>
+                {
+                    if let Some(idx) = table_state.selected() {
+                        tx.send(Event::ProjectSelected(projects.remove(idx)))
+                            .await?;
+                    }
+                }
+                _ => {}
+            },
         }
 
         Ok(())
     }
-
-    fn draw(&self, frame: &mut Frame) {
-        frame.render_widget(self, frame.area());
-    }
-
-    pub fn handle_event(&self, event: &Event) -> Option<WidgetResult> {
-        match event {
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                match *self.state.write().expect("failed to get write lock") {
-                    State::Loading => {
-                        if key_event.code == KeyCode::Esc {
-                            return Some(WidgetResult::Exit);
-                        }
-                    }
-                    State::Failed(..) => match key_event.code {
-                        KeyCode::Char('r') => {
-                            self.refresh_projects();
-                        }
-                        KeyCode::Esc => {
-                            return Some(WidgetResult::Exit);
-                        }
-                        _ => {}
-                    },
-                    State::Selecting {
-                        ref mut projects,
-                        ref mut table_state,
-                    } => match key_event.code {
-                        KeyCode::Up => {
-                            table_state.select_previous();
-                        }
-                        KeyCode::Down => {
-                            table_state.select_next();
-                        }
-                        KeyCode::Char('r') => {
-                            self.refresh_projects();
-                        }
-                        KeyCode::Enter => {
-                            if let Some(idx) = table_state.selected() {
-                                return Some(WidgetResult::Selected(
-                                    projects.remove(idx),
-                                ));
-                            }
-                        }
-                        KeyCode::Esc => {
-                            return Some(WidgetResult::Exit);
-                        }
-                        _ => {}
-                    },
-                }
-            }
-            _ => {}
-        }
-
-        None
-    }
 }
 
-impl Widget for &ProjectPicker {
-    fn render(self, area: Rect, buf: &mut Buffer) {
+impl StatefulWidget for &ProjectPicker {
+    type State = ProjectPickerState;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         Clear.render(area, buf);
 
         let title =
@@ -188,8 +179,8 @@ impl Widget for &ProjectPicker {
             .title_bottom(instructions.centered())
             .border_set(border::THICK);
 
-        match *self.state.write().expect("failed to get write lock") {
-            State::Loading => {
+        match state {
+            ProjectPickerState::Loading => {
                 let inner_area = main_block
                     .inner(area)
                     .centered_vertically(Constraint::Percentage(20));
@@ -200,7 +191,7 @@ impl Widget for &ProjectPicker {
 
                 main_block.render(area, buf);
             }
-            State::Failed(ref err) => {
+            ProjectPickerState::Failed(err) => {
                 let inner_area = main_block
                     .inner(area)
                     .centered_vertically(Constraint::Percentage(20));
@@ -215,9 +206,9 @@ impl Widget for &ProjectPicker {
 
                 main_block.render(area, buf);
             }
-            State::Selecting {
-                ref projects,
-                ref mut table_state,
+            ProjectPickerState::Selecting {
+                projects,
+                table_state,
             } => {
                 let widths = [Constraint::Fill(1), Constraint::Length(40)];
 

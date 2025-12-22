@@ -2,13 +2,17 @@ use crate::aerocloud::{
     Client,
     types::ProjectV7,
     wizard::{
-        project_picker::{ProjectPicker, WidgetResult as ProjectPickerResult},
+        project_picker::{
+            ProjectPicker, ProjectPickerState, refresh_projects_in_background,
+        },
         simulation_detail::SimulationDetail,
         simulation_params::SimulationParams,
     },
 };
 use color_eyre::eyre::{self, WrapErr};
-use crossterm::event::{Event, EventStream, KeyCode, KeyEventKind, KeyModifiers};
+use crossterm::event::{
+    Event as CrosstermEvent, EventStream, KeyCode, KeyEventKind, KeyModifiers,
+};
 use futures_util::StreamExt;
 use ratatui::{
     DefaultTerminal, Frame,
@@ -22,7 +26,8 @@ use ratatui::{
         ScrollbarState, StatefulWidget, Widget, Wrap,
     },
 };
-use std::{borrow::Cow, path::Path, time::Duration};
+use std::{borrow::Cow, path::Path};
+use tokio::sync::mpsc;
 
 mod project_picker;
 mod simulation_detail;
@@ -67,7 +72,6 @@ pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
 struct Wizard {
     client: Client,
     running: bool,
-    event_stream: EventStream,
     term_size: Size,
 
     simulations: Vec<SimulationParams>,
@@ -95,8 +99,9 @@ impl ActiveState {
 
 #[derive(Debug)]
 enum State {
+    Init,
     PickingProject {
-        picker: ProjectPicker,
+        state: ProjectPickerState,
     },
     Active {
         state: ActiveState,
@@ -106,53 +111,73 @@ enum State {
     },
 }
 
-impl Wizard {
-    const FRAMES_PER_SECOND: f32 = 10.0;
+#[derive(Debug)]
+pub enum Event {
+    KeyPressed(crossterm::event::KeyEvent),
+    TerminalResized(Size),
+    ProjectsLoading,
+    ProjectsUpdated(Vec<ProjectV7>),
+    ProjectsLoadingFailed(eyre::Report),
+    ProjectSelected(ProjectV7),
+    Exit,
+}
 
+async fn handle_term_events(tx: mpsc::Sender<Event>) -> eyre::Result<()> {
+    let mut event_stream = EventStream::default();
+
+    while let Some(Ok(event)) = event_stream.next().await {
+        match event {
+            CrosstermEvent::Key(key_event)
+                if key_event.kind == KeyEventKind::Press =>
+            {
+                tx.send(Event::KeyPressed(key_event)).await?;
+            }
+            CrosstermEvent::Resize(w, h) => {
+                tx.send(Event::TerminalResized(Size::new(w, h))).await?;
+            }
+            _ => {}
+        }
+    }
+
+    Ok(())
+}
+
+impl Wizard {
     fn new(client: Client, simulations: Vec<SimulationParams>) -> Self {
         Self {
-            state: State::PickingProject {
-                picker: ProjectPicker::new(client.clone()),
-            },
+            state: State::Init,
             running: false,
             term_size: Size::default(),
             simulations,
-            event_stream: EventStream::default(),
             client,
         }
     }
 
     async fn run(&mut self, terminal: &mut DefaultTerminal) -> eyre::Result<()> {
-        let mut drawing_interval = tokio::time::interval(
-            Duration::from_secs_f32(1.0 / Self::FRAMES_PER_SECOND),
-        );
-
         self.term_size = terminal.size().wrap_err("getting term size")?;
         self.running = true;
 
-        while self.running {
-            terminal.draw(|frame| self.draw(frame))?;
+        let (event_tx, mut event_rx) = mpsc::channel(10);
 
-            let Some(event) = tokio::select! (
-                _ = drawing_interval.tick() => {
-                    terminal.draw(|frame| self.draw(frame))?;
-                    None
-                },
-                Some(Ok(event)) = self.event_stream.next() => Some(event),
-            ) else {
-                continue;
+        tokio::spawn(handle_term_events(event_tx.clone()));
+
+        if let State::Init = self.state {
+            refresh_projects_in_background(self.client.clone(), event_tx.clone());
+
+            self.state = State::PickingProject {
+                state: ProjectPickerState::default(),
             };
+        }
 
-            if let Event::Resize(w, h) = event {
-                self.term_size = Size::new(w, h);
-            }
+        while self.running {
+            let event = event_rx
+                .recv()
+                .await
+                .ok_or_else(|| eyre::eyre!("polling for events"))?;
 
-            match self.state {
-                State::PickingProject { .. } => {
-                    self.handle_event_state_picking_project(&event);
-                }
-                State::Active { .. } => self.handle_event_state_active(&event),
-            }
+            self.handle_event(event, event_tx.clone()).await?;
+
+            terminal.draw(|frame| self.draw(frame))?;
         }
 
         Ok(())
@@ -162,23 +187,40 @@ impl Wizard {
         frame.render_widget(self, frame.area());
     }
 
-    fn handle_event_state_picking_project(&mut self, event: &Event) {
-        let State::PickingProject { ref mut picker } = self.state else {
-            return;
-        };
-
-        match picker.handle_event(event) {
-            Some(ProjectPickerResult::Exit) => self.immediate_exit(),
-            Some(ProjectPickerResult::Selected(project)) => {
-                self.state = State::Active {
-                    project,
-                    state: ActiveState::ViewingList,
-                    sims_list_state: ListState::default().with_selected(Some(0)),
-                    sim_detail_scrollbar_state: ScrollbarState::default(),
-                };
-            }
-            _ => {}
+    async fn handle_event(
+        &mut self,
+        event: Event,
+        tx: mpsc::Sender<Event>,
+    ) -> eyre::Result<()> {
+        if let Event::TerminalResized(size) = event {
+            self.term_size = size;
+            return Ok(());
         }
+
+        if let Event::Exit = event {
+            self.immediate_exit();
+            return Ok(());
+        }
+
+        match self.state {
+            State::Init => {}
+            State::PickingProject { ref mut state } => {
+                if let Event::ProjectSelected(project) = event {
+                    self.state = State::Active {
+                        project,
+                        state: ActiveState::ViewingList,
+                        sims_list_state: ListState::default()
+                            .with_selected(Some(0)),
+                        sim_detail_scrollbar_state: ScrollbarState::default(),
+                    };
+                } else {
+                    state.handle_event(event, self.client.clone(), tx).await?;
+                }
+            }
+            State::Active { .. } => self.handle_event_state_active(&event),
+        }
+
+        Ok(())
     }
 
     fn handle_event_state_active(&mut self, event: &Event) {
@@ -192,89 +234,83 @@ impl Wizard {
             return;
         };
 
-        let Event::Key(key_event) = event else {
-            return;
-        };
-
-        if key_event.kind != KeyEventKind::Press {
-            return;
-        }
-
-        match state {
-            ActiveState::ViewingList => {
-                match (key_event.code, key_event.modifiers) {
-                    (KeyCode::Up, _) => {
-                        sims_list_state.select_previous();
-                        sim_detail_scrollbar_state.first();
+        if let Event::KeyPressed(key_event) = event {
+            match state {
+                ActiveState::ViewingList => {
+                    match (key_event.code, key_event.modifiers) {
+                        (KeyCode::Up, _) => {
+                            sims_list_state.select_previous();
+                            sim_detail_scrollbar_state.first();
+                        }
+                        (KeyCode::Down, _) => {
+                            sims_list_state.select_next();
+                            sim_detail_scrollbar_state.first();
+                        }
+                        (KeyCode::Esc, _)
+                        | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                            *state = ActiveState::ConfirmExit {
+                                prev: Box::new(state.clone()),
+                            };
+                        }
+                        (KeyCode::Tab, _) => {
+                            state.toggle_viewing_focus();
+                        }
+                        (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
+                            *state = ActiveState::ConfirmSubmit;
+                        }
+                        _ => {}
                     }
-                    (KeyCode::Down, _) => {
-                        sims_list_state.select_next();
-                        sim_detail_scrollbar_state.first();
+                }
+                ActiveState::ViewingDetail => {
+                    match (key_event.code, key_event.modifiers) {
+                        (KeyCode::Up, KeyModifiers::SHIFT) => {
+                            sims_list_state.select_previous();
+                            sim_detail_scrollbar_state.first();
+                        }
+                        (KeyCode::Down, KeyModifiers::SHIFT) => {
+                            sims_list_state.select_next();
+                            sim_detail_scrollbar_state.first();
+                        }
+                        (KeyCode::Up, _) => {
+                            sim_detail_scrollbar_state.prev();
+                        }
+                        (KeyCode::Down, _) => {
+                            sim_detail_scrollbar_state.next();
+                        }
+                        (KeyCode::Esc, _)
+                        | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                            *state = ActiveState::ConfirmExit {
+                                prev: Box::new(state.clone()),
+                            };
+                        }
+                        (KeyCode::Tab, _) => {
+                            state.toggle_viewing_focus();
+                        }
+                        (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
+                            *state = ActiveState::ConfirmSubmit;
+                        }
+                        _ => {}
                     }
-                    (KeyCode::Esc, _)
-                    | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
-                        *state = ActiveState::ConfirmExit {
-                            prev: Box::new(state.clone()),
-                        };
+                }
+                ActiveState::ConfirmExit { prev } => match key_event.code {
+                    KeyCode::Char('y') => {
+                        self.immediate_exit();
                     }
-                    (KeyCode::Tab, _) => {
-                        state.toggle_viewing_focus();
-                    }
-                    (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
-                        *state = ActiveState::ConfirmSubmit;
+                    KeyCode::Char('n') => {
+                        *state = *prev.clone();
                     }
                     _ => {}
-                }
-            }
-            ActiveState::ViewingDetail => {
-                match (key_event.code, key_event.modifiers) {
-                    (KeyCode::Up, KeyModifiers::SHIFT) => {
-                        sims_list_state.select_previous();
-                        sim_detail_scrollbar_state.first();
+                },
+                ActiveState::ConfirmSubmit => match key_event.code {
+                    KeyCode::Char('y') => {
+                        *state = ActiveState::ViewingList;
                     }
-                    (KeyCode::Down, KeyModifiers::SHIFT) => {
-                        sims_list_state.select_next();
-                        sim_detail_scrollbar_state.first();
-                    }
-                    (KeyCode::Up, _) => {
-                        sim_detail_scrollbar_state.prev();
-                    }
-                    (KeyCode::Down, _) => {
-                        sim_detail_scrollbar_state.next();
-                    }
-                    (KeyCode::Esc, _)
-                    | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
-                        *state = ActiveState::ConfirmExit {
-                            prev: Box::new(state.clone()),
-                        };
-                    }
-                    (KeyCode::Tab, _) => {
-                        state.toggle_viewing_focus();
-                    }
-                    (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
-                        *state = ActiveState::ConfirmSubmit;
+                    KeyCode::Char('n') => {
+                        *state = ActiveState::ViewingList;
                     }
                     _ => {}
-                }
+                },
             }
-            ActiveState::ConfirmExit { prev } => match key_event.code {
-                KeyCode::Char('y') => {
-                    self.immediate_exit();
-                }
-                KeyCode::Char('n') => {
-                    *state = *prev.clone();
-                }
-                _ => {}
-            },
-            ActiveState::ConfirmSubmit => match key_event.code {
-                KeyCode::Char('y') => {
-                    *state = ActiveState::ViewingList;
-                }
-                KeyCode::Char('n') => {
-                    *state = ActiveState::ViewingList;
-                }
-                _ => {}
-            },
         }
     }
 
@@ -283,7 +319,7 @@ impl Wizard {
     }
 
     fn render_state_picking_project(
-        picker: &ProjectPicker,
+        state: &mut ProjectPickerState,
         area: Rect,
         buf: &mut Buffer,
     ) {
@@ -299,7 +335,7 @@ impl Wizard {
             .centered()
             .render(upper.centered_vertically(Constraint::Ratio(1, 2)), buf);
 
-        Widget::render(picker, lower, buf);
+        StatefulWidget::render(&ProjectPicker, lower, buf, state);
     }
 
     fn render_state_active(
@@ -537,8 +573,9 @@ impl Widget for &mut Wizard {
         }
 
         match self.state {
-            State::PickingProject { ref picker } => {
-                Wizard::render_state_picking_project(picker, area, buf);
+            State::Init => {}
+            State::PickingProject { ref mut state } => {
+                Wizard::render_state_picking_project(state, area, buf);
             }
             State::Active {
                 ref state,

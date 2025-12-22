@@ -17,6 +17,9 @@ pub struct Args {
     #[arg(short, long, env = "NF_DEBUG")]
     pub debug: bool,
 
+    #[arg(short, long, env = "NF_LOG_TO_PATH")]
+    pub log_to_path: Option<PathBuf>,
+
     #[arg(short, long, env = "NF_JSON")]
     pub json: bool,
 

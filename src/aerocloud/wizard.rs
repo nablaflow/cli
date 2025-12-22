@@ -175,6 +175,8 @@ impl Wizard {
                 .await
                 .ok_or_else(|| eyre::eyre!("polling for events"))?;
 
+            tracing::debug!(?event);
+
             self.handle_event(event, event_tx.clone()).await?;
 
             terminal.draw(|frame| self.draw(frame))?;

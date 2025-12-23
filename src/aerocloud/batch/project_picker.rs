@@ -1,7 +1,7 @@
 use crate::aerocloud::{
     Client, fmt_progenitor_err,
     types::{ListPageProjectsV7, PaginationOffset, ProjectStatus, ProjectV7},
-    wizard::{Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR},
+    batch::{Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR},
 };
 use color_eyre::eyre;
 use crossterm::event::{KeyCode, KeyModifiers};

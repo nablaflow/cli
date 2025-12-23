@@ -143,8 +143,8 @@ pub async fn run(
             AeroCloudV7Command::WaitForSimulations { ids } => {
                 self::v7::wait_for_simulations::run(args, &client, ids).await
             }
-            AeroCloudV7Command::Wizard { root_dir } => {
-                self::v7::wizard::run(
+            AeroCloudV7Command::Batch { root_dir } => {
+                self::v7::batch::run(
                     &client,
                     root_dir.as_ref().map(PathBuf::as_path),
                 )

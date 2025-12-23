@@ -1,7 +1,7 @@
 use crate::aerocloud::{
     Client,
     types::ProjectV7,
-    wizard::{
+    batch::{
         project_picker::{
             ProjectPicker, ProjectPickerState, refresh_projects_in_background,
         },
@@ -62,7 +62,7 @@ pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
         vec![]
     };
 
-    let mut app = Wizard::new(client.clone(), sims);
+    let mut app = Batch::new(client.clone(), sims);
 
     let mut terminal = ratatui::init();
     let result = app.run(&mut terminal).await;
@@ -73,7 +73,7 @@ pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
 }
 
 #[derive(Debug)]
-struct Wizard {
+struct Batch {
     client: Client,
     running: bool,
     term_size: Size,
@@ -155,7 +155,7 @@ async fn handle_term_events(tx: mpsc::Sender<Event>) -> eyre::Result<()> {
     Ok(())
 }
 
-impl Wizard {
+impl Batch {
     fn new(client: Client, simulations: Vec<SimulationParams>) -> Self {
         Self {
             state: State::Init,
@@ -444,10 +444,10 @@ impl Wizard {
 
         match state {
             ActiveState::ConfirmExit { .. } => {
-                Wizard::render_exit_popup(area, buf);
+                Batch::render_exit_popup(area, buf);
             }
             ActiveState::ConfirmSubmit => {
-                Wizard::render_submit_confirmation_popup(simulations, area, buf);
+                Batch::render_submit_confirmation_popup(simulations, area, buf);
             }
             ActiveState::Submitting {
                 bytes_count,
@@ -459,7 +459,7 @@ impl Wizard {
                 assert!(*bytes_count > ByteSize::default());
                 assert!(*sims_count > 0);
 
-                Wizard::render_submitting(
+                Batch::render_submitting(
                     *bytes_count,
                     *bytes_progress,
                     *sims_count,
@@ -763,7 +763,7 @@ impl Wizard {
     }
 }
 
-impl Widget for &mut Wizard {
+impl Widget for &mut Batch {
     fn render(self, area: Rect, buf: &mut Buffer) {
         if self.is_term_size_not_enough() {
             self.show_min_term_size_notice(area, buf);
@@ -773,7 +773,7 @@ impl Widget for &mut Wizard {
         match self.state {
             State::Init => {}
             State::PickingProject { ref mut state } => {
-                Wizard::render_state_picking_project(state, area, buf);
+                Batch::render_state_picking_project(state, area, buf);
             }
             State::Active {
                 ref state,
@@ -781,7 +781,7 @@ impl Widget for &mut Wizard {
                 ref mut sim_detail_scrollbar_state,
                 ..
             } => {
-                Wizard::render_state_active(
+                Batch::render_state_active(
                     state,
                     &self.simulations,
                     sims_list_state,

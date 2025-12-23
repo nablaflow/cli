@@ -237,7 +237,7 @@ pub enum AeroCloudV7Command {
         #[arg(required = true)]
         project_ids: Vec<Id>,
     },
-    Wizard {
+    Batch {
         #[arg(
             required = false,
             help = "root dir with simulations, their models and params"

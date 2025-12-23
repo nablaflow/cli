@@ -1,6 +1,5 @@
 use crate::aerocloud::{
     Client,
-    types::ProjectV7,
     batch::{
         project_picker::{
             ProjectPicker, ProjectPickerState, refresh_projects_in_background,
@@ -8,6 +7,7 @@ use crate::aerocloud::{
         simulation_detail::SimulationDetail,
         simulation_params::{SimulationParams, SubmissionState},
     },
+    types::ProjectV7,
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
@@ -371,15 +371,14 @@ impl Batch {
                 },
                 ActiveState::Submitting {
                     cancellation_token, ..
-                } => match key_event.code {
-                    KeyCode::Char('q') => {
+                } => {
+                    if let KeyCode::Char('q') = key_event.code {
                         cancellation_token.cancel();
 
                         // TODO: should we ask for confirmation?
                         *state = ActiveState::ViewingList;
                     }
-                    _ => {}
-                },
+                }
             }
         }
     }
@@ -701,6 +700,7 @@ impl Batch {
             .margin(2),
         );
 
+        #[allow(clippy::cast_precision_loss)]
         Gauge::default()
             .gauge_style(STYLE_ACCENT)
             .block(
@@ -711,11 +711,12 @@ impl Batch {
             )
             .ratio(bytes_progress.0 as f64 / bytes_count.0 as f64)
             .label(Span::styled(
-                format!("{}/{}", bytes_progress, bytes_count),
+                format!("{bytes_progress}/{bytes_count}"),
                 Style::new().bold(),
             ))
             .render(upper, buf);
 
+        #[allow(clippy::cast_precision_loss)]
         Gauge::default()
             .gauge_style(STYLE_ACCENT)
             .block(
@@ -726,7 +727,7 @@ impl Batch {
             )
             .ratio(sims_progress as f64 / sims_count as f64)
             .label(Span::styled(
-                format!("{}/{}", sims_progress, sims_count),
+                format!("{sims_progress}/{sims_count}"),
                 Style::new().bold(),
             ))
             .render(lower, buf);

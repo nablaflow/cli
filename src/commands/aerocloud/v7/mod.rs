@@ -1,3 +1,4 @@
+pub mod batch;
 pub mod create_model;
 pub mod create_project;
 pub mod create_simulation;

@@ -1,8 +1,8 @@
 use crate::{args::Args, config::Config};
+use ::tracing::debug;
 use clap::{CommandFactory, Parser};
-use color_eyre::eyre;
+use color_eyre::eyre::{self, WrapErr};
 use std::io;
-use tracing::{Level, debug};
 
 mod aerocloud;
 mod args;
@@ -10,6 +10,7 @@ mod commands;
 mod config;
 mod fmt;
 mod http;
+mod tracing;
 mod utils;
 
 #[tokio::main(flavor = "current_thread")]
@@ -17,17 +18,9 @@ async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
 
     let args = Args::parse();
+    debug!(?args);
 
-    tracing_subscriber::fmt()
-        .with_writer(io::stderr)
-        .with_max_level(if args.debug {
-            Level::DEBUG
-        } else {
-            Level::INFO
-        })
-        .init();
-
-    debug!("args = {:?}", args.scope);
+    crate::tracing::init(&args).wrap_err("initializing tracing")?;
 
     let config = Config::load(&args).await?;
 

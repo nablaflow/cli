@@ -13,6 +13,9 @@ use crate::{
 use color_eyre::eyre::Report;
 use uuid::Uuid;
 
+pub mod batch;
+pub mod extra_types;
+
 pub fn new_idempotency_key() -> IdempotencyKey {
     IdempotencyKey(Uuid::new_v4().to_string())
 }
@@ -29,7 +32,7 @@ pub fn fmt_progenitor_err(err: Error<JsonErrorResponse>) -> Report {
         table.add_row(vec![&error.source.pointer, &error.detail]);
     }
 
-    Report::msg(table.to_string())
+    Report::msg(format!("Error in API response:\n{table}"))
 }
 
 include!(concat!(env!("OUT_DIR"), "/codegen_aerocloud.rs"));

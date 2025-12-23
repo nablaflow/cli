@@ -17,6 +17,9 @@ pub struct Args {
     #[arg(short, long, env = "NF_DEBUG")]
     pub debug: bool,
 
+    #[arg(short, long, env = "NF_LOG_TO_PATH")]
+    pub log_to_path: Option<PathBuf>,
+
     #[arg(short, long, env = "NF_JSON")]
     pub json: bool,
 
@@ -233,5 +236,12 @@ pub enum AeroCloudV7Command {
     DeleteProjects {
         #[arg(required = true)]
         project_ids: Vec<Id>,
+    },
+    Batch {
+        #[arg(
+            required = false,
+            help = "root dir with simulations, their models and params"
+        )]
+        root_dir: Option<PathBuf>,
     },
 }

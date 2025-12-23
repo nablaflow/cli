@@ -11,7 +11,7 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{
         Block, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
-        StatefulWidget, Widget,
+        StatefulWidget, Widget, Wrap,
     },
 };
 use std::borrow::Cow;
@@ -68,7 +68,6 @@ impl<'a> SimulationDetail<'a> {
             SubmissionState::Sent {
                 ref browser_url, ..
             } => {
-                lines.push(Line::from("Sent with success.").style(STYLE_SUCCESS));
                 lines.push(
                     Line::from(format!("Open in browser: {browser_url}"))
                         .style(STYLE_SUCCESS),
@@ -179,10 +178,7 @@ impl<'a> SimulationDetail<'a> {
             lines.push(Line::from(vec![
                 Span::raw("  - "),
                 Span::styled("Name: ", STYLE_BOLD),
-                Span::styled(
-                    format!("{}", file.path.file_name().unwrap().display()),
-                    STYLE_ACCENT,
-                ),
+                Span::styled((*file.filename).clone(), STYLE_ACCENT),
             ]));
             lines.push(Line::from(vec![
                 Span::raw("    "),
@@ -307,6 +303,7 @@ impl StatefulWidget for &SimulationDetail<'_> {
 
         let Some(sim) = self.sim else {
             Paragraph::new(Text::raw("Select a simulation to display."))
+                .wrap(Wrap { trim: false })
                 .block(block)
                 .render(area, buf);
             return;
@@ -325,7 +322,10 @@ impl StatefulWidget for &SimulationDetail<'_> {
         *scrollbar_state = scrollbar_state.content_length(lines.len());
 
         Paragraph::new(lines)
-            .scroll((u16::try_from(scrollbar_state.get_position()).unwrap(), 0))
+            .scroll((
+                u16::try_from(scrollbar_state.get_position()).unwrap_or(0),
+                0,
+            ))
             .block(block)
             .render(area, buf);
 

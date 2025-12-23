@@ -9,10 +9,11 @@ use crate::aerocloud::{
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
+use futures_util::StreamExt;
 use reqwest::header::CONTENT_LENGTH;
 use std::path::PathBuf;
 use tokio::{fs::File as AsyncFile, sync::mpsc, task::JoinSet};
-use tokio_util::sync::CancellationToken;
+use tokio_util::{io::ReaderStream, sync::CancellationToken};
 
 pub fn submit_batch_in_background(
     project_id: &Id,
@@ -131,16 +132,26 @@ async fn upload_file(
     client: reqwest::Client,
     tx: mpsc::Sender<Event>,
 ) -> eyre::Result<()> {
-    let body = AsyncFile::open(&path)
+    let file = AsyncFile::open(&path)
         .await
         .wrap_err_with(|| format!("opening `{}`", path.display()))?;
 
-    let metadata = body.metadata().await?;
+    let mut reader_stream = ReaderStream::new(file);
+
+    let async_stream = async_stream::stream! {
+        while let Some(chunk) = reader_stream.next().await {
+            if let Ok(chunk) = &chunk {
+                let _ = tx.send(Event::FileUploaded(ByteSize::b(chunk.len() as u64))).await;
+            }
+
+            yield chunk;
+        }
+    };
 
     let res = client
         .put(upload_url)
-        .body(body)
-        .header(CONTENT_LENGTH, metadata.len().to_string())
+        .body(reqwest::Body::wrap_stream(async_stream))
+        .header(CONTENT_LENGTH, size.0.to_string())
         .send()
         .await
         .wrap_err_with(|| format!("uploading `{}`", path.display()))?;
@@ -150,8 +161,6 @@ async fn upload_file(
     }
 
     tracing::debug!("uploaded {}", path.display());
-
-    tx.send(Event::FileUploaded(size)).await?;
 
     Ok(())
 }

@@ -53,7 +53,7 @@ const STYLE_SUCCESS: Style = Style::new().green().bold();
 const STYLE_ERROR: Style = Style::new().red().bold();
 const STYLE_WARNING: Style = Style::new().yellow().bold();
 
-const MIN_TERM_SIZE: Size = Size::new(100, 38);
+const MIN_TERM_SIZE: Size = Size::new(110, 38);
 
 pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
     let sims = if let Some(root_dir) = root_dir {
@@ -388,6 +388,24 @@ impl Batch {
                         (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
                             *state = ActiveState::ConfirmSubmit;
                         }
+                        (KeyCode::Char(' '), _) => {
+                            if let Some(idx) = sims_list_state.selected()
+                                && let Some(sim) = self.simulations.get_mut(idx)
+                            {
+                                sim.selected = !sim.selected;
+                            }
+                        }
+                        (KeyCode::Char('r'), KeyModifiers::CONTROL) => {
+                            if let Some(idx) = sims_list_state.selected()
+                                && let Some(sim) = self.simulations.get_mut(idx)
+                                && let Err(err) = sim.reset_submission_state()
+                            {
+                                tracing::error!(
+                                    "failed to flush submission state for sim in dir `{}`: {err:?}",
+                                    sim.dir.display()
+                                );
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -490,8 +508,8 @@ impl Batch {
         buf: &mut Buffer,
     ) {
         let layout = Layout::horizontal([
-            Constraint::Percentage(40),
-            Constraint::Percentage(60),
+            Constraint::Percentage(35),
+            Constraint::Percentage(65),
         ])
         .vertical_margin(1)
         .horizontal_margin(2);

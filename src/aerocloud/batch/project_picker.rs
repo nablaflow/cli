@@ -34,20 +34,16 @@ pub enum ProjectPickerState {
 
 pub fn refresh_projects_in_background(client: Client, tx: mpsc::Sender<Event>) {
     tokio::spawn(async move {
-        if let Err(err) = fetch_projects(client, tx.clone()).await {
-            tx.send(Event::ProjectsLoadingFailed(err))
-                .await
-                .expect("failed to send");
-        }
+        tx.send(Event::ProjectsLoading).await?;
+
+        let res = fetch_projects(client).await;
+        tx.send(Event::ProjectsUpdated(res)).await?;
+
+        Ok::<(), eyre::Report>(())
     });
 }
 
-async fn fetch_projects(
-    client: Client,
-    tx: mpsc::Sender<Event>,
-) -> eyre::Result<()> {
-    tx.send(Event::ProjectsLoading).await?;
-
+async fn fetch_projects(client: Client) -> eyre::Result<Vec<ProjectV7>> {
     let mut projects = vec![];
     let mut offset = PaginationOffset(0u64);
 
@@ -67,9 +63,7 @@ async fn fetch_projects(
         }
     }
 
-    tx.send(Event::ProjectsUpdated(projects)).await?;
-
-    Ok(())
+    Ok(projects)
 }
 
 impl ProjectPickerState {
@@ -89,7 +83,7 @@ impl ProjectPickerState {
             return Ok(());
         }
 
-        if let Event::ProjectsUpdated(projects) = event {
+        if let Event::ProjectsUpdated(Ok(projects)) = event {
             let mut table_state = TableState::default();
             table_state.select_first();
 
@@ -109,7 +103,7 @@ impl ProjectPickerState {
 
         match self {
             Self::Loading => {
-                if let Event::ProjectsLoadingFailed(err) = event {
+                if let Event::ProjectsUpdated(Err(err)) = event {
                     *self = Self::Failed(err);
                 }
             }
@@ -142,8 +136,10 @@ impl ProjectPickerState {
                     if key_event.code == KeyCode::Enter =>
                 {
                     if let Some(idx) = table_state.selected() {
-                        tx.send(Event::ProjectSelected(projects.remove(idx)))
-                            .await?;
+                        tx.send(Event::ProjectSelected(Box::new(
+                            projects.remove(idx),
+                        )))
+                        .await?;
                     }
                 }
                 _ => {}

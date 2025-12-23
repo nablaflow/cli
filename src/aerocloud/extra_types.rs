@@ -5,7 +5,7 @@ use crate::aerocloud::types::{
 use color_eyre::eyre;
 use std::{borrow::Cow, collections::BTreeMap};
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct CreateSimulationV7ParamsFromJson {
     #[serde(default)]
     pub name: String,
@@ -74,7 +74,7 @@ const fn default_ground_offset() -> GroundOffset {
     GroundOffset(0.0)
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct FileV7ParamsFromJson {
     #[serde(default = "default_file_unit")]
     pub unit: FileUnit,

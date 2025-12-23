@@ -144,6 +144,12 @@ pub async fn run(
                 self::v7::wait_for_simulations::run(args, &client, ids).await
             }
             AeroCloudV7Command::Batch { root_dir } => {
+                if args.debug && args.log_to_path.is_none() {
+                    eyre::bail!(
+                        "must log to file, otherwise the UI would get corrupted by logs"
+                    );
+                }
+
                 self::v7::batch::run(
                     &client,
                     root_dir.as_ref().map(PathBuf::as_path),

@@ -1,13 +1,17 @@
-use crate::aerocloud::{
-    Client,
-    batch::{
-        project_picker::{
-            ProjectPicker, ProjectPickerState, refresh_projects_in_background,
+use crate::{
+    aerocloud::{
+        Client,
+        batch::{
+            project_picker::{
+                ProjectPicker, ProjectPickerState, refresh_projects_in_background,
+            },
+            simulation_detail::SimulationDetail,
+            simulation_params::{SimulationParams, SubmissionState},
+            submit::submit_batch_in_background,
         },
-        simulation_detail::SimulationDetail,
-        simulation_params::{SimulationParams, SubmissionState},
+        types::{ProjectV7, SimulationV7},
     },
-    types::ProjectV7,
+    fmt::human_err_report,
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
@@ -31,10 +35,12 @@ use ratatui::{
 use std::{borrow::Cow, path::Path};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
+use uuid::Uuid;
 
 mod project_picker;
 mod simulation_detail;
 mod simulation_params;
+mod submit;
 
 // Made using https://budavariam.github.io/asciiart-text/multi variant `ANSI Shadow`
 const LOGO_ASCII_ART: &str = include_str!("logo.txt");
@@ -118,7 +124,7 @@ enum State {
     },
     Active {
         state: ActiveState,
-        project: ProjectV7,
+        project: Box<ProjectV7>,
         sims_list_state: ListState,
         sim_detail_scrollbar_state: ScrollbarState,
     },
@@ -129,9 +135,13 @@ pub enum Event {
     KeyPressed(crossterm::event::KeyEvent),
     TerminalResized(Size),
     ProjectsLoading,
-    ProjectsUpdated(Vec<ProjectV7>),
-    ProjectsLoadingFailed(eyre::Report),
-    ProjectSelected(ProjectV7),
+    ProjectsUpdated(eyre::Result<Vec<ProjectV7>>),
+    ProjectSelected(Box<ProjectV7>),
+    FileUploaded(ByteSize),
+    SimSubmitted {
+        internal_id: Uuid,
+        res: eyre::Result<Box<SimulationV7>, eyre::Report>,
+    },
     Exit,
 }
 
@@ -232,23 +242,72 @@ impl Batch {
                     state.handle_event(event, self.client.clone(), tx).await?;
                 }
             }
-            State::Active { .. } => self.handle_event_state_active(&event),
+            State::Active { .. } => {
+                self.handle_event_state_active(&event, &tx)?;
+            }
         }
 
         Ok(())
     }
 
     #[allow(clippy::too_many_lines)]
-    fn handle_event_state_active(&mut self, event: &Event) {
+    fn handle_event_state_active(
+        &mut self,
+        event: &Event,
+        tx: &mpsc::Sender<Event>,
+    ) -> eyre::Result<()> {
         let State::Active {
+            ref project,
             ref mut state,
             ref mut sims_list_state,
             ref mut sim_detail_scrollbar_state,
             ..
         } = self.state
         else {
-            return;
+            return Ok(());
         };
+
+        if let Event::FileUploaded(size) = event
+            && let ActiveState::Submitting { bytes_progress, .. } = state
+        {
+            *bytes_progress += *size;
+        }
+
+        if let Event::SimSubmitted { internal_id, res } = event
+            && let ActiveState::Submitting { sims_progress, .. } = state
+        {
+            if let Some(sim_params) = self
+                .simulations
+                .iter_mut()
+                .find(|sim_params| sim_params.internal_id == *internal_id)
+            {
+                let state = match res {
+                    Ok(sim) => SubmissionState::Sent {
+                        id: sim.id.clone(),
+                        browser_url: sim.browser_url.clone(),
+                    },
+                    Err(err) => SubmissionState::Error(human_err_report(err)),
+                };
+
+                sim_params
+                    .update_submission_state(state)
+                    .wrap_err("updating submission state")?;
+            }
+
+            *sims_progress += 1;
+        }
+
+        if let ActiveState::Submitting {
+            sims_progress,
+            sims_count,
+            ..
+        } = state
+            && sims_progress >= sims_count
+        {
+            *state = ActiveState::ViewingList;
+
+            return Ok(());
+        }
 
         if let Event::KeyPressed(key_event) = event {
             match state {
@@ -343,10 +402,11 @@ impl Batch {
                 },
                 ActiveState::ConfirmSubmit => match key_event.code {
                     KeyCode::Char('y') => {
-                        let sims_to_submit: Vec<_> = self
+                        let sims_to_submit: Vec<SimulationParams> = self
                             .simulations
                             .iter()
                             .filter(|sim_params| sim_params.is_submittable())
+                            .cloned()
                             .collect();
 
                         let bytes_count = sims_to_submit
@@ -355,11 +415,23 @@ impl Batch {
                                 acc + sim_params.files_size()
                             });
 
+                        let sims_count = sims_to_submit.len();
+
+                        let cancellation_token = CancellationToken::new();
+
+                        submit_batch_in_background(
+                            &project.id,
+                            sims_to_submit,
+                            &self.client,
+                            &cancellation_token,
+                            tx,
+                        );
+
                         // TODO: spawn task
                         *state = ActiveState::Submitting {
-                            cancellation_token: CancellationToken::new(),
+                            cancellation_token,
                             sims_progress: 0,
-                            sims_count: sims_to_submit.len(),
+                            sims_count,
                             bytes_progress: ByteSize::default(),
                             bytes_count,
                         };
@@ -381,6 +453,8 @@ impl Batch {
                 }
             }
         }
+
+        Ok(())
     }
 
     fn immediate_exit(&mut self) {
@@ -813,7 +887,9 @@ impl From<&SimulationParams> for ListItem<'_> {
             SubmissionState::Error(..) => {
                 Span::raw(" (error)").style(STYLE_ERROR)
             }
-            SubmissionState::Sent => Span::raw(" (sent)").style(STYLE_SUCCESS),
+            SubmissionState::Sent { .. } => {
+                Span::raw(" (sent)").style(STYLE_SUCCESS)
+            }
         };
 
         ListItem::from(

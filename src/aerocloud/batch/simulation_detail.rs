@@ -57,10 +57,22 @@ impl<'a> SimulationDetail<'a> {
             SubmissionState::Error(ref err) => {
                 lines.push(Line::raw("Error on submission:").style(STYLE_ERROR));
                 lines.push(Line::default());
-                lines.push(Line::raw(err.clone()).style(STYLE_ERROR));
+
+                for line in err.lines() {
+                    lines.push(
+                        Line::from(vec![Span::from("  "), Span::from(line)])
+                            .style(STYLE_ERROR),
+                    );
+                }
             }
-            SubmissionState::Sent => {
-                lines.push(Line::raw("Sent with success.").style(STYLE_SUCCESS));
+            SubmissionState::Sent {
+                ref browser_url, ..
+            } => {
+                lines.push(Line::from("Sent with success.").style(STYLE_SUCCESS));
+                lines.push(
+                    Line::from(format!("Open in browser: {browser_url}"))
+                        .style(STYLE_SUCCESS),
+                );
             }
         }
 

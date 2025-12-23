@@ -32,7 +32,7 @@ pub fn fmt_progenitor_err(err: Error<JsonErrorResponse>) -> Report {
         table.add_row(vec![&error.source.pointer, &error.detail]);
     }
 
-    Report::msg(table.to_string())
+    Report::msg(format!("Error in API response:\n{table}"))
 }
 
 include!(concat!(env!("OUT_DIR"), "/codegen_aerocloud.rs"));

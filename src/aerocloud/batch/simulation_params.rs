@@ -1,6 +1,6 @@
 use crate::aerocloud::{
     extra_types::{CreateSimulationV7ParamsFromJson, FileV7ParamsFromJson},
-    types::{Filename, Id},
+    types::{Filename, Id, Url},
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
@@ -8,14 +8,18 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
+use uuid::Uuid;
 
-#[derive(Debug, Default, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
 pub enum SubmissionState {
     #[default]
     Ready,
     Sending,
     Error(String),
-    Sent,
+    Sent {
+        id: Id,
+        browser_url: Url,
+    },
 }
 
 impl SubmissionState {
@@ -37,11 +41,11 @@ impl SubmissionState {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SimulationParams {
+    pub internal_id: Uuid,
     pub dir: PathBuf,
     pub params: CreateSimulationV7ParamsFromJson,
-    pub model_state: ModelState,
     pub files: Vec<FileParams>,
 
     pub selected: bool,
@@ -142,9 +146,9 @@ impl SimulationParams {
                 )
             })?;
 
-            if Filename::try_from(filename).is_err() {
+            let Ok(filename) = Filename::try_from(filename) else {
                 continue;
-            }
+            };
 
             let file_params_path = path.with_extension("json");
 
@@ -176,9 +180,9 @@ impl SimulationParams {
 
             files.push(FileParams {
                 path,
+                filename,
                 size,
                 params: file_params,
-                state: FileState::Pending,
             });
         }
 
@@ -187,10 +191,10 @@ impl SimulationParams {
         let submission_state = SubmissionState::from_dir_or_default(dir);
 
         Ok(Self {
+            internal_id: Uuid::new_v4(),
             dir: dir.into(),
             params,
             files,
-            model_state: ModelState::Pending,
             selected: true,
             submission_state,
         })
@@ -203,7 +207,14 @@ impl SimulationParams {
     }
 
     pub fn reset_submission_state(&mut self) -> eyre::Result<()> {
-        self.submission_state = SubmissionState::default();
+        self.update_submission_state(SubmissionState::default())
+    }
+
+    pub fn update_submission_state(
+        &mut self,
+        state: SubmissionState,
+    ) -> eyre::Result<()> {
+        self.submission_state = state;
         self.submission_state.write(&self.dir)
     }
 
@@ -216,23 +227,10 @@ impl SimulationParams {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileParams {
     pub path: PathBuf,
+    pub filename: Filename,
     pub size: ByteSize,
     pub params: FileV7ParamsFromJson,
-    pub state: FileState,
-}
-
-#[derive(Debug)]
-pub enum FileState {
-    Pending,
-    Uploaded { id: Id },
-}
-
-#[derive(Debug)]
-pub enum ModelState {
-    Pending,
-    Created { id: Id },
-    Finalized { id: Id },
 }

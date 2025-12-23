@@ -223,6 +223,7 @@ impl SimulationParams {
 
     pub fn is_submittable(&self) -> bool {
         self.selected
+            && !self.files.is_empty()
             && matches!(
                 self.submission_state,
                 SubmissionState::Ready | SubmissionState::Error(..)

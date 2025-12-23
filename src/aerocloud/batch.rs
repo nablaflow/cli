@@ -897,26 +897,26 @@ impl From<&SimulationParams> for ListItem<'_> {
             STYLE_DIMMED
         };
 
-        let submission_state_span = match p.submission_state {
-            SubmissionState::Ready => Span::raw(""),
+        let mut spans = vec![Span::raw(p.params.name.clone()), Span::raw(" ")];
+
+        match p.submission_state {
+            SubmissionState::Ready => {}
             SubmissionState::Sending => {
-                Span::raw(" (sending...)").style(STYLE_WARNING)
+                spans.push(Span::styled("(sending...) ", STYLE_WARNING));
             }
             SubmissionState::Error(..) => {
-                Span::raw(" (error)").style(STYLE_ERROR)
+                spans.push(Span::styled("(error) ", STYLE_ERROR));
             }
             SubmissionState::Sent { .. } => {
-                Span::raw(" (sent)").style(STYLE_SUCCESS)
+                spans.push(Span::styled("(sent) ", STYLE_SUCCESS));
             }
-        };
+        }
 
-        ListItem::from(
-            Line::from(vec![
-                Span::raw(p.params.name.clone()),
-                submission_state_span,
-            ])
-            .style(style),
-        )
+        if p.files.is_empty() {
+            spans.push(Span::styled("(no files) ", STYLE_ERROR));
+        }
+
+        ListItem::from(Line::from(spans).style(style))
     }
 }
 

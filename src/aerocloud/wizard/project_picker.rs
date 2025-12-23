@@ -4,7 +4,7 @@ use crate::aerocloud::{
     wizard::{Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR},
 };
 use color_eyre::eyre;
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
@@ -79,7 +79,9 @@ impl ProjectPickerState {
         tx: mpsc::Sender<Event>,
     ) -> eyre::Result<()> {
         if let Event::KeyPressed(key_event) = &event
-            && key_event.code == KeyCode::Esc
+            && (key_event.code == KeyCode::Esc
+                || (key_event.code == KeyCode::Char('c')
+                    && key_event.modifiers == KeyModifiers::CONTROL))
         {
             tx.send(Event::Exit).await?;
 

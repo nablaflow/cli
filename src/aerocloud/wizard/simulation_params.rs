@@ -8,11 +8,43 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[derive(Debug, Default, serde::Deserialize, serde::Serialize)]
+pub enum SubmissionState {
+    #[default]
+    Ready,
+    Sending,
+    Error(String),
+    Sent,
+}
+
+impl SubmissionState {
+    const FILENAME: &str = "submission_state.json";
+
+    pub fn from_dir_or_default(dir: &Path) -> Self {
+        if let Ok(buf) = fs::read(dir.join(Self::FILENAME))
+            && let Ok(submission_state) = serde_json::from_slice(&buf)
+        {
+            submission_state
+        } else {
+            Self::default()
+        }
+    }
+
+    pub fn write(&self, dir: &Path) -> eyre::Result<()> {
+        fs::write(dir.join(Self::FILENAME), &serde_json::to_vec(self)?)?;
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
 pub struct SimulationParams {
+    pub dir: PathBuf,
     pub params: CreateSimulationV7ParamsFromJson,
     pub model_state: ModelState,
     pub files: Vec<FileParams>,
+
+    pub selected: bool,
+    pub submission_state: SubmissionState,
 }
 
 impl SimulationParams {
@@ -144,11 +176,29 @@ impl SimulationParams {
 
         files.sort_unstable_by(|a, b| a.path.cmp(&b.path));
 
+        let submission_state = SubmissionState::from_dir_or_default(dir);
+
         Ok(Self {
+            dir: dir.into(),
             params,
             files,
             model_state: ModelState::Pending,
+            selected: true,
+            submission_state,
         })
+    }
+
+    pub fn reset_submission_state(&mut self) -> eyre::Result<()> {
+        self.submission_state = SubmissionState::default();
+        self.submission_state.write(&self.dir)
+    }
+
+    pub fn is_submittable(&self) -> bool {
+        self.selected
+            && matches!(
+                self.submission_state,
+                SubmissionState::Ready | SubmissionState::Error(..)
+            )
     }
 }
 

@@ -2,6 +2,7 @@
 result
 .direnv
 .DS_Store
+/examples/**/submission_state.json
 
 
 # Added by cargo

@@ -1,7 +1,7 @@
 use crate::aerocloud::wizard::{
     STYLE_ACCENT, STYLE_BOLD, STYLE_DIMMED, STYLE_ERROR, STYLE_NORMAL,
-    STYLE_WARNING,
-    simulation_params::{FileParams, SimulationParams},
+    STYLE_SUCCESS, STYLE_WARNING,
+    simulation_params::{FileParams, SimulationParams, SubmissionState},
 };
 use itertools::Itertools;
 use ratatui::{
@@ -28,7 +28,7 @@ impl<'a> SimulationDetail<'a> {
         Block::bordered()
             .title(Line::from(self.block_title()).centered())
             .border_set(border::PLAIN)
-            .style(if self.focus {
+            .border_style(if self.focus {
                 STYLE_NORMAL
             } else {
                 STYLE_DIMMED
@@ -43,7 +43,33 @@ impl<'a> SimulationDetail<'a> {
         format!(" {} ", sim.params.name).into()
     }
 
+    fn submission_state(sim: &'a SimulationParams, lines: &mut Vec<Line<'a>>) {
+        match sim.submission_state {
+            SubmissionState::Ready | SubmissionState::Sending => {
+                return;
+            }
+            SubmissionState::Error(ref err) => {
+                lines.push(Line::raw("Error on submission:").style(STYLE_ERROR));
+                lines.push(Line::default());
+                lines.push(Line::raw(err.clone()).style(STYLE_ERROR));
+            }
+            SubmissionState::Sent => {
+                lines.push(Line::raw("Sent with success.").style(STYLE_SUCCESS));
+            }
+        }
+
+        lines.push(Line::default());
+    }
+
     fn general_lines(sim: &'a SimulationParams, lines: &mut Vec<Line<'a>>) {
+        if !sim.selected {
+            lines.push(Line::from(vec![Span::styled(
+                "Not selected, will not be submitted.",
+                STYLE_WARNING,
+            )]));
+            lines.push(Line::default());
+        }
+
         lines.push(Line::from(vec![
             Span::styled("Revision: ", STYLE_BOLD),
             Span::styled(sim.params.revision_or_placeholder(), STYLE_ACCENT),
@@ -256,6 +282,8 @@ impl StatefulWidget for &SimulationDetail<'_> {
         };
 
         let mut lines = Vec::with_capacity(10);
+
+        SimulationDetail::submission_state(sim, &mut lines);
 
         SimulationDetail::general_lines(sim, &mut lines);
 

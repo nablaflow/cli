@@ -6,7 +6,7 @@ use crate::aerocloud::{
             ProjectPicker, ProjectPickerState, refresh_projects_in_background,
         },
         simulation_detail::SimulationDetail,
-        simulation_params::SimulationParams,
+        simulation_params::{SimulationParams, SubmissionState},
     },
 };
 use color_eyre::eyre::{self, WrapErr};
@@ -40,6 +40,7 @@ const STYLE_NORMAL: Style = Style::new();
 const STYLE_DIMMED: Style = Style::new().dim();
 const STYLE_BOLD: Style = Style::new().bold();
 const STYLE_ACCENT: Style = Style::new().blue().bold();
+const STYLE_SUCCESS: Style = Style::new().green().bold();
 const STYLE_ERROR: Style = Style::new().red().bold();
 const STYLE_WARNING: Style = Style::new().yellow().bold();
 
@@ -85,6 +86,11 @@ enum ActiveState {
     ViewingDetail,
     ConfirmExit { prev: Box<ActiveState> },
     ConfirmSubmit,
+    // Submitting {
+    //     sims_count: usize,
+    //     files_count: usize,
+    //     progress: usize,
+    // },
 }
 
 impl ActiveState {
@@ -225,6 +231,7 @@ impl Wizard {
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)]
     fn handle_event_state_active(&mut self, event: &Event) {
         let State::Active {
             ref mut state,
@@ -240,6 +247,24 @@ impl Wizard {
             match state {
                 ActiveState::ViewingList => {
                     match (key_event.code, key_event.modifiers) {
+                        (KeyCode::Char(' '), _) => {
+                            if let Some(idx) = sims_list_state.selected()
+                                && let Some(sim) = self.simulations.get_mut(idx)
+                            {
+                                sim.selected = !sim.selected;
+                            }
+                        }
+                        (KeyCode::Char('r'), KeyModifiers::CONTROL) => {
+                            if let Some(idx) = sims_list_state.selected()
+                                && let Some(sim) = self.simulations.get_mut(idx)
+                                && let Err(err) = sim.reset_submission_state()
+                            {
+                                tracing::error!(
+                                    "failed to flush submission state for sim in dir `{}`: {err:?}",
+                                    sim.dir.display()
+                                );
+                            }
+                        }
                         (KeyCode::Up, _) => {
                             sims_list_state.select_previous();
                             sim_detail_scrollbar_state.first();
@@ -258,7 +283,13 @@ impl Wizard {
                             state.toggle_viewing_focus();
                         }
                         (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
-                            *state = ActiveState::ConfirmSubmit;
+                            if self
+                                .simulations
+                                .iter()
+                                .any(SimulationParams::is_submittable)
+                            {
+                                *state = ActiveState::ConfirmSubmit;
+                            }
                         }
                         _ => {}
                     }
@@ -349,8 +380,8 @@ impl Wizard {
         buf: &mut Buffer,
     ) {
         let layout = Layout::horizontal([
-            Constraint::Percentage(30),
-            Constraint::Percentage(70),
+            Constraint::Percentage(40),
+            Constraint::Percentage(60),
         ])
         .vertical_margin(1)
         .horizontal_margin(2);
@@ -379,7 +410,7 @@ impl Wizard {
                 Wizard::render_exit_popup(area, buf);
             }
             ActiveState::ConfirmSubmit => {
-                Wizard::render_submit_confirmation_popup(area, buf);
+                Wizard::render_submit_confirmation_popup(simulations, area, buf);
             }
             _ => {}
         }
@@ -416,7 +447,7 @@ impl Wizard {
                     .centered(),
             )
             .border_set(border::PLAIN)
-            .style(if matches!(state, ActiveState::ViewingList) {
+            .border_style(if matches!(state, ActiveState::ViewingList) {
                 STYLE_NORMAL
             } else {
                 STYLE_DIMMED
@@ -466,11 +497,15 @@ impl Wizard {
         Widget::render(&paragraph, area, buf);
     }
 
-    fn render_submit_confirmation_popup(area: Rect, buf: &mut Buffer) {
+    fn render_submit_confirmation_popup(
+        simulations: &[SimulationParams],
+        area: Rect,
+        buf: &mut Buffer,
+    ) {
         let area = center(
             area,
             Constraint::Percentage(38),
-            Constraint::Length(5), // top and bottom border + content
+            Constraint::Length(6), // top and bottom border + content
         );
 
         let instructions = Line::from(vec![
@@ -491,6 +526,19 @@ impl Wizard {
 
         let paragraph = Paragraph::new(vec![
             Line::default(),
+            Line::from(vec![
+                Span::raw("A total of "),
+                Span::raw(format!(
+                    "{} simulation(s)",
+                    simulations
+                        .iter()
+                        .filter(|sim_params| sim_params.is_submittable())
+                        .count(),
+                ))
+                .style(STYLE_ACCENT),
+                Span::raw(" will be submitted."),
+            ])
+            .centered(),
             Line::raw("Are you sure you want to continue?").centered(),
             Line::default(),
         ])
@@ -519,6 +567,10 @@ impl Wizard {
             " (".into(),
             Span::styled("tab", STYLE_ACCENT),
             ") cycle list<->detail | (".into(),
+            Span::styled("<space>", STYLE_ACCENT),
+            ") toggle selection | (".into(),
+            Span::styled("ctrl+r", STYLE_ACCENT),
+            ") reset submission state | (".into(),
             Span::styled("ctrl+o", STYLE_ACCENT),
             ") submit batch | (".into(),
             Span::styled("esc", STYLE_ACCENT),
@@ -602,11 +654,30 @@ impl Widget for &mut Wizard {
 
 impl From<&SimulationParams> for ListItem<'_> {
     fn from(p: &SimulationParams) -> Self {
-        ListItem::from(Line::from(vec![
-            Span::raw(p.params.name.clone()),
-            " ".into(),
-            Span::styled(format!("({})", p.params.quality), STYLE_ACCENT),
-        ]))
+        let style = if p.selected {
+            STYLE_NORMAL
+        } else {
+            STYLE_DIMMED
+        };
+
+        let submission_state_span = match p.submission_state {
+            SubmissionState::Ready => Span::raw(""),
+            SubmissionState::Sending => {
+                Span::raw(" (sending...)").style(STYLE_WARNING)
+            }
+            SubmissionState::Error(..) => {
+                Span::raw(" (error)").style(STYLE_ERROR)
+            }
+            SubmissionState::Sent => Span::raw(" (sent)").style(STYLE_SUCCESS),
+        };
+
+        ListItem::from(
+            Line::from(vec![
+                Span::raw(p.params.name.clone()),
+                submission_state_span,
+            ])
+            .style(style),
+        )
     }
 }
 

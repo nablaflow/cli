@@ -1,6 +1,9 @@
 use crate::aerocloud::{
     extra_types::{CreateSimulationV7ParamsFromJson, FileV7ParamsFromJson},
-    types::{Filename, Id, Url},
+    types::{
+        CreateModelV7Params, CreateModelV7ParamsFilesItem,
+        CreateSimulationV7Params, Filename, Id, Url,
+    },
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
@@ -224,6 +227,54 @@ impl SimulationParams {
                 self.submission_state,
                 SubmissionState::Ready | SubmissionState::Error(..)
             )
+    }
+
+    pub fn into_api_model_params(self) -> CreateModelV7Params {
+        CreateModelV7Params {
+            name: self.params.name.clone(),
+            reusable: false,
+            files: self
+                .files
+                .iter()
+                .map(|file| CreateModelV7ParamsFilesItem {
+                    name: file.filename.clone(),
+                    rotation: file.params.rotation.clone(),
+                    unit: file.params.unit,
+                })
+                .collect(),
+        }
+    }
+
+    pub fn into_api_params(
+        self,
+        model_id: Id,
+        project_id: Id,
+    ) -> CreateSimulationV7Params {
+        let CreateSimulationV7ParamsFromJson {
+            fluid,
+            fluid_speed,
+            ground_offset,
+            has_ground,
+            is_ground_moving,
+            name,
+            quality,
+            revision,
+            yaw_angles,
+        } = self.params;
+
+        CreateSimulationV7Params {
+            fluid,
+            fluid_speed,
+            ground_offset,
+            has_ground,
+            is_ground_moving,
+            model_id,
+            name,
+            project_id,
+            quality,
+            revision,
+            yaw_angles,
+        }
     }
 }
 

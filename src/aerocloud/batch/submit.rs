@@ -5,14 +5,10 @@ use crate::aerocloud::{
         simulation_params::{FileParams, SimulationParams},
     },
     fmt_progenitor_err, new_idempotency_key,
-    types::{
-        CreateModelV7Params, CreateModelV7ParamsFilesItem,
-        CreateSimulationV7Params, Id, ModelV7, ModelV7FilesItem, SimulationV7,
-    },
+    types::{Id, ModelV7, ModelV7FilesItem, SimulationV7},
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
-use itertools::Itertools;
 use reqwest::header::CONTENT_LENGTH;
 use std::path::PathBuf;
 use tokio::{fs::File as AsyncFile, sync::mpsc, task::JoinSet};
@@ -54,28 +50,14 @@ async fn submit_sim(
     client: Client,
     tx: mpsc::Sender<Event>,
 ) -> eyre::Result<SimulationV7> {
-    let idempotency_key = new_idempotency_key();
-
     let ModelV7 {
         id: model_id,
         files,
         ..
     } = client
         .models_v7_create(
-            &idempotency_key,
-            &CreateModelV7Params {
-                name: sim.params.name.clone(),
-                reusable: false,
-                files: sim
-                    .files
-                    .iter()
-                    .map(|file| CreateModelV7ParamsFilesItem {
-                        name: file.filename.clone(),
-                        unit: file.params.unit,
-                        rotation: file.params.rotation.clone(),
-                    })
-                    .collect_vec(),
-            },
+            &new_idempotency_key(),
+            &sim.clone().into_api_model_params(),
         )
         .await
         .map_err(fmt_progenitor_err)?
@@ -85,14 +67,8 @@ async fn submit_sim(
         .await
         .wrap_err("uploading files")?;
 
-    let idempotency_key = new_idempotency_key();
-
-    let ModelV7 {
-        id: model_id,
-        files,
-        ..
-    } = client
-        .models_v7_finalise(&model_id, &idempotency_key)
+    let ModelV7 { files, .. } = client
+        .models_v7_finalise(&model_id, &new_idempotency_key())
         .await
         .map_err(fmt_progenitor_err)?
         .into_inner();
@@ -101,24 +77,10 @@ async fn submit_sim(
         .await
         .wrap_err("updating parts")?;
 
-    let idempotency_key = new_idempotency_key();
-
     let sim = client
         .simulations_v7_create(
-            &idempotency_key,
-            &CreateSimulationV7Params {
-                model_id,
-                project_id,
-                name: sim.params.name.clone(),
-                revision: sim.params.revision.clone(),
-                quality: sim.params.quality,
-                yaw_angles: sim.params.yaw_angles.clone(),
-                fluid: sim.params.fluid,
-                fluid_speed: sim.params.fluid_speed,
-                has_ground: sim.params.has_ground,
-                ground_offset: sim.params.ground_offset,
-                is_ground_moving: sim.params.is_ground_moving,
-            },
+            &new_idempotency_key(),
+            &sim.into_api_params(model_id, project_id),
         )
         .await
         .map_err(fmt_progenitor_err)?
@@ -136,23 +98,19 @@ async fn upload_files(
     let mut set = JoinSet::new();
 
     for file_params in params {
-        let returned_file = files
-            .iter()
-            .find(|f| f.name == file_params.filename)
-            .ok_or_else(|| {
-                eyre::eyre!(
-                    "file in given params was not returned from the server"
-                )
-            })?;
+        let Some(returned_file) =
+            files.iter().find(|f| f.name == file_params.filename)
+        else {
+            eyre::bail!("file in given params was not returned from the server");
+        };
 
-        let upload_url = returned_file
-            .upload_url
-            .clone()
-            .ok_or_else(|| eyre::eyre!("no upload url found in response"))?;
+        let Some(ref upload_url) = returned_file.upload_url else {
+            eyre::bail!("no upload url found in response");
+        };
 
         set.spawn(upload_file(
             file_params.size,
-            upload_url.into(),
+            upload_url.0.clone(),
             file_params.path.clone(),
             client.client.clone(),
             tx.clone(),
@@ -207,14 +165,11 @@ async fn update_parts(
     let mut set = JoinSet::new();
 
     for file_params in params {
-        let returned_file = files
-            .iter()
-            .find(|f| f.name == file_params.filename)
-            .ok_or_else(|| {
-                eyre::eyre!(
-                    "file in given params was not returned from the server"
-                )
-            })?;
+        let Some(returned_file) =
+            files.iter().find(|f| f.name == file_params.filename)
+        else {
+            eyre::bail!("file in given params was not returned from the server");
+        };
 
         for (part_name, part_params) in &file_params.params.parts {
             let Some(part_id) = returned_file

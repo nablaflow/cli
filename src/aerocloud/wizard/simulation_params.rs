@@ -2,6 +2,7 @@ use crate::aerocloud::{
     extra_types::{CreateSimulationV7ParamsFromJson, FileV7ParamsFromJson},
     types::{Filename, Id},
 };
+use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
 use std::{
     fs,
@@ -167,8 +168,15 @@ impl SimulationParams {
                 )
             })?;
 
+            let size = fs::metadata(&path)
+                .wrap_err_with(|| {
+                    eyre::eyre!("reading file size of `{}`", path.display())
+                })
+                .map(|metadata| ByteSize::b(metadata.len()))?;
+
             files.push(FileParams {
                 path,
+                size,
                 params: file_params,
                 state: FileState::Pending,
             });
@@ -188,6 +196,12 @@ impl SimulationParams {
         })
     }
 
+    pub fn files_size(&self) -> ByteSize {
+        self.files
+            .iter()
+            .fold(ByteSize::default(), |acc, file| acc + file.size)
+    }
+
     pub fn reset_submission_state(&mut self) -> eyre::Result<()> {
         self.submission_state = SubmissionState::default();
         self.submission_state.write(&self.dir)
@@ -205,6 +219,7 @@ impl SimulationParams {
 #[derive(Debug)]
 pub struct FileParams {
     pub path: PathBuf,
+    pub size: ByteSize,
     pub params: FileV7ParamsFromJson,
     pub state: FileState,
 }

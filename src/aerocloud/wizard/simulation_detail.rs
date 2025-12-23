@@ -17,7 +17,8 @@ use ratatui::{
 use std::borrow::Cow;
 
 pub struct SimulationDetail<'a> {
-    pub focus: bool,
+    pub has_focus: bool,
+    pub is_dimmed: bool,
     pub sim: Option<&'a SimulationParams>,
 }
 
@@ -28,10 +29,15 @@ impl<'a> SimulationDetail<'a> {
         Block::bordered()
             .title(Line::from(self.block_title()).centered())
             .border_set(border::PLAIN)
-            .border_style(if self.focus {
+            .border_style(if self.has_focus {
                 STYLE_NORMAL
             } else {
                 STYLE_DIMMED
+            })
+            .style(if self.is_dimmed {
+                STYLE_DIMMED
+            } else {
+                STYLE_NORMAL
             })
     }
 
@@ -69,6 +75,13 @@ impl<'a> SimulationDetail<'a> {
             )]));
             lines.push(Line::default());
         }
+
+        lines.push(Line::from(vec![
+            Span::styled("Dir: ", STYLE_BOLD),
+            Span::styled(format!("{}", sim.dir.display()), STYLE_ACCENT),
+        ]));
+
+        lines.push(Line::default());
 
         lines.push(Line::from(vec![
             Span::styled("Revision: ", STYLE_BOLD),
@@ -176,6 +189,12 @@ impl<'a> SimulationDetail<'a> {
                 } else {
                     Span::styled("none", STYLE_ACCENT)
                 },
+            ]));
+
+            lines.push(Line::from(vec![
+                Span::raw("    "),
+                Span::styled("Size: ", STYLE_BOLD),
+                Span::styled(format!("{}", file.size), STYLE_ACCENT),
             ]));
 
             lines.push(Line::default());

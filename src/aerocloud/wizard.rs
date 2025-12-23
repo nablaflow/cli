@@ -9,6 +9,7 @@ use crate::aerocloud::{
         simulation_params::{SimulationParams, SubmissionState},
     },
 };
+use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
 use crossterm::event::{
     Event as CrosstermEvent, EventStream, KeyCode, KeyEventKind, KeyModifiers,
@@ -22,12 +23,14 @@ use ratatui::{
     symbols::border,
     text::{Line, Span, Text},
     widgets::{
-        Block, Clear, HighlightSpacing, List, ListItem, ListState, Paragraph,
-        ScrollbarState, StatefulWidget, Widget, Wrap,
+        Block, Borders, Clear, Gauge, HighlightSpacing, List, ListItem,
+        ListState, Padding, Paragraph, ScrollbarState, StatefulWidget, Widget,
+        Wrap,
     },
 };
 use std::{borrow::Cow, path::Path};
 use tokio::sync::mpsc;
+use tokio_util::sync::CancellationToken;
 
 mod project_picker;
 mod simulation_detail;
@@ -84,13 +87,17 @@ struct Wizard {
 enum ActiveState {
     ViewingList,
     ViewingDetail,
-    ConfirmExit { prev: Box<ActiveState> },
+    ConfirmExit {
+        prev: Box<ActiveState>,
+    },
     ConfirmSubmit,
-    // Submitting {
-    //     sims_count: usize,
-    //     files_count: usize,
-    //     progress: usize,
-    // },
+    Submitting {
+        cancellation_token: CancellationToken,
+        bytes_count: ByteSize,
+        bytes_progress: ByteSize,
+        sims_count: usize,
+        sims_progress: usize,
+    },
 }
 
 impl ActiveState {
@@ -336,9 +343,39 @@ impl Wizard {
                 },
                 ActiveState::ConfirmSubmit => match key_event.code {
                     KeyCode::Char('y') => {
-                        *state = ActiveState::ViewingList;
+                        let sims_to_submit: Vec<_> = self
+                            .simulations
+                            .iter()
+                            .filter(|sim_params| sim_params.is_submittable())
+                            .collect();
+
+                        let bytes_count = sims_to_submit
+                            .iter()
+                            .fold(ByteSize::default(), |acc, sim_params| {
+                                acc + sim_params.files_size()
+                            });
+
+                        // TODO: spawn task
+                        *state = ActiveState::Submitting {
+                            cancellation_token: CancellationToken::new(),
+                            sims_progress: 0,
+                            sims_count: sims_to_submit.len(),
+                            bytes_progress: ByteSize::default(),
+                            bytes_count,
+                        };
                     }
                     KeyCode::Char('n') => {
+                        *state = ActiveState::ViewingList;
+                    }
+                    _ => {}
+                },
+                ActiveState::Submitting {
+                    cancellation_token, ..
+                } => match key_event.code {
+                    KeyCode::Char('q') => {
+                        cancellation_token.cancel();
+
+                        // TODO: should we ask for confirmation?
                         *state = ActiveState::ViewingList;
                     }
                     _ => {}
@@ -412,7 +449,26 @@ impl Wizard {
             ActiveState::ConfirmSubmit => {
                 Wizard::render_submit_confirmation_popup(simulations, area, buf);
             }
-            _ => {}
+            ActiveState::Submitting {
+                bytes_count,
+                bytes_progress,
+                sims_count,
+                sims_progress,
+                ..
+            } => {
+                assert!(*bytes_count > ByteSize::default());
+                assert!(*sims_count > 0);
+
+                Wizard::render_submitting(
+                    *bytes_count,
+                    *bytes_progress,
+                    *sims_count,
+                    *sims_progress,
+                    area,
+                    buf,
+                );
+            }
+            ActiveState::ViewingList | ActiveState::ViewingDetail => {}
         }
     }
 
@@ -425,7 +481,11 @@ impl Wizard {
         buf: &mut Buffer,
     ) {
         let detail = SimulationDetail {
-            focus: matches!(state, ActiveState::ViewingDetail),
+            has_focus: matches!(state, ActiveState::ViewingDetail),
+            is_dimmed: !matches!(
+                state,
+                ActiveState::ViewingDetail | ActiveState::ViewingList
+            ),
             sim: sims_list_state
                 .selected()
                 .and_then(|idx| simulations.get(idx)),
@@ -451,7 +511,17 @@ impl Wizard {
                 STYLE_NORMAL
             } else {
                 STYLE_DIMMED
-            });
+            })
+            .style(
+                if matches!(
+                    state,
+                    ActiveState::ViewingList | ActiveState::ViewingDetail
+                ) {
+                    STYLE_NORMAL
+                } else {
+                    STYLE_DIMMED
+                },
+            );
 
         let list = List::new(simulations.iter())
             .block(block)
@@ -550,7 +620,13 @@ impl Wizard {
     }
 
     fn render_template(&self, area: Rect, buf: &mut Buffer) {
-        let style = if matches!(self.state, State::Active { .. }) {
+        let style = if matches!(
+            self.state,
+            State::Active {
+                state: ActiveState::ViewingDetail | ActiveState::ViewingList,
+                ..
+            }
+        ) {
             STYLE_NORMAL
         } else {
             STYLE_DIMMED
@@ -586,6 +662,74 @@ impl Wizard {
             .border_set(border::THICK);
 
         Widget::render(&block, area, buf);
+    }
+
+    fn render_submitting(
+        bytes_count: ByteSize,
+        bytes_progress: ByteSize,
+        sims_count: usize,
+        sims_progress: usize,
+        area: Rect,
+        buf: &mut Buffer,
+    ) {
+        let area =
+            center(area, Constraint::Percentage(38), Constraint::Length(12));
+
+        Widget::render(&Clear, area, buf);
+
+        let instructions = Line::from(vec![
+            Span::raw(" ("),
+            Span::styled("q", STYLE_ACCENT),
+            Span::raw(") stop "),
+        ]);
+
+        Block::bordered()
+            .title(
+                Line::from(Span::styled(" Submitting ", STYLE_BOLD)).centered(),
+            )
+            .title_bottom(instructions.centered())
+            .border_set(border::THICK)
+            // .style(STYLE_ACCENT)
+            .render(area, buf);
+
+        let [upper, lower] = area.layout(
+            &Layout::vertical([
+                Constraint::Percentage(50),
+                Constraint::Percentage(50),
+            ])
+            .flex(Flex::Center)
+            .margin(2),
+        );
+
+        Gauge::default()
+            .gauge_style(STYLE_ACCENT)
+            .block(
+                Block::new()
+                    .borders(Borders::NONE)
+                    .padding(Padding::vertical(1))
+                    .title(Line::from("Uploading files").centered()),
+            )
+            .ratio(bytes_progress.0 as f64 / bytes_count.0 as f64)
+            .label(Span::styled(
+                format!("{}/{}", bytes_progress, bytes_count),
+                Style::new().bold(),
+            ))
+            .render(upper, buf);
+
+        Gauge::default()
+            .gauge_style(STYLE_ACCENT)
+            .block(
+                Block::new()
+                    .borders(Borders::NONE)
+                    .padding(Padding::vertical(1))
+                    .title(Line::from("Creating simulations").centered()),
+            )
+            .ratio(sims_progress as f64 / sims_count as f64)
+            .label(Span::styled(
+                format!("{}/{}", sims_progress, sims_count),
+                Style::new().bold(),
+            ))
+            .render(lower, buf);
     }
 
     fn is_term_size_not_enough(&self) -> bool {

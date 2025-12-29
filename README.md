@@ -34,3 +34,32 @@ In order to submit a simulation you need a project and a model:
 - `nf aerocloud v7 create-model $PATH_TO_JSON`, see [examples/aerocloud/v7/create_model.json](examples/aerocloud/v7/create_model.json) as starting point.
   Note down the model id.
 - `nf aerocloud v7 create-simulation --model-id $MODEL_ID --project-id $PROJECT_ID $PATH_TO_JSON`, see [examples/aerocloud/v7/create_simulation.json](examples/aerocloud/v7/create_simulation.json) as starting point.
+
+#### Batch
+
+`nf aerocloud v7 batch $dir` provides an interactive UI to review and submit a batch of simulations.
+
+Inside the UI, follow the instructions and available commands at the bottom of each block.
+
+> [!TIP]
+> When submitting simulations, stuff can go wrong: network timeouts, invalid parameters and such.  
+> Each succesfully submitted simulation will be marked as such and won't be resent, while allowing you to make changes to JSON files
+ and reload them.
+
+The expected structure of the passed `$dir` is:
+
+```
+dir
+├── simulation-1      # `simulation-1` is going to be the name of the simulation.
+│   ├── model-1.stl   # `model` can be any valid UTF-8 filename.
+│   ├── model-1.json  # Provides additional params on the `.stl` above (unit, parts, ...). *File names must match!*
+│   ├── model-2.obj
+│   ├── model-2.json
+│   ├── params.json   # Simulation params.
+└── simulation-2
+    ├── donut-with-parts.json
+    ├── donut-with-parts.obj
+    ├── params.json
+```
+
+You can find an example under [examples/aerocloud/v7/batch](examples/aerocloud/v7/batch)

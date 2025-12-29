@@ -5,14 +5,22 @@ use crate::{
     },
     config::{Config, Token},
 };
-use clap::{Parser, Subcommand};
+use clap::{
+    Parser, Subcommand,
+    builder::styling::{AnsiColor, Styles},
+};
 use clap_complete::aot::Shell;
 use clap_stdin::{FileOrStdin, MaybeStdin};
 use reqwest::Url;
 use std::{path::PathBuf, time::Duration};
 
+const STYLES: Styles = Styles::styled()
+    .header(AnsiColor::Green.on_default().bold())
+    .usage(AnsiColor::Green.on_default().bold())
+    .placeholder(AnsiColor::Blue.on_default());
+
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, styles = STYLES)]
 pub struct Args {
     #[arg(short, long, env = "NF_DEBUG")]
     pub debug: bool,

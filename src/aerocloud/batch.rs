@@ -23,6 +23,7 @@ use ratatui::{
     DefaultTerminal, Frame,
     buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect, Size, Spacing},
+    prelude::Color,
     style::Style,
     symbols::border,
     text::{Line, Span, Text},
@@ -48,7 +49,7 @@ const LOGO_ASCII_ART: &str = include_str!("logo.txt");
 const STYLE_NORMAL: Style = Style::new();
 const STYLE_DIMMED: Style = Style::new().dim();
 const STYLE_BOLD: Style = Style::new().bold();
-const STYLE_ACCENT: Style = Style::new().blue().bold();
+const STYLE_ACCENT: Style = Style::new().fg(Color::Rgb(0xff, 0xbc, 0x00)).bold();
 const STYLE_SUCCESS: Style = Style::new().green().bold();
 const STYLE_ERROR: Style = Style::new().red().bold();
 const STYLE_WARNING: Style = Style::new().yellow().bold();

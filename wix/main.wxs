@@ -87,40 +87,42 @@
 
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
-                <Directory Id='APPLICATIONFOLDER' Name='NablaFlow/cli'>
-                    <!--
-                      Disabling the license sidecar file in the installer is a two step process:
+                <Directory Id='NablaFlow' Name='NablaFlow'>
+                    <Directory Id='APPLICATIONFOLDER' Name='cli'>
+                        <!--
+                          Disabling the license sidecar file in the installer is a two step process:
 
-                      1. Comment out or remove the `Component` tag along with its contents.
-                      2. Comment out or remove the `ComponentRef` tag with the "License" Id
-                         attribute value further down in this file.
-                    -->
-                    <Component Id='License' Guid='*'>
-                        <File Id='LicenseFile'
-                            DiskId='1'
-                            Source='LICENSE'
-                            KeyPath='yes'/>
-                    </Component>
-                    
-                    <Directory Id='Bin' Name='bin'>
-                        <Component Id='Path' Guid='3364D118-508D-4E5E-A11F-B1D2CF2D6DD2' KeyPath='yes'>
-                            <Environment
-                                Id='PATH'
-                                Name='PATH'
-                                Value='[Bin]'
-                                Permanent='no'
-                                Part='last'
-                                Action='set'
-                                System='yes'/>
-                        </Component>
-                        <Component Id='binary0' Guid='*'>
-                            <File
-                                Id='exe0'
-                                Name='nf.exe'
+                          1. Comment out or remove the `Component` tag along with its contents.
+                          2. Comment out or remove the `ComponentRef` tag with the "License" Id
+                             attribute value further down in this file.
+                        -->
+                        <Component Id='License' Guid='*'>
+                            <File Id='LicenseFile'
                                 DiskId='1'
-                                Source='$(var.CargoTargetBinDir)\nf.exe'
+                                Source='LICENSE'
                                 KeyPath='yes'/>
                         </Component>
+                        
+                        <Directory Id='Bin' Name='bin'>
+                            <Component Id='Path' Guid='3364D118-508D-4E5E-A11F-B1D2CF2D6DD2' KeyPath='yes'>
+                                <Environment
+                                    Id='PATH'
+                                    Name='PATH'
+                                    Value='[Bin]'
+                                    Permanent='no'
+                                    Part='last'
+                                    Action='set'
+                                    System='yes'/>
+                            </Component>
+                            <Component Id='binary0' Guid='*'>
+                                <File
+                                    Id='exe0'
+                                    Name='nf.exe'
+                                    DiskId='1'
+                                    Source='$(var.CargoTargetBinDir)\nf.exe'
+                                    KeyPath='yes'/>
+                            </Component>
+                        </Directory>
                     </Directory>
                 </Directory>
             </Directory>

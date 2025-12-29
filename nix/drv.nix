@@ -12,7 +12,7 @@
   canRunNf = stdenv.hostPlatform.emulatorAvailable buildPackages;
   nf = "${stdenv.hostPlatform.emulator buildPackages} $out/bin/nf";
 
-  rustToolchain = rust-bin.stable.latest.default;
+  rustToolchain = rust-bin.fromRustupToolchainFile ../rust-toolchain.toml;
   craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
   fs = lib.fileset;

@@ -31,7 +31,7 @@ jobs:
 
       - uses: cachix/cachix-action@v16
         with:
-          name: nablaflow
+          name: nablaflow-public
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         env:
           USER: runner

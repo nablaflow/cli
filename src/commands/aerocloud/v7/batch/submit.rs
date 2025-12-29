@@ -1,11 +1,12 @@
-use crate::aerocloud::{
-    Client,
-    batch::{
+use crate::{
+    aerocloud::{
+        Client, fmt_progenitor_err, new_idempotency_key,
+        types::{Id, ModelV7, ModelV7FilesItem, SimulationV7},
+    },
+    commands::aerocloud::v7::batch::{
         Event,
         simulation_params::{FileParams, SimulationParams},
     },
-    fmt_progenitor_err, new_idempotency_key,
-    types::{Id, ModelV7, ModelV7FilesItem, SimulationV7},
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};

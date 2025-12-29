@@ -13,7 +13,6 @@ use crate::{
 use color_eyre::eyre::Report;
 use uuid::Uuid;
 
-pub mod batch;
 pub mod extra_types;
 
 pub fn new_idempotency_key() -> IdempotencyKey {

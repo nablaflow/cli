@@ -134,7 +134,7 @@ pub enum AeroCloudScope {
         token: MaybeStdin<Token>,
     },
 
-    #[command(about = "Operate on AeroCloud v6 (deprecated, read-only)")]
+    #[command(about = "Operate on AeroCloud v6 (end-of-life, read-only)")]
     V6 {
         #[command(subcommand)]
         command: AeroCloudV6Command,

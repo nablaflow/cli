@@ -57,7 +57,7 @@ opt-level = 3
 [package.metadata.wix]
 eula = false
 license = "LICENSE"
-manufacturer = "NablaFlow"
+manufacturer = "NablaFlow AS"
 path-guid = "3364D118-508D-4E5E-A11F-B1D2CF2D6DD2"
 product-icon = "wix/nablaflow.ico"
 product-name = "NablaFlow CLI"

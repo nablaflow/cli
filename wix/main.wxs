@@ -62,7 +62,7 @@
         Id='*'
         Name='NablaFlow CLI'
         UpgradeCode='299233E0-5056-424B-8717-651179F925CB'
-        Manufacturer='NablaFlow Engineering'
+        Manufacturer='NablaFlow AS'
         Language='1033'
         Codepage='1252'
         Version='$(var.Version)'>
@@ -87,7 +87,7 @@
 
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
-                <Directory Id='APPLICATIONFOLDER' Name='nf'>
+                <Directory Id='APPLICATIONFOLDER' Name='NablaFlow/cli'>
                     <!--
                       Disabling the license sidecar file in the installer is a two step process:
 

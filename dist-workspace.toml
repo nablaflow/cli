@@ -3,8 +3,11 @@ members = ["cargo:."]
 
 [dist]
 cargo-dist-version = "0.30.2"
+
 ci = "github"
 pr-run-mode = "upload"
+
+install-updater = true
 
 installers = [
   "powershell",
@@ -13,6 +16,10 @@ installers = [
 
 allow-dirty = [
   "msi",
+]
+
+include = [
+  "examples",
 ]
 
 targets = [

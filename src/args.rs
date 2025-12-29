@@ -219,7 +219,7 @@ pub enum AeroCloudV6Command {
         description: Option<String>,
     },
 
-    #[command(about = "Delete a project")]
+    #[command(about = "Delete projects")]
     DeleteProjects {
         #[arg(
             required = true,
@@ -336,7 +336,7 @@ Example:
         ids: Vec<Id>,
     },
 
-    #[command(about = "Delete a project")]
+    #[command(about = "Delete projects")]
     DeleteProjects {
         #[arg(required = true)]
         project_ids: Vec<Id>,

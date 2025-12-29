@@ -54,7 +54,7 @@ impl Config {
     pub fn aerocloud_token_or_fail(&self) -> eyre::Result<&Token> {
         self.aerocloud_token
             .as_ref()
-            .ok_or_else(|| eyre::eyre!("No token provided. Either call `nf aerocloud set-auth-token` or pass it from the ENV. See `nf --help` for more."))
+            .ok_or_else(|| eyre::eyre!("No token provided. Either call `nf aerocloud set-auth-token` or pass it from the ENV. See `nf aerocloud --help` for more."))
     }
 
     pub fn hostname(&self) -> Url {

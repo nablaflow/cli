@@ -1,13 +1,17 @@
 [package]
 name = "nf"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 description = "CLI app to interact with NablaFlow's API"
 edition = "2024"
 publish = false
 license = "MIT"
+repository = "https://github.com/nablaflow/cli"
 authors = [
   "NablaFlow Engineering <engineering@nablaflow.io>"
 ]
+
+[package.metadata.dist]
+dist = true
 
 [dependencies]
 async-stream = "0.3.6"
@@ -44,5 +48,17 @@ syn = "2.0.111"
 [profile.release]
 lto = "thin"
 
+[profile.dist]
+inherits = "release"
+
 [profile.dev.package.backtrace]
 opt-level = 3
+
+[package.metadata.wix]
+eula = false
+license = "LICENSE"
+manufacturer = "NablaFlow"
+path-guid = "3364D118-508D-4E5E-A11F-B1D2CF2D6DD2"
+product-icon = "wix/nablaflow.ico"
+product-name = "NablaFlow CLI"
+upgrade-guid = "299233E0-5056-424B-8717-651179F925CB"

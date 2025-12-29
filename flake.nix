@@ -38,6 +38,7 @@
         packages = with pkgs; [
           nablaflow-cli.rustToolchain
           cargo-outdated
+          cargo-dist
         ];
       };
 

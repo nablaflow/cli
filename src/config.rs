@@ -32,7 +32,7 @@ impl Config {
         let mut config = Self::load_from_path(&args.config_path).await?;
 
         config.aerocloud_token =
-            args.aerocloud_token.clone().or(config.aerocloud_token);
+            args.aerocloud_auth_token.clone().or(config.aerocloud_token);
         config.hostname = args.hostname.clone().or(config.hostname);
 
         Ok(config)
@@ -54,7 +54,7 @@ impl Config {
     pub fn aerocloud_token_or_fail(&self) -> eyre::Result<&Token> {
         self.aerocloud_token
             .as_ref()
-            .ok_or_else(|| eyre::eyre!("no token provided"))
+            .ok_or_else(|| eyre::eyre!("No token provided. Either call `nf aerocloud set-auth-token` or pass it from the ENV. See `nf --help` for more."))
     }
 
     pub fn hostname(&self) -> Url {

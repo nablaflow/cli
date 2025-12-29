@@ -36,13 +36,12 @@ pub struct Args {
     pub hostname: Option<Url>,
 
     #[arg(
-        short = 'T',
         long,
         env = "NF_AEROCLOUD_AUTH_TOKEN",
         value_name = "AEROCLOUD_AUTH_TOKEN",
         help = "AeroCloud auth token to use during requests. If specified will take precedence over the one set in config"
     )]
-    pub aerocloud_token: Option<Token>,
+    pub aerocloud_auth_token: Option<Token>,
 
     #[arg(
         short,

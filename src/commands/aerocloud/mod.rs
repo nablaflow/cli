@@ -18,18 +18,20 @@ pub async fn run(
     config: Config,
     subcommand: &AeroCloudScope,
 ) -> eyre::Result<()> {
+    if let AeroCloudScope::SetAuthToken { token } = subcommand {
+        return self::set_auth_token::run(args, config, token).await;
+    }
+
     let client =
         http::build_aerocloud_client_from_config(&config, &args.http_timeout())?;
 
     match subcommand {
+        AeroCloudScope::SetAuthToken { .. } => Ok(()),
         AeroCloudScope::CurrentUser => {
             self::current_user::run(args, &client).await
         }
         AeroCloudScope::CurrentToken => {
             self::current_token::run(args, &client).await
-        }
-        AeroCloudScope::SetAuthToken { token } => {
-            self::set_auth_token::run(args, config, token).await
         }
         AeroCloudScope::V6 { command } => match command {
             AeroCloudV6Command::ListProjects { status } => {

@@ -8,7 +8,7 @@ Can be run directly via `nix run https://github.com/nablaflow/cli`.
 
 ### Stand-alone (Linux, macOS, Windows)
 
-TODO
+Follow instructions in [releases](https://github.com/nablaflow/cli/releases).
 
 ## Usage
 

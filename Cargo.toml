@@ -19,7 +19,7 @@ bytesize = "2.3.1"
 chrono = { version = "~0.4.42", features = ["serde"] }
 clap = { version = "~4.5", features = ["derive", "env", "color"] }
 clap-stdin = "0.8.0"
-clap_complete = "4.5.61"
+clap_complete = "4.5.64"
 clap_mangen = "0.2.31"
 color-eyre = { version = "~0.6", default-features = false }
 comfy-table = { version = "~7.2.1", features = ["custom_styling"] }
@@ -43,7 +43,7 @@ uuid = { version = "1.18.1", features = ["serde", "v4"] }
 prettyplease = "0.2.37"
 progenitor = "0.11.2"
 serde_json = "1.0.145"
-syn = "2.0.111"
+syn = "2.0.112"
 
 [profile.release]
 lto = "thin"

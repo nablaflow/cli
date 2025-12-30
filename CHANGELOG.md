@@ -1,4 +1,4 @@
-# 1.0.0-beta.1 - 2025-12-29
+# 1.0.0-beta.1 - 2025-12-30
 
 Initial testing release with AeroCloud support.
 

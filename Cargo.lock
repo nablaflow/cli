@@ -1407,7 +1407,7 @@ dependencies = [
 
 [[package]]
 name = "nf"
-version = "1.0.0-beta.1"
+version = "1.0.0-rc.1"
 dependencies = [
  "async-stream",
  "bytesize",

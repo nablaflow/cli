@@ -1,3 +1,14 @@
+# 1.0.0-rc.1
+
+## AeroCloud
+
+### Features
+
+#### v7
+
+  - In the interactive UI, add the ability to reload sims from disk using `r`.
+
+
 # 1.0.0-beta.1 - 2025-12-30
 
 Initial testing release with AeroCloud support.

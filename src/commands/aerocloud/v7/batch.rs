@@ -33,8 +33,13 @@ use ratatui::{
         Wrap,
     },
 };
-use std::{borrow::Cow, path::Path};
-use tokio::sync::mpsc;
+use std::{
+    borrow::Cow,
+    mem,
+    path::{Path, PathBuf},
+    time::Duration,
+};
+use tokio::{sync::mpsc, time};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -56,12 +61,16 @@ const STYLE_WARNING: Style = Style::new().yellow().bold();
 
 const MIN_TERM_SIZE: Size = Size::new(110, 38);
 
+const SLEEP_FOR_FEEDBACK: Duration = Duration::from_millis(100);
+
 pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
     let sims = if let Some(root_dir) = root_dir {
-        let sims = SimulationParams::many_from_root_dir(root_dir)?;
+        let sims = SimulationParams::many_from_root_dir(root_dir).await?;
 
         if sims.is_empty() {
-            eyre::bail!("no simulations found in `{}`", root_dir.display());
+            tracing::error!("no simulations found in `{}`", root_dir.display());
+
+            return Ok(());
         }
 
         sims
@@ -69,7 +78,8 @@ pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
         vec![]
     };
 
-    let mut app = Batch::new(client.clone(), sims);
+    let mut app =
+        Batch::new(client.clone(), root_dir.map(ToOwned::to_owned), sims);
 
     let mut terminal = ratatui::init();
     let result = app.run(&mut terminal).await;
@@ -79,25 +89,43 @@ pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
     result
 }
 
+pub fn refresh_sims_in_background(root_dir: &Path, tx: mpsc::Sender<Event>) {
+    let root_dir = root_dir.to_owned();
+
+    tokio::spawn(async move {
+        // NOTE: sleep so that reloading popup is shown and user has visual feedback on the
+        // operation.
+        time::sleep(SLEEP_FOR_FEEDBACK).await;
+
+        let sims = SimulationParams::many_from_root_dir(&root_dir).await?;
+        tx.send(Event::SimsReloaded(sims)).await?;
+
+        Ok::<(), eyre::Report>(())
+    });
+}
+
 #[derive(Debug)]
 struct Batch {
     client: Client,
     running: bool,
     term_size: Size,
 
+    root_dir: Option<PathBuf>,
     simulations: Vec<SimulationParams>,
 
     state: State,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 enum ActiveState {
+    #[default]
     ViewingList,
     ViewingDetail,
     ConfirmExit {
         prev: Box<ActiveState>,
     },
     ConfirmSubmit,
+    ReloadingSims,
     Submitting {
         cancellation_token: CancellationToken,
         bytes_count: ByteSize,
@@ -105,16 +133,6 @@ enum ActiveState {
         sims_count: usize,
         sims_progress: usize,
     },
-}
-
-impl ActiveState {
-    fn toggle_viewing_focus(&mut self) {
-        match self {
-            Self::ViewingList => *self = Self::ViewingDetail,
-            Self::ViewingDetail => *self = Self::ViewingList,
-            _ => {}
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -139,6 +157,7 @@ pub enum Event {
     ProjectsUpdated(eyre::Result<Vec<ProjectV7>>),
     ProjectSelected(Box<ProjectV7>),
     FileUploaded(ByteSize),
+    SimsReloaded(Vec<SimulationParams>),
     SimSubmitted {
         internal_id: Uuid,
         res: eyre::Result<Box<SimulationV7>, eyre::Report>,
@@ -167,11 +186,16 @@ async fn handle_term_events(tx: mpsc::Sender<Event>) -> eyre::Result<()> {
 }
 
 impl Batch {
-    fn new(client: Client, simulations: Vec<SimulationParams>) -> Self {
+    fn new(
+        client: Client,
+        root_dir: Option<PathBuf>,
+        simulations: Vec<SimulationParams>,
+    ) -> Self {
         Self {
             state: State::Init,
             running: false,
             term_size: Size::default(),
+            root_dir,
             simulations,
             client,
         }
@@ -244,7 +268,7 @@ impl Batch {
                 }
             }
             State::Active { .. } => {
-                self.handle_event_state_active(&event, &tx)?;
+                self.handle_event_state_active(event, &tx).await?;
             }
         }
 
@@ -252,9 +276,9 @@ impl Batch {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn handle_event_state_active(
+    async fn handle_event_state_active(
         &mut self,
-        event: &Event,
+        event: Event,
         tx: &mpsc::Sender<Event>,
     ) -> eyre::Result<()> {
         let State::Active {
@@ -268,158 +292,143 @@ impl Batch {
             return Ok(());
         };
 
-        if let Event::FileUploaded(size) = event
-            && let ActiveState::Submitting { bytes_progress, .. } = state
-        {
-            *bytes_progress += *size;
-        }
+        let mut curr_state = mem::take(state);
+        let mut next_state: Option<ActiveState> = None;
 
-        if let Event::SimSubmitted { internal_id, res } = event
-            && let ActiveState::Submitting { sims_progress, .. } = state
-        {
-            if let Some(sim_params) = self
-                .simulations
-                .iter_mut()
-                .find(|sim_params| sim_params.internal_id == *internal_id)
-            {
-                let state = match res {
-                    Ok(sim) => SubmissionState::Sent {
-                        id: sim.id.clone(),
-                        browser_url: sim.browser_url.clone(),
-                    },
-                    Err(err) => SubmissionState::Error(human_err_report(err)),
-                };
-
-                sim_params
-                    .update_submission_state(state)
-                    .wrap_err("updating submission state")?;
-            }
-
-            *sims_progress += 1;
-        }
-
-        if let ActiveState::Submitting {
-            sims_progress,
-            sims_count,
-            ..
-        } = state
-            && sims_progress >= sims_count
-        {
-            *state = ActiveState::ViewingList;
-
-            return Ok(());
-        }
-
-        if let Event::KeyPressed(key_event) = event {
-            match state {
-                ActiveState::ViewingList => {
-                    match (key_event.code, key_event.modifiers) {
-                        (KeyCode::Char(' '), _) => {
-                            if let Some(idx) = sims_list_state.selected()
-                                && let Some(sim) = self.simulations.get_mut(idx)
-                            {
-                                sim.selected = !sim.selected;
-                            }
+        match (&mut curr_state, event) {
+            (ActiveState::ViewingList, Event::KeyPressed(key_event)) => {
+                match (key_event.code, key_event.modifiers) {
+                    (KeyCode::Char(' '), _) => {
+                        if let Some(idx) = sims_list_state.selected()
+                            && let Some(sim) = self.simulations.get_mut(idx)
+                        {
+                            sim.selected = !sim.selected;
                         }
-                        (KeyCode::Char('r'), KeyModifiers::CONTROL) => {
-                            if let Some(idx) = sims_list_state.selected()
-                                && let Some(sim) = self.simulations.get_mut(idx)
-                                && let Err(err) = sim.reset_submission_state()
-                            {
-                                tracing::error!(
-                                    "failed to flush submission state for sim in dir `{}`: {err:?}",
-                                    sim.dir.display()
-                                );
-                            }
-                        }
-                        (KeyCode::Up, _) => {
-                            sims_list_state.select_previous();
-                            sim_detail_scrollbar_state.first();
-                        }
-                        (KeyCode::Down, _) => {
-                            sims_list_state.select_next();
-                            sim_detail_scrollbar_state.first();
-                        }
-                        (KeyCode::Esc, _)
-                        | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
-                            *state = ActiveState::ConfirmExit {
-                                prev: Box::new(state.clone()),
-                            };
-                        }
-                        (KeyCode::Tab, _) => {
-                            state.toggle_viewing_focus();
-                        }
-                        (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
-                            if self
-                                .simulations
-                                .iter()
-                                .any(SimulationParams::is_submittable)
-                            {
-                                *state = ActiveState::ConfirmSubmit;
-                            }
-                        }
-                        _ => {}
                     }
-                }
-                ActiveState::ViewingDetail => {
-                    match (key_event.code, key_event.modifiers) {
-                        (KeyCode::Up, KeyModifiers::SHIFT) => {
-                            sims_list_state.select_previous();
-                            sim_detail_scrollbar_state.first();
+                    (KeyCode::Char('r'), KeyModifiers::CONTROL) => {
+                        if let Some(idx) = sims_list_state.selected()
+                            && let Some(sim) = self.simulations.get_mut(idx)
+                            && let Err(err) = sim.reset_submission_state().await
+                        {
+                            tracing::error!(
+                                "failed to flush submission state for sim in dir `{}`: {err:?}",
+                                sim.dir.display()
+                            );
                         }
-                        (KeyCode::Down, KeyModifiers::SHIFT) => {
-                            sims_list_state.select_next();
-                            sim_detail_scrollbar_state.first();
-                        }
-                        (KeyCode::Up, _) => {
-                            sim_detail_scrollbar_state.prev();
-                        }
-                        (KeyCode::Down, _) => {
-                            sim_detail_scrollbar_state.next();
-                        }
-                        (KeyCode::Esc, _)
-                        | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
-                            *state = ActiveState::ConfirmExit {
-                                prev: Box::new(state.clone()),
-                            };
-                        }
-                        (KeyCode::Tab, _) => {
-                            state.toggle_viewing_focus();
-                        }
-                        (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
-                            *state = ActiveState::ConfirmSubmit;
-                        }
-                        (KeyCode::Char(' '), _) => {
-                            if let Some(idx) = sims_list_state.selected()
-                                && let Some(sim) = self.simulations.get_mut(idx)
-                            {
-                                sim.selected = !sim.selected;
-                            }
-                        }
-                        (KeyCode::Char('r'), KeyModifiers::CONTROL) => {
-                            if let Some(idx) = sims_list_state.selected()
-                                && let Some(sim) = self.simulations.get_mut(idx)
-                                && let Err(err) = sim.reset_submission_state()
-                            {
-                                tracing::error!(
-                                    "failed to flush submission state for sim in dir `{}`: {err:?}",
-                                    sim.dir.display()
-                                );
-                            }
-                        }
-                        _ => {}
                     }
-                }
-                ActiveState::ConfirmExit { prev } => match key_event.code {
-                    KeyCode::Char('y') => {
-                        self.immediate_exit();
+                    (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
+                        if self
+                            .simulations
+                            .iter()
+                            .any(SimulationParams::is_submittable)
+                        {
+                            next_state = Some(ActiveState::ConfirmSubmit);
+                        }
                     }
-                    KeyCode::Char('n') => {
-                        *state = *prev.clone();
+                    (KeyCode::Char('r'), _) => {
+                        if let Some(root_dir) = self.root_dir.as_ref() {
+                            refresh_sims_in_background(root_dir, tx.clone());
+                        }
+
+                        next_state = Some(ActiveState::ReloadingSims);
+                    }
+                    (KeyCode::Esc, _)
+                    | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                        next_state = Some(ActiveState::ConfirmExit {
+                            prev: Box::new(ActiveState::ViewingList),
+                        });
+                    }
+                    (KeyCode::Up, _) => {
+                        sims_list_state.select_previous();
+                        sim_detail_scrollbar_state.first();
+                    }
+                    (KeyCode::Down, _) => {
+                        sims_list_state.select_next();
+                        sim_detail_scrollbar_state.first();
+                    }
+                    (KeyCode::Tab, _) => {
+                        next_state = Some(ActiveState::ViewingDetail);
                     }
                     _ => {}
-                },
-                ActiveState::ConfirmSubmit => match key_event.code {
+                }
+            }
+            (ActiveState::ViewingDetail, Event::KeyPressed(key_event)) => {
+                match (key_event.code, key_event.modifiers) {
+                    (KeyCode::Char(' '), _) => {
+                        if let Some(idx) = sims_list_state.selected()
+                            && let Some(sim) = self.simulations.get_mut(idx)
+                        {
+                            sim.selected = !sim.selected;
+                        }
+                    }
+                    (KeyCode::Char('r'), KeyModifiers::CONTROL) => {
+                        if let Some(idx) = sims_list_state.selected()
+                            && let Some(sim) = self.simulations.get_mut(idx)
+                            && let Err(err) = sim.reset_submission_state().await
+                        {
+                            tracing::error!(
+                                "failed to flush submission state for sim in dir `{}`: {err:?}",
+                                sim.dir.display()
+                            );
+                        }
+                    }
+                    (KeyCode::Char('r'), _) => {
+                        if let Some(root_dir) = self.root_dir.as_ref() {
+                            refresh_sims_in_background(root_dir, tx.clone());
+                        }
+
+                        next_state = Some(ActiveState::ReloadingSims);
+                    }
+                    (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
+                        if self
+                            .simulations
+                            .iter()
+                            .any(SimulationParams::is_submittable)
+                        {
+                            next_state = Some(ActiveState::ConfirmSubmit);
+                        }
+                    }
+                    (KeyCode::Esc, _)
+                    | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                        next_state = Some(ActiveState::ConfirmExit {
+                            prev: Box::new(ActiveState::ViewingDetail),
+                        });
+                    }
+                    (KeyCode::Up, KeyModifiers::SHIFT) => {
+                        sims_list_state.select_previous();
+                        sim_detail_scrollbar_state.first();
+                    }
+                    (KeyCode::Down, KeyModifiers::SHIFT) => {
+                        sims_list_state.select_next();
+                        sim_detail_scrollbar_state.first();
+                    }
+                    (KeyCode::Up, _) => {
+                        sim_detail_scrollbar_state.prev();
+                    }
+                    (KeyCode::Down, _) => {
+                        sim_detail_scrollbar_state.next();
+                    }
+                    (KeyCode::Tab, _) => {
+                        next_state = Some(ActiveState::ViewingList);
+                    }
+                    _ => {}
+                }
+            }
+            (ActiveState::ConfirmExit { prev }, Event::KeyPressed(key_event)) => {
+                match key_event.code {
+                    KeyCode::Char('y') => {
+                        self.immediate_exit();
+
+                        return Ok(());
+                    }
+                    KeyCode::Char('n') => {
+                        next_state = Some(*prev.clone());
+                    }
+                    _ => {}
+                }
+            }
+            (ActiveState::ConfirmSubmit, Event::KeyPressed(key_event)) => {
+                match key_event.code {
                     KeyCode::Char('y') => {
                         let sims_to_submit: Vec<SimulationParams> = self
                             .simulations
@@ -446,31 +455,104 @@ impl Batch {
                             tx,
                         );
 
-                        // TODO: spawn task
-                        *state = ActiveState::Submitting {
+                        next_state = Some(ActiveState::Submitting {
                             cancellation_token,
                             sims_progress: 0,
                             sims_count,
                             bytes_progress: ByteSize::default(),
                             bytes_count,
-                        };
+                        });
                     }
                     KeyCode::Char('n') => {
-                        *state = ActiveState::ViewingList;
+                        next_state = Some(ActiveState::ViewingList);
                     }
                     _ => {}
-                },
+                }
+            }
+            (ActiveState::ReloadingSims, Event::KeyPressed(key_event)) => {
+                if let KeyCode::Char('q') = key_event.code {
+                    next_state = Some(ActiveState::ViewingList);
+                }
+            }
+            (
+                ActiveState::ReloadingSims,
+                Event::SimsReloaded(mut simulations),
+            ) => {
+                // Copy over selection status.
+                for new_sim in &mut simulations {
+                    new_sim.selected = self
+                        .simulations
+                        .iter()
+                        .find(|sim| sim.dir == new_sim.dir)
+                        .is_none_or(|sim| sim.selected);
+                }
+
+                self.simulations = simulations;
+                next_state = Some(ActiveState::ViewingList);
+            }
+            (
                 ActiveState::Submitting {
                     cancellation_token, ..
-                } => {
-                    if let KeyCode::Char('q') = key_event.code {
-                        cancellation_token.cancel();
+                },
+                Event::KeyPressed(key_event),
+            ) => {
+                if let KeyCode::Char('q') = key_event.code {
+                    cancellation_token.cancel();
 
-                        // TODO: should we ask for confirmation?
-                        *state = ActiveState::ViewingList;
+                    // TODO: should we ask for confirmation?
+                    next_state = Some(ActiveState::ViewingList);
+                }
+            }
+            (
+                ActiveState::Submitting { bytes_progress, .. },
+                Event::FileUploaded(size),
+            ) => {
+                *bytes_progress += size;
+            }
+            (
+                ActiveState::Submitting {
+                    sims_progress,
+                    sims_count,
+                    ..
+                },
+                Event::SimSubmitted { internal_id, res },
+            ) => {
+                if let Some(sim_params) = self
+                    .simulations
+                    .iter_mut()
+                    .find(|sim_params| sim_params.internal_id == internal_id)
+                {
+                    let state = match res {
+                        Ok(sim) => SubmissionState::Sent {
+                            id: sim.id.clone(),
+                            browser_url: sim.browser_url.clone(),
+                        },
+                        Err(err) => {
+                            SubmissionState::Error(human_err_report(&err))
+                        }
+                    };
+
+                    sim_params
+                        .update_submission_state(state)
+                        .await
+                        .wrap_err("updating submission state")?;
+
+                    *sims_progress += 1;
+
+                    if sims_progress >= sims_count {
+                        time::sleep(SLEEP_FOR_FEEDBACK * 3).await;
+
+                        next_state = Some(ActiveState::ViewingList);
                     }
                 }
             }
+            _ => {}
+        }
+
+        if let Some(mut next_state) = next_state {
+            mem::swap(state, &mut next_state);
+        } else {
+            mem::swap(state, &mut curr_state);
         }
 
         Ok(())
@@ -535,6 +617,9 @@ impl Batch {
         );
 
         match state {
+            ActiveState::ReloadingSims => {
+                Batch::render_reloading_sims_popup(area, buf);
+            }
             ActiveState::ConfirmExit { .. } => {
                 Batch::render_exit_popup(area, buf);
             }
@@ -659,6 +744,29 @@ impl Batch {
         Widget::render(&paragraph, area, buf);
     }
 
+    fn render_reloading_sims_popup(area: Rect, buf: &mut Buffer) {
+        let area = center(
+            area,
+            Constraint::Percentage(38),
+            Constraint::Length(5), // top and bottom border + content
+        );
+
+        let block = Block::bordered()
+            .border_set(border::THICK)
+            .style(STYLE_ACCENT);
+
+        let paragraph = Paragraph::new(vec![
+            Line::default(),
+            Line::raw("Reloading").centered(),
+            Line::default(),
+        ])
+        .block(block)
+        .wrap(Wrap { trim: false });
+
+        Widget::render(&Clear, area, buf);
+        Widget::render(&paragraph, area, buf);
+    }
+
     fn render_submit_confirmation_popup(
         simulations: &[SimulationParams],
         area: Rect,
@@ -739,6 +847,8 @@ impl Batch {
             ") toggle selection | (".into(),
             Span::styled("ctrl+r", STYLE_ACCENT),
             ") reset submission state | (".into(),
+            Span::styled("r", STYLE_ACCENT),
+            ") reload from disk | (".into(),
             Span::styled("ctrl+o", STYLE_ACCENT),
             ") submit batch | (".into(),
             Span::styled("esc", STYLE_ACCENT),
@@ -781,7 +891,6 @@ impl Batch {
             )
             .title_bottom(instructions.centered())
             .border_set(border::THICK)
-            // .style(STYLE_ACCENT)
             .render(area, buf);
 
         let [upper, lower] = area.layout(

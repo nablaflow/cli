@@ -7,10 +7,8 @@ use crate::aerocloud::{
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
+use tokio::fs;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
@@ -28,8 +26,8 @@ pub enum SubmissionState {
 impl SubmissionState {
     const FILENAME: &str = "submission_state.json";
 
-    pub fn from_dir_or_default(dir: &Path) -> Self {
-        if let Ok(buf) = fs::read(dir.join(Self::FILENAME))
+    pub async fn from_dir_or_default(dir: &Path) -> Self {
+        if let Ok(buf) = fs::read(dir.join(Self::FILENAME)).await
             && let Ok(submission_state) = serde_json::from_slice(&buf)
         {
             submission_state
@@ -38,8 +36,8 @@ impl SubmissionState {
         }
     }
 
-    pub fn write(&self, dir: &Path) -> eyre::Result<()> {
-        fs::write(dir.join(Self::FILENAME), &serde_json::to_vec(self)?)?;
+    pub async fn write(&self, dir: &Path) -> eyre::Result<()> {
+        fs::write(dir.join(Self::FILENAME), &serde_json::to_vec(self)?).await?;
         Ok(())
     }
 }
@@ -56,36 +54,44 @@ pub struct SimulationParams {
 }
 
 impl SimulationParams {
-    pub fn many_from_root_dir(root_dir: &Path) -> eyre::Result<Vec<Self>> {
-        if !root_dir.is_dir() {
+    pub async fn many_from_root_dir(root_dir: &Path) -> eyre::Result<Vec<Self>> {
+        if !fs::metadata(root_dir).await?.is_dir() {
             eyre::bail!("`{}` is not a directory", root_dir.display());
         }
 
         let mut sims_params = vec![];
 
-        for entry in fs::read_dir(root_dir).wrap_err_with(|| {
-            format!("listing root dir `{}`", root_dir.display())
-        })? {
-            let entry = entry.wrap_err("failed to access path while listing")?;
+        let mut dir_stream =
+            fs::read_dir(root_dir).await.wrap_err_with(|| {
+                eyre::eyre!("error listing root dir `{}`", root_dir.display())
+            })?;
 
+        while let Some(entry) = dir_stream
+            .next_entry()
+            .await
+            .wrap_err("iterating root dir dir stream")?
+        {
             let path = entry.path();
 
             if !path.is_dir() {
                 continue;
             }
 
-            sims_params.push(Self::from_dir(&path).wrap_err_with(|| {
-                format!(
-                    "failed to build simulation params from dir `{}`",
-                    path.display()
-                )
-            })?);
+            sims_params.push(Self::from_dir(&path).await.wrap_err_with(
+                || {
+                    format!(
+                        "failed to build simulation params from dir `{}`",
+                        path.display()
+                    )
+                },
+            )?);
         }
 
         Ok(sims_params)
     }
 
-    pub fn from_dir(dir: &Path) -> eyre::Result<Self> {
+    #[allow(clippy::too_many_lines)]
+    pub async fn from_dir(dir: &Path) -> eyre::Result<Self> {
         let params_path = dir.join("params.json");
 
         let dir_name = dir.file_name().ok_or_else(|| {
@@ -102,11 +108,12 @@ impl SimulationParams {
             .to_owned();
 
         let params = if params_path.exists() {
+            let buf = fs::read(&params_path).await.wrap_err_with(|| {
+                format!("failed to read `{}`", params_path.display())
+            })?;
+
             let mut params: CreateSimulationV7ParamsFromJson =
-                serde_json::from_slice(&fs::read(&params_path).wrap_err_with(
-                    || format!("failed to read `{}`", params_path.display()),
-                )?)
-                .wrap_err_with(|| {
+                serde_json::from_slice(&buf).wrap_err_with(|| {
                     format!("failed to parse `{}`", params_path.display())
                 })?;
 
@@ -122,11 +129,15 @@ impl SimulationParams {
 
         let mut files = vec![];
 
-        for entry in fs::read_dir(dir)
-            .wrap_err_with(|| format!("listing dir `{}`", dir.display()))?
-        {
-            let entry = entry.wrap_err("failed to access path while listing")?;
+        let mut dir_stream = fs::read_dir(dir)
+            .await
+            .wrap_err_with(|| format!("listing dir `{}`", dir.display()))?;
 
+        while let Some(entry) = dir_stream
+            .next_entry()
+            .await
+            .wrap_err("iterating dir stream")?
+        {
             let path = entry.path();
 
             if path.is_dir() {
@@ -157,7 +168,7 @@ impl SimulationParams {
 
             let file_params = if file_params_path.exists() {
                 serde_json::from_slice(
-                    &fs::read(&file_params_path).wrap_err_with(|| {
+                    &fs::read(&file_params_path).await.wrap_err_with(|| {
                         format!("failed to read `{}`", file_params_path.display())
                     })?,
                 )
@@ -176,10 +187,11 @@ impl SimulationParams {
             })?;
 
             let size = fs::metadata(&path)
+                .await
+                .map(|metadata| ByteSize::b(metadata.len()))
                 .wrap_err_with(|| {
                     eyre::eyre!("reading file size of `{}`", path.display())
-                })
-                .map(|metadata| ByteSize::b(metadata.len()))?;
+                })?;
 
             files.push(FileParams {
                 path,
@@ -191,7 +203,7 @@ impl SimulationParams {
 
         files.sort_unstable_by(|a, b| a.path.cmp(&b.path));
 
-        let submission_state = SubmissionState::from_dir_or_default(dir);
+        let submission_state = SubmissionState::from_dir_or_default(dir).await;
 
         Ok(Self {
             internal_id: Uuid::new_v4(),
@@ -209,16 +221,18 @@ impl SimulationParams {
             .fold(ByteSize::default(), |acc, file| acc + file.size)
     }
 
-    pub fn reset_submission_state(&mut self) -> eyre::Result<()> {
+    pub async fn reset_submission_state(&mut self) -> eyre::Result<()> {
         self.update_submission_state(SubmissionState::default())
+            .await
     }
 
-    pub fn update_submission_state(
+    pub async fn update_submission_state(
         &mut self,
         state: SubmissionState,
     ) -> eyre::Result<()> {
         self.submission_state = state;
-        self.submission_state.write(&self.dir)
+        self.submission_state.write(&self.dir).await?;
+        Ok(())
     }
 
     pub fn is_submittable(&self) -> bool {

@@ -1,10 +1,10 @@
-# 1.0.0-rc.2 - next
+# 1.0.0-rc.2 - 2025-01-10
 
 ## AeroCloud
 
 ### Improvements
 
-  - Optimise for large file uploads
+  - Optimise for large file uploads. [#135](https://github.com/nablaflow/cli/pull/135)
 
 
 # 1.0.0-rc.1 - 2025-01-05

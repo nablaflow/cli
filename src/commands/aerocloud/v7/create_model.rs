@@ -7,6 +7,7 @@ use crate::{
         },
     },
     args::Args,
+    http::UPLOAD_REQ_TIMEOUT,
 };
 use color_eyre::eyre::{self, WrapErr, bail};
 use itertools::Itertools;
@@ -248,6 +249,7 @@ async fn upload_file(
         .put(upload_url)
         .body(body)
         .header(CONTENT_LENGTH, metadata.len().to_string())
+        .timeout(UPLOAD_REQ_TIMEOUT)
         .send()
         .await
         .wrap_err_with(|| format!("failed to upload file {}", path.display()))?;

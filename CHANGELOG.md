@@ -1,3 +1,12 @@
+# 1.0.0-rc.2 - next
+
+## AeroCloud
+
+### Improvements
+
+  - Optimise for large file uploads
+
+
 # 1.0.0-rc.1 - 2025-01-05
 
 ## AeroCloud

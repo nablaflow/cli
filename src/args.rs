@@ -53,7 +53,7 @@ pub struct Args {
         short = 't',
         long,
         env = "NF_HTTP_TIMEOUT_SECS",
-        default_value_t = 120,
+        default_value_t = 360,
         help = "Maximum amount in seconds to wait for HTTP responses to arrive"
     )]
     pub http_timeout_secs: u64,

@@ -9,6 +9,8 @@ use std::time::Duration;
 static USER_AGENT: &str = concat!("nf-cli", "/", env!("CARGO_PKG_VERSION"),);
 static TOKEN_HEADER: &str = "x-nablaflow-token";
 
+pub const UPLOAD_REQ_TIMEOUT: Duration = Duration::from_secs(6 * 3_600); // 6 hours
+
 pub fn build_aerocloud_client_from_config(
     config: &Config,
     timeout: &Duration,

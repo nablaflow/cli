@@ -223,7 +223,7 @@ impl Batch {
                 .await
                 .ok_or_else(|| eyre::eyre!("polling for events"))?;
 
-            tracing::debug!(?event);
+            tracing::trace!(?event);
 
             self.handle_event(event, event_tx.clone()).await?;
 

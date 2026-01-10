@@ -7,6 +7,7 @@ use crate::{
         Event,
         simulation_params::{FileParams, SimulationParams},
     },
+    http::UPLOAD_REQ_TIMEOUT,
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
@@ -15,6 +16,8 @@ use reqwest::header::CONTENT_LENGTH;
 use std::path::PathBuf;
 use tokio::{fs::File as AsyncFile, sync::mpsc, task::JoinSet};
 use tokio_util::{io::ReaderStream, sync::CancellationToken};
+
+const NOTIFY_UPLOAD_EVERY_BYTES: ByteSize = ByteSize::mb(2);
 
 pub fn submit_batch_in_background(
     project_id: &Id,
@@ -140,9 +143,16 @@ async fn upload_file(
     let mut reader_stream = ReaderStream::new(file);
 
     let async_stream = async_stream::stream! {
+        let mut sent_until_last_notification = ByteSize::default();
+
         while let Some(chunk) = reader_stream.next().await {
             if let Ok(chunk) = &chunk {
-                let _ = tx.send(Event::FileUploaded(ByteSize::b(chunk.len() as u64))).await;
+                sent_until_last_notification += ByteSize::b(chunk.len() as u64);
+
+                if sent_until_last_notification >= NOTIFY_UPLOAD_EVERY_BYTES {
+                    let _ = tx.send(Event::FileUploaded(sent_until_last_notification)).await;
+                    sent_until_last_notification = ByteSize::default();
+                }
             }
 
             yield chunk;
@@ -153,6 +163,7 @@ async fn upload_file(
         .put(upload_url)
         .body(reqwest::Body::wrap_stream(async_stream))
         .header(CONTENT_LENGTH, size.0.to_string())
+        .timeout(UPLOAD_REQ_TIMEOUT)
         .send()
         .await
         .wrap_err_with(|| format!("uploading `{}`", path.display()))?;

@@ -5,7 +5,7 @@
   - Check for latest CLI version. This check can be disabled and won't be performed in any case when running with `--json`.
 
 
-# 1.0.0-rc.2 - 2025-01-10
+# 1.0.0-rc.2 - 2026-01-10
 
 ## AeroCloud
 
@@ -14,7 +14,7 @@
   - Optimise for large file uploads. [#135](https://github.com/nablaflow/cli/pull/135)
 
 
-# 1.0.0-rc.1 - 2025-01-05
+# 1.0.0-rc.1 - 2026-01-05
 
 ## AeroCloud
 

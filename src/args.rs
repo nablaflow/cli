@@ -85,6 +85,15 @@ pub struct Args {
     )]
     pub config_path: PathBuf,
 
+    #[arg(
+        short,
+        long,
+        default_value_t = false,
+        env = "NF_SKIP_UPDATE_CHECK",
+        help = "Skip checking for latest version of this program."
+    )]
+    pub skip_update_check: bool,
+
     #[command(subcommand)]
     pub scope: Scope,
 }

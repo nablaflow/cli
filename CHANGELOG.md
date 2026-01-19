@@ -1,3 +1,10 @@
+# 1.0.0 - unreleased
+
+### Features
+
+  - Check for latest CLI version. This check can be disabled and won't be performed in any case when running with `--json`.
+
+
 # 1.0.0-rc.2 - 2025-01-10
 
 ## AeroCloud

@@ -37,6 +37,7 @@ tokio = { version = "~1.49", default-features = false, features = ["rt", "macros
 tokio-util = { version = "0.7.17", default-features = false }
 tracing = { version = "~0.1", features = ["release_max_level_debug"] }
 tracing-subscriber = "~0.3"
+update-informer = { version = "1.1", default-features = false, features = ["github", "reqwest", "rustls-tls"] }
 uuid = { version = "1.18.1", features = ["serde", "v4"] }
 
 [build-dependencies]

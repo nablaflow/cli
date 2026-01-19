@@ -1,8 +1,8 @@
 use crate::{args::Args, config::Config};
-use ::tracing::debug;
 use clap::{CommandFactory, Parser};
 use color_eyre::eyre::{self, WrapErr};
 use std::io;
+use update_informer::{Check, registry};
 
 mod aerocloud;
 mod args;
@@ -18,9 +18,12 @@ async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
 
     let args = Args::parse();
-    debug!(?args);
 
     crate::tracing::init(&args).wrap_err("initializing tracing")?;
+
+    if !(args.json || args.skip_update_check) {
+        check_for_new_version();
+    }
 
     let config = Config::load(&args).await?;
 
@@ -43,4 +46,17 @@ async fn main() -> eyre::Result<()> {
     }
 
     Ok(())
+}
+
+fn check_for_new_version() {
+    let current_version = env!("CARGO_PKG_VERSION");
+
+    let informer =
+        update_informer::new(registry::GitHub, "nablaflow/cli", current_version);
+
+    if let Ok(Some(new_version)) = informer.check_version() {
+        eprintln!(
+            "⚡️ A new release is available: v{current_version} -> {new_version}. See https://github.com/nablaflow/cli/releases. ⚡️\n"
+        );
+    }
 }

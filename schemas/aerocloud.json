@@ -62,6 +62,14 @@
         "title": "BillingPlan",
         "type": "object"
       },
+      "BoundaryLayerTreatment": {
+        "enum": [
+          "wall_functions",
+          "resolved_boundary_layer"
+        ],
+        "title": "BoundaryLayerTreatment",
+        "type": "string"
+      },
       "CreateModelV6Params": {
         "properties": {
           "files": {
@@ -225,6 +233,9 @@
       },
       "CreateSimulationV7Params": {
         "properties": {
+          "boundary_layer_treatment": {
+            "$ref": "#/components/schemas/BoundaryLayerTreatment"
+          },
           "fluid": {
             "$ref": "#/components/schemas/Fluid"
           },
@@ -279,13 +290,13 @@
         "type": "number"
       },
       "Date": {
-        "example": "2025-11-20",
+        "example": "2026-01-14",
         "format": "date",
         "title": "Date",
         "type": "string"
       },
       "DateTime": {
-        "example": "2025-11-20T13:18:29.117286Z",
+        "example": "2026-01-17T12:56:22.936861Z",
         "format": "date-time",
         "title": "DateTime",
         "type": "string"
@@ -332,13 +343,13 @@
         "type": "number"
       },
       "ID": {
-        "example": "019aba97-b529-755c-8778-9fd0868ff363",
+        "example": "019bd630-d147-7ad7-a6b7-44a6e6fc8d3c",
         "format": "uuid",
         "title": "ID",
         "type": "string"
       },
       "IdempotencyKey": {
-        "example": "019aba97-b530-79e3-b47c-783d35c6721f",
+        "example": "019bd630-d148-7729-9565-a7edcc1bf645",
         "title": "IdempotencyKey",
         "type": "string"
       },
@@ -923,6 +934,9 @@
       },
       "SimulationParamsV7": {
         "properties": {
+          "boundary_layer_treatment": {
+            "$ref": "#/components/schemas/BoundaryLayerTreatment"
+          },
           "fluid": {
             "$ref": "#/components/schemas/Fluid"
           },
@@ -1222,7 +1236,6 @@
       "SimulationStatus": {
         "enum": [
           "progress",
-          "quality_check",
           "success",
           "expired",
           "draft"
@@ -3943,7 +3956,7 @@
   ],
   "servers": [
     {
-      "url": "https://api.nablaflow.io/aerocloud",
+      "url": "http://api.nablaflow.test:4000/aerocloud",
       "variables": {}
     }
   ],

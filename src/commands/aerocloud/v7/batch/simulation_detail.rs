@@ -154,6 +154,15 @@ impl<'a> SimulationDetail<'a> {
                 ),
             ]));
         }
+
+        lines.push(Line::default());
+
+        if let Some(value) = sim.params.boundary_layer_treatment {
+            lines.push(Line::from(vec![
+                Span::styled("Boundary layer treatment: ", STYLE_BOLD),
+                Span::styled(value.to_string(), STYLE_ACCENT),
+            ]));
+        }
     }
 
     fn files_lines(sim: &'a SimulationParams, lines: &mut Vec<Line<'a>>) {

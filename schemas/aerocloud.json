@@ -3956,7 +3956,7 @@
   ],
   "servers": [
     {
-      "url": "http://api.nablaflow.test:4000/aerocloud",
+      "url": "https://api.nablaflow.io/aerocloud",
       "variables": {}
     }
   ],

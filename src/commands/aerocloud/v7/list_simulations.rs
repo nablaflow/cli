@@ -2,10 +2,9 @@ use crate::{
     aerocloud::{
         Client,
         types::{
-            BoundaryLayerTreatment, Fluid, FluidSpeed, Id, ListPageSimulationsV7,
-            PaginationOffset, ProjectV7, SimulationQuality,
-            SimulationResultsV7YawAnglesItem, SimulationStatus, SimulationV7,
-            SimulationsV7ListStatus, YawAngle,
+            Fluid, FluidSpeed, Id, ListPageSimulationsV7, PaginationOffset,
+            ProjectV7, SimulationQuality, SimulationResultsV7YawAnglesItem,
+            SimulationStatus, SimulationV7, SimulationsV7ListStatus, YawAngle,
         },
     },
     args::Args,
@@ -134,8 +133,9 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
                 "{}",
                 sim.params
                     .boundary_layer_treatment
-                    .unwrap_or(BoundaryLayerTreatment::WallFunctions)
-                    .to_string()
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .unwrap_or_default(),
             ),
             format!("{}", sim.created_at.with_timezone(&Local)),
             link(&sim.browser_url),

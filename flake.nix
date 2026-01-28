@@ -3,7 +3,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
 
-    crane.url = "github:ipetkov/crane/v0.22.0";
+    crane.url = "github:ipetkov/crane/v0.23.0";
 
     rust-overlay = {
       url = "github:oxalica/rust-overlay";

@@ -1,10 +1,10 @@
 use crate::{
     aerocloud::{
-        Client,
+        Client, fmt,
         types::{
             Fluid, FluidSpeed, Id, ListPageSimulationsV7, PaginationOffset,
             ProjectV7, SimulationQuality, SimulationResultsV7YawAnglesItem,
-            SimulationStatus, SimulationV7, SimulationsV7ListStatus, YawAngle,
+            SimulationV7, SimulationsV7ListStatus, YawAngle,
         },
     },
     args::Args,
@@ -96,12 +96,7 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
     for sim in items {
         table.add_row(vec![
             format!("{}", sim.name),
-            match sim.status {
-                SimulationStatus::Progress => "🚧".into(),
-                SimulationStatus::Success => "✅".into(),
-                SimulationStatus::Expired => "♽".into(),
-                SimulationStatus::Draft => "📝".into(),
-            },
+            fmt::human_simulation_status(sim.status).into(),
             format!("{}", sim.params.quality),
             sim.params
                 .yaw_angles

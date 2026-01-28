@@ -4,7 +4,12 @@
 
 ### Features
 
-  - Add `boundary_layer_treatment` field to v7 simulations.
+  - Add `boundary_layer_treatment` field to v7 simulations [#138](https://github.com/nablaflow/cli/pull/138)
+
+### Improvements
+
+  - Use text in place of emojis for simulation statuses.
+  - Improve formatting of boundary layer treatment.
 
 
 # 1.0.0 - 2026-01-19

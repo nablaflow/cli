@@ -124,14 +124,11 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
             } else {
                 NOT_AVAILABLE.into()
             },
-            format!(
-                "{}",
-                sim.params
-                    .boundary_layer_treatment
-                    .as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or_default(),
-            ),
+            sim.params
+                .boundary_layer_treatment
+                .map(fmt::human_boundary_layer_treatment)
+                .unwrap_or_default()
+                .into(),
             format!("{}", sim.created_at.with_timezone(&Local)),
             link(&sim.browser_url),
         ]);

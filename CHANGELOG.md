@@ -1,3 +1,12 @@
+# Unreleased
+
+## AeroCloud
+
+### Features
+
+  - Add `boundary_layer_treatment` field to v7 simulations.
+
+
 # 1.0.0 - 2026-01-19
 
 ### Features

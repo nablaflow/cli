@@ -1,6 +1,6 @@
 [package]
 name = "nf"
-version = "1.0.0"
+version = "1.1.0"
 description = "CLI app to interact with NablaFlow's API"
 edition = "2024"
 publish = false

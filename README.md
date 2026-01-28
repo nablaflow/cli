@@ -4,7 +4,7 @@
 
 ### As flake
 
-Can be run directly via `nix run github:nablaflow/cli/v1.0.0`.
+Can be run directly via `nix run github:nablaflow/cli/v1.1.0`.
 
 ### Stand-alone (Linux, macOS, Windows)
 

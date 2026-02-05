@@ -1,10 +1,10 @@
 use crate::{
     aerocloud::{
-        Client,
+        Client, fmt,
         types::{
             Fluid, FluidSpeed, Id, ListPageSimulationsV7, PaginationOffset,
             ProjectV7, SimulationQuality, SimulationResultsV7YawAnglesItem,
-            SimulationStatus, SimulationV7, SimulationsV7ListStatus, YawAngle,
+            SimulationV7, SimulationsV7ListStatus, YawAngle,
         },
     },
     args::Args,
@@ -88,6 +88,7 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
         "Yaw angle(s)",
         "Fluid & Speed",
         "Ground",
+        "Boundary layer treatment",
         "Created at",
         "",
     ]);
@@ -95,13 +96,7 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
     for sim in items {
         table.add_row(vec![
             format!("{}", sim.name),
-            match sim.status {
-                SimulationStatus::Progress => "🚧".into(),
-                SimulationStatus::Success => "✅".into(),
-                SimulationStatus::QualityCheck => "🔍".into(),
-                SimulationStatus::Expired => "♽".into(),
-                SimulationStatus::Draft => "📝".into(),
-            },
+            fmt::human_simulation_status(sim.status).into(),
             format!("{}", sim.params.quality),
             sim.params
                 .yaw_angles
@@ -129,6 +124,11 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
             } else {
                 NOT_AVAILABLE.into()
             },
+            sim.params
+                .boundary_layer_treatment
+                .map(fmt::human_boundary_layer_treatment)
+                .unwrap_or_default()
+                .into(),
             format!("{}", sim.created_at.with_timezone(&Local)),
             link(&sim.browser_url),
         ]);

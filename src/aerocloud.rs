@@ -14,6 +14,7 @@ use color_eyre::eyre::Report;
 use uuid::Uuid;
 
 pub mod extra_types;
+pub mod fmt;
 
 pub const NEW_TOKEN_URL: &str = "https://aerocloud.nablaflow.io/developer/api";
 

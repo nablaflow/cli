@@ -6,5 +6,6 @@
   "has_ground": true,
   "is_ground_moving": true,
   "ground_offset": 5.0,
-  "yaw_angles": [-10.0, 0.0, 10.0]
+  "yaw_angles": [-10.0, 0.0, 10.0],
+  "boundary_layer_treatment": "wall_functions"
 }

@@ -53,7 +53,7 @@ pub struct Args {
         short = 't',
         long,
         env = "NF_HTTP_TIMEOUT_SECS",
-        default_value_t = 120,
+        default_value_t = 360,
         help = "Maximum amount in seconds to wait for HTTP responses to arrive"
     )]
     pub http_timeout_secs: u64,
@@ -84,6 +84,15 @@ pub struct Args {
         help = "Configuration file. When specified, it will take precedence over the default on this platform"
     )]
     pub config_path: PathBuf,
+
+    #[arg(
+        short,
+        long,
+        default_value_t = false,
+        env = "NF_SKIP_UPDATE_CHECK",
+        help = "Skip checking for latest version of this program."
+    )]
+    pub skip_update_check: bool,
 
     #[command(subcommand)]
     pub scope: Scope,

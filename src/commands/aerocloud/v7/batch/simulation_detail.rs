@@ -1,7 +1,10 @@
-use crate::commands::aerocloud::v7::batch::{
-    STYLE_ACCENT, STYLE_BOLD, STYLE_DIMMED, STYLE_ERROR, STYLE_NORMAL,
-    STYLE_SUCCESS, STYLE_WARNING,
-    simulation_params::{FileParams, SimulationParams, SubmissionState},
+use crate::{
+    aerocloud::fmt,
+    commands::aerocloud::v7::batch::{
+        STYLE_ACCENT, STYLE_BOLD, STYLE_DIMMED, STYLE_ERROR, STYLE_NORMAL,
+        STYLE_SUCCESS, STYLE_WARNING,
+        simulation_params::{FileParams, SimulationParams, SubmissionState},
+    },
 };
 use itertools::Itertools;
 use ratatui::{
@@ -150,6 +153,18 @@ impl<'a> SimulationDetail<'a> {
                 Span::styled("Moving: ", STYLE_BOLD),
                 Span::styled(
                     bool_to_human(sim.params.is_ground_moving),
+                    STYLE_ACCENT,
+                ),
+            ]));
+        }
+
+        if let Some(v) = sim.params.boundary_layer_treatment {
+            lines.push(Line::default());
+
+            lines.push(Line::from(vec![
+                Span::styled("Boundary layer treatment: ", STYLE_BOLD),
+                Span::styled(
+                    fmt::human_boundary_layer_treatment(v),
                     STYLE_ACCENT,
                 ),
             ]));

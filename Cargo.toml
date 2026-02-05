@@ -1,6 +1,6 @@
 [package]
 name = "nf"
-version = "1.0.0-rc.1"
+version = "1.1.0"
 description = "CLI app to interact with NablaFlow's API"
 edition = "2024"
 publish = false
@@ -19,7 +19,7 @@ bytesize = "2.3.1"
 chrono = { version = "~0.4.42", features = ["serde"] }
 clap = { version = "~4.5", features = ["derive", "env", "color"] }
 clap-stdin = "0.8.0"
-clap_complete = "4.5.61"
+clap_complete = "4.5.65"
 clap_mangen = "0.2.31"
 color-eyre = { version = "~0.6", default-features = false }
 comfy-table = { version = "~7.2.1", features = ["custom_styling"] }
@@ -32,18 +32,19 @@ ratatui = "0.30.0"
 regress = "0.10.5"
 reqwest = { version = "~0.12", default-features = false, features = ["rustls-tls", "http2", "json", "gzip", "stream"] }
 serde = { version = "~1.0", features = ["derive"] }
-serde_json = "1.0.145"
+serde_json = "1.0.149"
 tokio = { version = "~1.49", default-features = false, features = ["rt", "macros", "fs", "time", "signal"] }
 tokio-util = { version = "0.7.17", default-features = false }
-tracing = "~0.1"
+tracing = { version = "~0.1", features = ["release_max_level_debug"] }
 tracing-subscriber = "~0.3"
+update-informer = { version = "1.1", default-features = false, features = ["github", "reqwest", "rustls-tls"] }
 uuid = { version = "1.18.1", features = ["serde", "v4"] }
 
 [build-dependencies]
 prettyplease = "0.2.37"
 progenitor = "0.11.2"
-serde_json = "1.0.145"
-syn = "2.0.111"
+serde_json = "1.0.149"
+syn = "2.0.114"
 
 [profile.release]
 lto = "thin"

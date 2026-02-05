@@ -266,6 +266,7 @@ impl SimulationParams {
         project_id: Id,
     ) -> CreateSimulationV7Params {
         let CreateSimulationV7ParamsFromJson {
+            boundary_layer_treatment,
             fluid,
             fluid_speed,
             ground_offset,
@@ -278,6 +279,7 @@ impl SimulationParams {
         } = self.params;
 
         CreateSimulationV7Params {
+            boundary_layer_treatment,
             fluid,
             fluid_speed,
             ground_offset,

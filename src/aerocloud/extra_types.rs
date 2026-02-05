@@ -1,6 +1,6 @@
 use crate::aerocloud::types::{
-    FileUnit, Fluid, FluidSpeed, GroundOffset, Quaternion, SimulationQuality,
-    UpdatePartV7Params, YawAngle, YawAngles,
+    BoundaryLayerTreatment, FileUnit, Fluid, FluidSpeed, GroundOffset,
+    Quaternion, SimulationQuality, UpdatePartV7Params, YawAngle, YawAngles,
 };
 use color_eyre::eyre;
 use std::{borrow::Cow, collections::BTreeMap};
@@ -33,6 +33,9 @@ pub struct CreateSimulationV7ParamsFromJson {
 
     #[serde(default)]
     pub is_ground_moving: bool,
+
+    #[serde(default)]
+    pub boundary_layer_treatment: Option<BoundaryLayerTreatment>,
 }
 
 impl CreateSimulationV7ParamsFromJson {

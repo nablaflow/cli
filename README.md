@@ -1,16 +1,81 @@
-# NablaFlow CLI &nbsp; [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
+# nf - The NablaFlow CLI &nbsp; [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
+
+A command-line interface for creating simulations on AeroCloud and ArchiWind.
 
 ## Installation
 
-### As flake
-
-Can be run directly via `nix run github:nablaflow/cli/v1.1.0`.
-
 ### Stand-alone (Linux, macOS, Windows)
 
-Follow instructions in [releases](https://github.com/nablaflow/cli/releases).
+#### Linux/MacOS
 
-## Usage
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/nablaflow/cli/releases/download/v1.1.0/nf-installer.sh | sh
+```
+
+#### Windows
+
+```bash
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/nablaflow/cli/releases/download/v1.1.0/nf-installer.ps1 | iex"
+```
+
+### As flake (Nix users)
+
+Can be run directly using
+
+```bash
+cachix use nablaflow-public
+nix run github:nablaflow/cli/v1.1.0
+
+## Getting started
+
+After installing the CLI, open the terminal and run the `nf -V` command to verify it's correctly installed.
+
+In order to use the CLI, a personal access token is required. Head to your [AeroCloud API settings page](https://aerocloud.nablaflow.io/developer/api) and generate one with read and write permissions. The token should never be shared; keep it safe because it grants access to your account data.
+
+Configure the CLI with the generated token by running:
+
+```bash
+nf aerocloud set-auth-token $TOKEN
+```
+
+### Working with projects
+
+Commands below use `v7` to target the AeroCloud API version.
+
+To list the existing projects:
+```bash
+nf aerocloud v7 list-projects
+```
+
+To create a new project:
+```bash
+nf aerocloud v7 create-project "project name"
+```
+
+### Creating a model
+
+To create a model, start by defining a JSON manifest for it, see [examples/aerocloud/v7/create_model.json](examples/aerocloud/v7/create_model.json) as starting point.
+
+Then run:
+```bash
+nf aerocloud v7 create-model $PATH_TO_JSON
+```
+
+### Creating a simulation
+
+To create a simulation you need:
+- a target project
+- an input model
+
+Follow the instructions in the previous steps to create both, note down project ID and model ID.
+
+Then define a JSON manifest for it, see [examples/aerocloud/v7/create_simulation.json](examples/aerocloud/v7/create_simulation.json) as starting point.
+
+Then run:
+
+```bash
+nf aerocloud v7 create-simulation --model-id $MODEL_ID --project-id $PROJECT_ID $PATH_TO_JSON
+```
 
 > [!TIP]
 > All commands accept `--json` after `nf` to output JSON instead of human readable text, so that the CLI can be comfortably used in scripts.
@@ -22,33 +87,13 @@ Follow instructions in [releases](https://github.com/nablaflow/cli/releases).
 > All commands that consume a JSON from a path also accept JSON from stdin, be sure to pass `-` instead of the file.  
 > This facilitates usage from scripts.
 
-## Aerocloud
+### Batch mode
 
-As NablaFlow's API requires authentication, you first need to [get a personal access token](https://aerocloud.nablaflow.io/developer/api).  
-Once you have one, set it using `nf aerocloud set-auth-token $TOKEN`.
+The CLI can be used in batch mode to create multiple simulations at once.
 
-### AeroCloud v7
+First, prepare a folder with the JSON manifests for your simulation and the models to upload. Use the following structure as an example:
 
-In order to submit a simulation you need a project and a model:
-- `nf aerocloud v7 list-projects` or `nf aerocloud v7 create-project "project name"`, note down the project ID.
-- `nf aerocloud v7 create-model $PATH_TO_JSON`, see [examples/aerocloud/v7/create_model.json](examples/aerocloud/v7/create_model.json) as starting point.
-  Note down the model id.
-- `nf aerocloud v7 create-simulation --model-id $MODEL_ID --project-id $PROJECT_ID $PATH_TO_JSON`, see [examples/aerocloud/v7/create_simulation.json](examples/aerocloud/v7/create_simulation.json) as starting point.
-
-#### Batch
-
-`nf aerocloud v7 batch $dir` provides an interactive UI to review and submit a batch of simulations.
-
-Inside the UI, follow the instructions and available commands at the bottom of each block.
-
-> [!TIP]
-> When submitting simulations, stuff can go wrong: network timeouts, invalid parameters and such.  
-> Each succesfully submitted simulation will be marked as such and won't be resent, while allowing you to make changes to JSON files
- and reload them.
-
-The expected structure of the passed `$dir` is:
-
-```
+```text
 dir
 ├── simulation-1      # `simulation-1` is going to be the name of the simulation.
 │   ├── model-1.stl   # `model` can be any valid UTF-8 filename.
@@ -62,4 +107,18 @@ dir
     ├── params.json
 ```
 
-You can find an example under [examples/aerocloud/v7/batch](examples/aerocloud/v7/batch)
+An example is available under [examples/aerocloud/v7/batch](examples/aerocloud/v7/batch).
+
+With the folder ready, run the following command to enter the Batch mode:
+
+```bash
+nf aerocloud v7 batch $directory
+```
+
+An interactive UI will be started where you can review and submit your simulations.
+
+Follow the instructions and available commands at the bottom of the user interface.
+
+> [!TIP]
+> When submitting simulations, stuff can go wrong: network timeouts, invalid parameters and such.  
+> Each successfully submitted simulation will be marked as such and won't be resent, while allowing you to make changes to JSON files and reload them.

@@ -20,7 +20,11 @@ powershell -ExecutionPolicy Bypass -c "irm https://github.com/nablaflow/cli/rele
 
 ### As flake (Nix users)
 
-Can be run directly via `nix run https://github.com/nablaflow/cli`.
+Can be run directly using
+
+```bash
+cachix use nablaflow-public
+nix run github:nablaflow/cli/v1.1.0
 
 ## Getting started
 

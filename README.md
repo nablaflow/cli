@@ -25,6 +25,7 @@ Can be run directly using
 ```bash
 cachix use nablaflow-public
 nix run github:nablaflow/cli/v1.1.0
+```
 
 ## Getting started
 

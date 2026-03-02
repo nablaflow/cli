@@ -65,7 +65,7 @@ const SLEEP_FOR_FEEDBACK: Duration = Duration::from_millis(100);
 
 pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
     let sims = if let Some(root_dir) = root_dir {
-        let sims = SimulationParams::many_from_root_dir(root_dir).await?;
+        let sims = SimulationParams::many_from_root_dir(client, root_dir).await?;
 
         if sims.is_empty() {
             tracing::error!("no simulations found in `{}`", root_dir.display());
@@ -89,7 +89,11 @@ pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
     result
 }
 
-pub fn refresh_sims_in_background(root_dir: &Path, tx: mpsc::Sender<Event>) {
+pub fn refresh_sims_in_background(
+    client: Client,
+    root_dir: &Path,
+    tx: mpsc::Sender<Event>,
+) {
     let root_dir = root_dir.to_owned();
 
     tokio::spawn(async move {
@@ -97,8 +101,8 @@ pub fn refresh_sims_in_background(root_dir: &Path, tx: mpsc::Sender<Event>) {
         // operation.
         time::sleep(SLEEP_FOR_FEEDBACK).await;
 
-        let sims = SimulationParams::many_from_root_dir(&root_dir).await?;
-        tx.send(Event::SimsReloaded(sims)).await?;
+        let res = SimulationParams::many_from_root_dir(&client, &root_dir).await;
+        tx.send(Event::SimsReloaded(res)).await?;
 
         Ok::<(), eyre::Report>(())
     });
@@ -126,6 +130,7 @@ enum ActiveState {
     },
     ConfirmSubmit,
     ReloadingSims,
+    ReloadingSimsFailed(String),
     Submitting {
         cancellation_token: CancellationToken,
         bytes_count: ByteSize,
@@ -157,7 +162,7 @@ pub enum Event {
     ProjectsUpdated(eyre::Result<Vec<ProjectV7>>),
     ProjectSelected(Box<ProjectV7>),
     FileUploaded(ByteSize),
-    SimsReloaded(Vec<SimulationParams>),
+    SimsReloaded(eyre::Result<Vec<SimulationParams>>),
     SimSubmitted {
         internal_id: Uuid,
         res: eyre::Result<Box<SimulationV7>, eyre::Report>,
@@ -327,7 +332,11 @@ impl Batch {
                     }
                     (KeyCode::Char('r'), _) => {
                         if let Some(root_dir) = self.root_dir.as_ref() {
-                            refresh_sims_in_background(root_dir, tx.clone());
+                            refresh_sims_in_background(
+                                self.client.clone(),
+                                root_dir,
+                                tx.clone(),
+                            );
                         }
 
                         next_state = Some(ActiveState::ReloadingSims);
@@ -374,7 +383,11 @@ impl Batch {
                     }
                     (KeyCode::Char('r'), _) => {
                         if let Some(root_dir) = self.root_dir.as_ref() {
-                            refresh_sims_in_background(root_dir, tx.clone());
+                            refresh_sims_in_background(
+                                self.client.clone(),
+                                root_dir,
+                                tx.clone(),
+                            );
                         }
 
                         next_state = Some(ActiveState::ReloadingSims);
@@ -469,14 +482,14 @@ impl Batch {
                     _ => {}
                 }
             }
-            (ActiveState::ReloadingSims, Event::KeyPressed(key_event)) => {
-                if let KeyCode::Char('q') = key_event.code {
-                    next_state = Some(ActiveState::ViewingList);
-                }
+            (ActiveState::ReloadingSims, Event::KeyPressed(key_event))
+                if key_event.code == KeyCode::Char('q') =>
+            {
+                next_state = Some(ActiveState::ViewingList);
             }
             (
                 ActiveState::ReloadingSims,
-                Event::SimsReloaded(mut simulations),
+                Event::SimsReloaded(Ok(mut simulations)),
             ) => {
                 // Copy over selection status.
                 for new_sim in &mut simulations {
@@ -490,13 +503,24 @@ impl Batch {
                 self.simulations = simulations;
                 next_state = Some(ActiveState::ViewingList);
             }
+            (ActiveState::ReloadingSims, Event::SimsReloaded(Err(err))) => {
+                next_state = Some(ActiveState::ReloadingSimsFailed(
+                    human_err_report(&err),
+                ));
+            }
+            (
+                ActiveState::ReloadingSimsFailed(..),
+                Event::KeyPressed(key_event),
+            ) if key_event.code == KeyCode::Char('q') => {
+                next_state = Some(ActiveState::ViewingList);
+            }
             (
                 ActiveState::Submitting {
                     cancellation_token, ..
                 },
                 Event::KeyPressed(key_event),
             ) => {
-                if let KeyCode::Char('q') = key_event.code {
+                if key_event.code == KeyCode::Char('q') {
                     cancellation_token.cancel();
 
                     // TODO: should we ask for confirmation?
@@ -618,13 +642,16 @@ impl Batch {
 
         match state {
             ActiveState::ReloadingSims => {
-                Batch::render_reloading_sims_popup(area, buf);
+                Self::render_reloading_sims_popup(area, buf);
+            }
+            ActiveState::ReloadingSimsFailed(error) => {
+                Self::render_reloading_sims_failed_popup(area, buf, error);
             }
             ActiveState::ConfirmExit { .. } => {
-                Batch::render_exit_popup(area, buf);
+                Self::render_exit_popup(area, buf);
             }
             ActiveState::ConfirmSubmit => {
-                Batch::render_submit_confirmation_popup(simulations, area, buf);
+                Self::render_submit_confirmation_popup(simulations, area, buf);
             }
             ActiveState::Submitting {
                 bytes_count,
@@ -633,10 +660,10 @@ impl Batch {
                 sims_progress,
                 ..
             } => {
-                assert!(*bytes_count > ByteSize::default());
+                assert!(*bytes_count >= ByteSize::default());
                 assert!(*sims_count > 0);
 
-                Batch::render_submitting(
+                Self::render_submitting(
                     *bytes_count,
                     *bytes_progress,
                     *sims_count,
@@ -762,6 +789,44 @@ impl Batch {
         ])
         .block(block)
         .wrap(Wrap { trim: false });
+
+        Widget::render(&Clear, area, buf);
+        Widget::render(&paragraph, area, buf);
+    }
+
+    fn render_reloading_sims_failed_popup(
+        area: Rect,
+        buf: &mut Buffer,
+        error: &str,
+    ) {
+        let lines = {
+            let mut l = vec![Line::default()];
+
+            for line in error.lines() {
+                l.push(Line::from(line));
+            }
+
+            l.push(Line::default());
+
+            l
+        };
+
+        let area = center(
+            area,
+            Constraint::Percentage(55),
+            Constraint::Length(u16::try_from(lines.len()).unwrap_or(5) + 2), // top and bottom border + content
+        );
+
+        let block = Block::bordered()
+            .title(
+                Line::from(Span::styled(" Failed to reload config ", STYLE_BOLD))
+                    .centered(),
+            )
+            .title_bottom(Line::raw(" (q) close and continue ").centered())
+            .border_set(border::THICK)
+            .style(STYLE_ERROR);
+
+        let paragraph = Paragraph::new(lines).block(block);
 
         Widget::render(&Clear, area, buf);
         Widget::render(&paragraph, area, buf);
@@ -911,7 +976,11 @@ impl Batch {
                     .padding(Padding::vertical(1))
                     .title(Line::from("Uploading files").centered()),
             )
-            .ratio(bytes_progress.0 as f64 / bytes_count.0 as f64)
+            .ratio(if bytes_count.0 == 0 {
+                1.0
+            } else {
+                bytes_progress.0 as f64 / bytes_count.0 as f64
+            })
             .label(Span::styled(
                 format!("{bytes_progress}/{bytes_count}"),
                 Style::new().bold(),
@@ -1022,7 +1091,7 @@ impl From<&SimulationParams> for ListItem<'_> {
             }
         }
 
-        if p.files.is_empty() {
+        if p.model_params.is_empty() {
             spans.push(Span::styled("(no files) ", STYLE_ERROR));
         }
 

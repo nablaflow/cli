@@ -5,6 +5,7 @@
 ### Features
 
   - Add `v7 list-reusable-models` command. [#146](https://github.com/nablaflow/cli/pull/146)
+  - Add support for reusable models in `v7 batch`.
 
 # 1.1.0 - 2026-01-28
 

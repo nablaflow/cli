@@ -5,7 +5,7 @@ use std::{
     path::Path,
 };
 use syn::{
-    ItemEnum,
+    ItemEnum, ItemStruct,
     visit_mut::{self, VisitMut},
 };
 
@@ -46,5 +46,13 @@ impl VisitMut for AddClapValueEnum {
         }
 
         visit_mut::visit_item_enum_mut(self, node);
+    }
+
+    fn visit_item_struct_mut(&mut self, node: &mut ItemStruct) {
+        if node.ident == "Quaternion" {
+            node.attrs.push(syn::parse_quote! { #[derive(PartialEq)] });
+        }
+
+        visit_mut::visit_item_struct_mut(self, node);
     }
 }

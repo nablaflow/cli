@@ -1,9 +1,14 @@
 use crate::{
-    aerocloud::fmt,
+    aerocloud::{
+        fmt,
+        types::{ModelV7, ModelV7FilesItem, Quaternion},
+    },
     commands::aerocloud::v7::batch::{
         STYLE_ACCENT, STYLE_BOLD, STYLE_DIMMED, STYLE_ERROR, STYLE_NORMAL,
         STYLE_SUCCESS, STYLE_WARNING,
-        simulation_params::{FileParams, SimulationParams, SubmissionState},
+        simulation_params::{
+            FileParams, ModelParams, SimulationParams, SubmissionState,
+        },
     },
 };
 use itertools::Itertools;
@@ -171,8 +176,13 @@ impl<'a> SimulationDetail<'a> {
         }
     }
 
-    fn files_lines(sim: &'a SimulationParams, lines: &mut Vec<Line<'a>>) {
-        let files = &sim.files;
+    fn new_model(files: &'a [FileParams], lines: &mut Vec<Line<'a>>) {
+        lines.push(Line::from(vec![Span::styled(
+            "New model to upload.",
+            STYLE_BOLD,
+        )]));
+
+        lines.push(Line::default());
 
         if files.is_empty() {
             lines.push(Line::styled(
@@ -222,11 +232,58 @@ impl<'a> SimulationDetail<'a> {
 
             lines.push(Line::default());
 
-            Self::parts_lines(file, lines);
+            Self::new_parts_lines(file, lines);
         }
     }
 
-    fn parts_lines(file: &'a FileParams, lines: &mut Vec<Line<'a>>) {
+    fn existing_model(model: &'a ModelV7, lines: &mut Vec<Line<'a>>) {
+        lines.push(Line::from(vec![
+            Span::styled("Reusable model: ", STYLE_BOLD),
+            Span::styled(model.name.clone(), STYLE_ACCENT),
+        ]));
+
+        lines.push(Line::default());
+
+        lines.push(Line::from(vec![
+            Span::styled("Files ", STYLE_BOLD),
+            Span::styled(format!("({})", model.files.len()), STYLE_ACCENT),
+            Span::styled(":", STYLE_BOLD),
+        ]));
+
+        for file in &model.files {
+            lines.push(Line::default());
+
+            lines.push(Line::from(vec![
+                Span::raw("  - "),
+                Span::styled("Name: ", STYLE_BOLD),
+                Span::styled((*file.name).clone(), STYLE_ACCENT),
+            ]));
+            lines.push(Line::from(vec![
+                Span::raw("    "),
+                Span::styled("Unit: ", STYLE_BOLD),
+                Span::styled(format!("{}", file.unit), STYLE_ACCENT),
+            ]));
+
+            lines.push(Line::from(vec![
+                Span::raw("    "),
+                Span::styled("Rotation: ", STYLE_BOLD),
+                if file.rotation == Quaternion([1.0, 0.0, 0.0, 0.0]) {
+                    Span::styled(
+                        format!("{:?} (quaternion)", file.rotation.0),
+                        STYLE_ACCENT,
+                    )
+                } else {
+                    Span::styled("none", STYLE_ACCENT)
+                },
+            ]));
+
+            lines.push(Line::default());
+
+            Self::existing_parts_lines(file, lines);
+        }
+    }
+
+    fn new_parts_lines(file: &'a FileParams, lines: &mut Vec<Line<'a>>) {
         let parts = &file.params.parts;
 
         if parts.is_empty() {
@@ -303,6 +360,84 @@ impl<'a> SimulationDetail<'a> {
             }
         }
     }
+
+    fn existing_parts_lines(
+        file: &'a ModelV7FilesItem,
+        lines: &mut Vec<Line<'a>>,
+    ) {
+        let parts = &file.parts;
+
+        if parts.is_empty() {
+            lines.push(Line::from(vec![
+                Span::raw("    "),
+                Span::styled(
+                    "No parts configured. What the file contains will be used as is.",
+                    STYLE_WARNING
+                ),
+            ]));
+
+            return;
+        }
+
+        lines.push(Line::from(vec![
+            Span::raw("    "),
+            Span::styled("Parts ", STYLE_BOLD),
+            Span::styled(format!("({})", parts.len()), STYLE_ACCENT),
+            Span::styled(":", STYLE_BOLD),
+        ]));
+
+        for part in parts {
+            lines.push(Line::default());
+
+            lines.push(Line::from(vec![
+                Span::raw("      - "),
+                Span::styled("Name: ", STYLE_BOLD),
+                Span::styled(part.name.clone(), STYLE_ACCENT),
+            ]));
+
+            lines.push(Line::from(vec![
+                Span::raw("        "),
+                Span::styled("Rolling: ", STYLE_BOLD),
+                Span::styled(bool_to_human(part.rolling), STYLE_ACCENT),
+            ]));
+
+            let is_porous = part.is_porous.unwrap_or(false);
+
+            lines.push(Line::from(vec![
+                Span::raw("        "),
+                Span::styled("Porous: ", STYLE_BOLD),
+                Span::styled(bool_to_human(is_porous), STYLE_ACCENT),
+            ]));
+
+            if is_porous {
+                lines.push(Line::from(vec![
+                    Span::raw("        "),
+                    Span::styled("Darcy coeff: ", STYLE_BOLD),
+                    if let Some(darcy_coeff) = &part.darcy_coeff {
+                        Span::styled(format!("{darcy_coeff}"), STYLE_ACCENT)
+                    } else {
+                        Span::styled(
+                            "<unspecified> (required when part is marked as porous)",
+                            STYLE_ERROR
+                        )
+                    }
+                ]));
+
+                lines.push(Line::from(vec![
+                    Span::raw("        "),
+                    Span::styled("Forchheimer coeff: ", STYLE_BOLD),
+                    if let Some(forchheimer_coeff) = &part.forchheimer_coeff {
+                        Span::styled(format!("{forchheimer_coeff}"), STYLE_ACCENT)
+                    } else {
+                        Span::styled(
+                            "<unspecified> (required when part is marked as porous)",
+                            STYLE_ERROR
+                        )
+                    }
+                ]));
+            }
+        }
+    }
 }
 
 impl StatefulWidget for &SimulationDetail<'_> {
@@ -332,7 +467,14 @@ impl StatefulWidget for &SimulationDetail<'_> {
 
         lines.push(Line::default());
 
-        SimulationDetail::files_lines(sim, &mut lines);
+        match &sim.model_params {
+            ModelParams::New { files } => {
+                SimulationDetail::new_model(files, &mut lines);
+            }
+            ModelParams::Existing { model } => {
+                SimulationDetail::existing_model(model, &mut lines);
+            }
+        }
 
         *scrollbar_state = scrollbar_state.content_length(lines.len());
 

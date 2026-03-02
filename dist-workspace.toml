@@ -2,7 +2,7 @@
 members = ["cargo:."]
 
 [dist]
-cargo-dist-version = "0.30.2"
+cargo-dist-version = "0.30.4"
 ci = "github"
 # pr-run-mode = "upload"
 

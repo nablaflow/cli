@@ -1,3 +1,11 @@
+# Unreleased
+
+## AeroCloud
+
+### Features
+
+  - Add `v7 list-reusable-models` command.
+
 # 1.1.0 - 2026-01-28
 
 ## AeroCloud

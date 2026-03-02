@@ -272,6 +272,9 @@ pub enum AeroCloudV7Command {
         yaw_angle: Option<YawAngle>,
     },
 
+    #[command(about = "List reusable models")]
+    ListReusableModels,
+
     #[command(about = "Create a new model")]
     CreateModel {
         #[arg(

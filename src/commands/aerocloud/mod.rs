@@ -110,6 +110,9 @@ pub async fn run(
                 )
                 .await
             }
+            AeroCloudV7Command::ListReusableModels => {
+                self::v7::list_reusable_models::run(args, &client).await
+            }
             AeroCloudV7Command::CreateModel { params } => {
                 self::v7::create_model::run(
                     args,

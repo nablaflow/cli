@@ -9,13 +9,13 @@ A command-line interface for creating simulations on AeroCloud and ArchiWind.
 #### Linux/MacOS
 
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/nablaflow/cli/releases/download/v1.1.0/nf-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/nablaflow/cli/releases/download/v1.2.0/nf-installer.sh | sh
 ```
 
 #### Windows
 
 ```bash
-powershell -ExecutionPolicy Bypass -c "irm https://github.com/nablaflow/cli/releases/download/v1.1.0/nf-installer.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/nablaflow/cli/releases/download/v1.2.0/nf-installer.ps1 | iex"
 ```
 
 ### As flake (Nix users)
@@ -24,7 +24,7 @@ Can be run directly using
 
 ```bash
 cachix use nablaflow-public
-nix run github:nablaflow/cli/v1.1.0
+nix run github:nablaflow/cli/v1.2.0
 ```
 
 ## Getting started

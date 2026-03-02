@@ -1,8 +1,9 @@
 use crate::aerocloud::{
+    Client,
     extra_types::{CreateSimulationV7ParamsFromJson, FileV7ParamsFromJson},
     types::{
         CreateModelV7Params, CreateModelV7ParamsFilesItem,
-        CreateSimulationV7Params, Filename, Id, Url,
+        CreateSimulationV7Params, Filename, Id, ModelV7, Url,
     },
 };
 use bytesize::ByteSize;
@@ -43,90 +44,27 @@ impl SubmissionState {
 }
 
 #[derive(Debug, Clone)]
-pub struct SimulationParams {
-    pub internal_id: Uuid,
-    pub dir: PathBuf,
-    pub params: CreateSimulationV7ParamsFromJson,
-    pub files: Vec<FileParams>,
-
-    pub selected: bool,
-    pub submission_state: SubmissionState,
+pub enum ModelParams {
+    New { files: Vec<FileParams> },
+    Existing { model: ModelV7 },
 }
 
-impl SimulationParams {
-    pub async fn many_from_root_dir(root_dir: &Path) -> eyre::Result<Vec<Self>> {
-        if !fs::metadata(root_dir).await?.is_dir() {
-            eyre::bail!("`{}` is not a directory", root_dir.display());
+impl ModelParams {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::New { files } => files.is_empty(),
+            Self::Existing { model } => model.files.is_empty(),
         }
-
-        let mut sims_params = vec![];
-
-        let mut dir_stream =
-            fs::read_dir(root_dir).await.wrap_err_with(|| {
-                eyre::eyre!("error listing root dir `{}`", root_dir.display())
-            })?;
-
-        while let Some(entry) = dir_stream
-            .next_entry()
-            .await
-            .wrap_err("iterating root dir dir stream")?
-        {
-            let path = entry.path();
-
-            if !path.is_dir() {
-                continue;
-            }
-
-            sims_params.push(Self::from_dir(&path).await.wrap_err_with(
-                || {
-                    format!(
-                        "failed to build simulation params from dir `{}`",
-                        path.display()
-                    )
-                },
-            )?);
-        }
-
-        Ok(sims_params)
     }
 
-    #[allow(clippy::too_many_lines)]
-    pub async fn from_dir(dir: &Path) -> eyre::Result<Self> {
-        let params_path = dir.join("params.json");
+    pub fn is_submittable(&self) -> bool {
+        match self {
+            Self::New { files } => !files.is_empty(),
+            Self::Existing { .. } => true,
+        }
+    }
 
-        let dir_name = dir.file_name().ok_or_else(|| {
-            eyre::eyre!("no file name for path `{}`", dir.display())
-        })?;
-        let sim_name = dir_name
-            .to_str()
-            .ok_or_else(|| {
-                eyre::eyre!(
-                    "dir name {:?} contains invalid utf-8 characters",
-                    dir_name
-                )
-            })?
-            .to_owned();
-
-        let params = if params_path.exists() {
-            let buf = fs::read(&params_path).await.wrap_err_with(|| {
-                format!("failed to read `{}`", params_path.display())
-            })?;
-
-            let mut params: CreateSimulationV7ParamsFromJson =
-                serde_json::from_slice(&buf).wrap_err_with(|| {
-                    format!("failed to parse `{}`", params_path.display())
-                })?;
-
-            params.name = sim_name;
-
-            params
-        } else {
-            CreateSimulationV7ParamsFromJson {
-                name: sim_name,
-                ..Default::default()
-            }
-        };
-
+    async fn from_dir(dir: &Path) -> eyre::Result<Self> {
         let mut files = vec![];
 
         let mut dir_stream = fs::read_dir(dir)
@@ -203,20 +141,132 @@ impl SimulationParams {
 
         files.sort_unstable_by(|a, b| a.path.cmp(&b.path));
 
+        Ok(Self::New { files })
+    }
+
+    async fn from_existing(client: &Client, id: &Id) -> eyre::Result<Self> {
+        let model = client
+            .models_v7_get(id)
+            .await
+            .wrap_err_with(|| format!("fetching reusable model {id}"))?
+            .into_inner();
+
+        Ok(Self::Existing { model })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SimulationParams {
+    pub internal_id: Uuid,
+    pub dir: PathBuf,
+    pub params: CreateSimulationV7ParamsFromJson,
+    pub model_params: ModelParams,
+
+    pub selected: bool,
+    pub submission_state: SubmissionState,
+}
+
+impl SimulationParams {
+    pub async fn many_from_root_dir(
+        client: &Client,
+        root_dir: &Path,
+    ) -> eyre::Result<Vec<Self>> {
+        if !fs::metadata(root_dir).await?.is_dir() {
+            eyre::bail!("`{}` is not a directory", root_dir.display());
+        }
+
+        let mut sims_params = vec![];
+
+        let mut dir_stream =
+            fs::read_dir(root_dir).await.wrap_err_with(|| {
+                eyre::eyre!("error listing root dir `{}`", root_dir.display())
+            })?;
+
+        while let Some(entry) = dir_stream
+            .next_entry()
+            .await
+            .wrap_err("iterating root dir dir stream")?
+        {
+            let path = entry.path();
+
+            if !path.is_dir() {
+                continue;
+            }
+
+            sims_params.push(Self::from_dir(client, &path).await.wrap_err_with(
+                || {
+                    format!(
+                        "failed to build simulation params from dir `{}`",
+                        path.display()
+                    )
+                },
+            )?);
+        }
+
+        Ok(sims_params)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    pub async fn from_dir(client: &Client, dir: &Path) -> eyre::Result<Self> {
+        let params_path = dir.join("params.json");
+
+        let dir_name = dir.file_name().ok_or_else(|| {
+            eyre::eyre!("no file name for path `{}`", dir.display())
+        })?;
+        let sim_name = dir_name
+            .to_str()
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "dir name {:?} contains invalid utf-8 characters",
+                    dir_name
+                )
+            })?
+            .to_owned();
+
+        let params = if params_path.exists() {
+            let buf = fs::read(&params_path).await.wrap_err_with(|| {
+                format!("failed to read `{}`", params_path.display())
+            })?;
+
+            let mut params: CreateSimulationV7ParamsFromJson =
+                serde_json::from_slice(&buf).wrap_err_with(|| {
+                    format!("failed to parse `{}`", params_path.display())
+                })?;
+
+            params.name = sim_name;
+
+            params
+        } else {
+            CreateSimulationV7ParamsFromJson {
+                name: sim_name,
+                ..Default::default()
+            }
+        };
+
+        let model_params = if let Some(model_id) = &params.model_id {
+            ModelParams::from_existing(client, model_id).await?
+        } else {
+            ModelParams::from_dir(dir).await?
+        };
+
         let submission_state = SubmissionState::from_dir_or_default(dir).await;
 
         Ok(Self {
             internal_id: Uuid::new_v4(),
             dir: dir.into(),
             params,
-            files,
+            model_params,
             selected: true,
             submission_state,
         })
     }
 
     pub fn files_size(&self) -> ByteSize {
-        self.files
+        let ModelParams::New { files } = &self.model_params else {
+            return ByteSize::default();
+        };
+
+        files
             .iter()
             .fold(ByteSize::default(), |acc, file| acc + file.size)
     }
@@ -237,27 +287,30 @@ impl SimulationParams {
 
     pub fn is_submittable(&self) -> bool {
         self.selected
-            && !self.files.is_empty()
+            && self.model_params.is_submittable()
             && matches!(
                 self.submission_state,
                 SubmissionState::Ready | SubmissionState::Error(..)
             )
     }
 
-    pub fn into_api_model_params(self) -> CreateModelV7Params {
-        CreateModelV7Params {
+    pub fn into_api_create_model_params(self) -> Option<CreateModelV7Params> {
+        let ModelParams::New { files } = self.model_params else {
+            return None;
+        };
+
+        Some(CreateModelV7Params {
             name: self.params.name.clone(),
             reusable: false,
-            files: self
-                .files
-                .iter()
+            files: files
+                .into_iter()
                 .map(|file| CreateModelV7ParamsFilesItem {
-                    name: file.filename.clone(),
-                    rotation: file.params.rotation.clone(),
+                    name: file.filename,
+                    rotation: file.params.rotation,
                     unit: file.params.unit,
                 })
                 .collect(),
-        }
+        })
     }
 
     pub fn into_api_params(
@@ -276,6 +329,7 @@ impl SimulationParams {
             quality,
             revision,
             yaw_angles,
+            ..
         } = self.params;
 
         CreateSimulationV7Params {

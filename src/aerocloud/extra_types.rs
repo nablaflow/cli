@@ -1,5 +1,5 @@
 use crate::aerocloud::types::{
-    BoundaryLayerTreatment, FileUnit, Fluid, FluidSpeed, GroundOffset,
+    BoundaryLayerTreatment, FileUnit, Fluid, FluidSpeed, GroundOffset, Id,
     Quaternion, SimulationQuality, UpdatePartV7Params, YawAngle, YawAngles,
 };
 use color_eyre::eyre;
@@ -36,6 +36,9 @@ pub struct CreateSimulationV7ParamsFromJson {
 
     #[serde(default)]
     pub boundary_layer_treatment: Option<BoundaryLayerTreatment>,
+
+    #[serde(default)]
+    pub model_id: Option<Id>,
 }
 
 impl CreateSimulationV7ParamsFromJson {

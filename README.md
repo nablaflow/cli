@@ -110,6 +110,16 @@ dir
 
 An example is available under [examples/aerocloud/v7/batch](examples/aerocloud/v7/batch).
 
+> [!TIP]
+> You can skip uploading files and use a reusable model by just setting its ID in each simulation's `params.json`:
+>
+> ```json
+> {
+>   "model_id": "b7203095-f9fd-4270-ac6d-03c46b02932b",
+>   ...
+> }
+> ```
+
 With the folder ready, run the following command to enter the Batch mode:
 
 ```bash

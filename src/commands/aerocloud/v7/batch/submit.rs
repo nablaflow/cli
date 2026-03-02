@@ -5,7 +5,7 @@ use crate::{
     },
     commands::aerocloud::v7::batch::{
         Event,
-        simulation_params::{FileParams, SimulationParams},
+        simulation_params::{FileParams, ModelParams, SimulationParams},
     },
     http::UPLOAD_REQ_TIMEOUT,
 };
@@ -55,32 +55,7 @@ async fn submit_sim(
     client: Client,
     tx: mpsc::Sender<Event>,
 ) -> eyre::Result<SimulationV7> {
-    let ModelV7 {
-        id: model_id,
-        files,
-        ..
-    } = client
-        .models_v7_create(
-            &new_idempotency_key(),
-            &sim.clone().into_api_model_params(),
-        )
-        .await
-        .map_err(fmt_progenitor_err)?
-        .into_inner();
-
-    upload_files(&client, &files, &sim.files, &tx)
-        .await
-        .wrap_err("uploading files")?;
-
-    let ModelV7 { files, .. } = client
-        .models_v7_finalise(&model_id, &new_idempotency_key())
-        .await
-        .map_err(fmt_progenitor_err)?
-        .into_inner();
-
-    update_parts(&client, &model_id, &files, &sim.files)
-        .await
-        .wrap_err("updating parts")?;
+    let model_id = submit_model_if_needed(&client, &sim, tx).await?;
 
     let sim = client
         .simulations_v7_create(
@@ -92,6 +67,46 @@ async fn submit_sim(
         .into_inner();
 
     Ok(sim)
+}
+
+async fn submit_model_if_needed(
+    client: &Client,
+    sim: &SimulationParams,
+    tx: mpsc::Sender<Event>,
+) -> eyre::Result<Id> {
+    match &sim.model_params {
+        ModelParams::Existing { model } => Ok(model.id.clone()),
+        ModelParams::New { files: model_files } => {
+            let ModelV7 {
+                id: model_id,
+                files,
+                ..
+            } = client
+                .models_v7_create(
+                    &new_idempotency_key(),
+                    &sim.clone().into_api_create_model_params().unwrap(),
+                )
+                .await
+                .map_err(fmt_progenitor_err)?
+                .into_inner();
+
+            upload_files(client, &files, model_files, &tx)
+                .await
+                .wrap_err("uploading files")?;
+
+            let ModelV7 { files, .. } = client
+                .models_v7_finalise(&model_id, &new_idempotency_key())
+                .await
+                .map_err(fmt_progenitor_err)?
+                .into_inner();
+
+            update_parts(client, &model_id, &files, model_files)
+                .await
+                .wrap_err("updating parts")?;
+
+            Ok(model_id)
+        }
+    }
 }
 
 async fn upload_files(

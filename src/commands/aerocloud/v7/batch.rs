@@ -126,7 +126,7 @@ enum ActiveState {
     ViewingList,
     ViewingDetail,
     ConfirmExit {
-        prev: Box<ActiveState>,
+        prev: Box<Self>,
     },
     ConfirmSubmit,
     ReloadingSims,
@@ -303,32 +303,30 @@ impl Batch {
         match (&mut curr_state, event) {
             (ActiveState::ViewingList, Event::KeyPressed(key_event)) => {
                 match (key_event.code, key_event.modifiers) {
-                    (KeyCode::Char(' '), _) => {
+                    (KeyCode::Char(' '), _)
+                        if let Some(idx) = sims_list_state.selected()
+                            && let Some(sim) = self.simulations.get_mut(idx) =>
+                    {
+                        sim.selected = !sim.selected;
+                    }
+                    (KeyCode::Char('r'), KeyModifiers::CONTROL)
                         if let Some(idx) = sims_list_state.selected()
                             && let Some(sim) = self.simulations.get_mut(idx)
-                        {
-                            sim.selected = !sim.selected;
-                        }
+                            && let Err(err) =
+                                sim.reset_submission_state().await =>
+                    {
+                        tracing::error!(
+                            "failed to flush submission state for sim in dir `{}`: {err:?}",
+                            sim.dir.display()
+                        );
                     }
-                    (KeyCode::Char('r'), KeyModifiers::CONTROL) => {
-                        if let Some(idx) = sims_list_state.selected()
-                            && let Some(sim) = self.simulations.get_mut(idx)
-                            && let Err(err) = sim.reset_submission_state().await
-                        {
-                            tracing::error!(
-                                "failed to flush submission state for sim in dir `{}`: {err:?}",
-                                sim.dir.display()
-                            );
-                        }
-                    }
-                    (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
+                    (KeyCode::Char('o'), KeyModifiers::CONTROL)
                         if self
                             .simulations
                             .iter()
-                            .any(SimulationParams::is_submittable)
-                        {
-                            next_state = Some(ActiveState::ConfirmSubmit);
-                        }
+                            .any(SimulationParams::is_submittable) =>
+                    {
+                        next_state = Some(ActiveState::ConfirmSubmit);
                     }
                     (KeyCode::Char('r'), _) => {
                         if let Some(root_dir) = self.root_dir.as_ref() {
@@ -363,23 +361,22 @@ impl Batch {
             }
             (ActiveState::ViewingDetail, Event::KeyPressed(key_event)) => {
                 match (key_event.code, key_event.modifiers) {
-                    (KeyCode::Char(' '), _) => {
+                    (KeyCode::Char(' '), _)
                         if let Some(idx) = sims_list_state.selected()
-                            && let Some(sim) = self.simulations.get_mut(idx)
-                        {
-                            sim.selected = !sim.selected;
-                        }
+                            && let Some(sim) = self.simulations.get_mut(idx) =>
+                    {
+                        sim.selected = !sim.selected;
                     }
-                    (KeyCode::Char('r'), KeyModifiers::CONTROL) => {
+                    (KeyCode::Char('r'), KeyModifiers::CONTROL)
                         if let Some(idx) = sims_list_state.selected()
                             && let Some(sim) = self.simulations.get_mut(idx)
-                            && let Err(err) = sim.reset_submission_state().await
-                        {
-                            tracing::error!(
-                                "failed to flush submission state for sim in dir `{}`: {err:?}",
-                                sim.dir.display()
-                            );
-                        }
+                            && let Err(err) =
+                                sim.reset_submission_state().await =>
+                    {
+                        tracing::error!(
+                            "failed to flush submission state for sim in dir `{}`: {err:?}",
+                            sim.dir.display()
+                        );
                     }
                     (KeyCode::Char('r'), _) => {
                         if let Some(root_dir) = self.root_dir.as_ref() {
@@ -392,14 +389,13 @@ impl Batch {
 
                         next_state = Some(ActiveState::ReloadingSims);
                     }
-                    (KeyCode::Char('o'), KeyModifiers::CONTROL) => {
+                    (KeyCode::Char('o'), KeyModifiers::CONTROL)
                         if self
                             .simulations
                             .iter()
-                            .any(SimulationParams::is_submittable)
-                        {
-                            next_state = Some(ActiveState::ConfirmSubmit);
-                        }
+                            .any(SimulationParams::is_submittable) =>
+                    {
+                        next_state = Some(ActiveState::ConfirmSubmit);
                     }
                     (KeyCode::Esc, _)
                     | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
@@ -519,13 +515,11 @@ impl Batch {
                     cancellation_token, ..
                 },
                 Event::KeyPressed(key_event),
-            ) => {
-                if key_event.code == KeyCode::Char('q') {
-                    cancellation_token.cancel();
+            ) if key_event.code == KeyCode::Char('q') => {
+                cancellation_token.cancel();
 
-                    // TODO: should we ask for confirmation?
-                    next_state = Some(ActiveState::ViewingList);
-                }
+                // TODO: should we ask for confirmation?
+                next_state = Some(ActiveState::ViewingList);
             }
             (
                 ActiveState::Submitting { bytes_progress, .. },

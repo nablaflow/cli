@@ -3,6 +3,7 @@
     clippy::doc_markdown,
     clippy::unused_self,
     clippy::match_same_arms,
+    clippy::unnecessary_trailing_comma,
     dead_code
 )]
 

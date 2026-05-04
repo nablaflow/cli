@@ -3,7 +3,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
 
-    crane.url = "github:ipetkov/crane/v0.23.1";
+    crane.url = "github:ipetkov/crane/v0.23.3";
 
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
@@ -37,8 +37,9 @@
 
         packages = with pkgs; [
           nablaflow-cli.rustToolchain
-          cargo-outdated
+          cargo-audit
           cargo-dist
+          cargo-outdated
         ];
       };
 

@@ -32,7 +32,7 @@ ratatui = "0.30.0"
 regress = "0.11.1"
 reqwest = { version = "~0.13", default-features = false, features = ["default-tls", "http2", "json", "gzip", "stream"] }
 serde = { version = "~1.0", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 tokio = { version = "~1.52", default-features = false, features = ["rt", "macros", "fs", "time", "signal"] }
 tokio-util = { version = "0.7.17", default-features = false }
 tracing = { version = "~0.1", features = ["release_max_level_debug"] }
@@ -43,7 +43,7 @@ uuid = { version = "1.23.0", features = ["serde", "v4"] }
 [build-dependencies]
 prettyplease = "0.2.37"
 progenitor = "0.14.0"
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 syn = "2.0.115"
 
 [profile.release]

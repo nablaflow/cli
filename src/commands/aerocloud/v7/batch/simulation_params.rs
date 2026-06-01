@@ -309,8 +309,7 @@ impl SimulationParams {
                     rotation: file
                         .params
                         .rotation
-                        .map(|q| q.0)
-                        .unwrap_or([1.0, 0.0, 0.0, 0.0]),
+                        .map_or([1.0, 0.0, 0.0, 0.0], |q| q.0),
                     unit: file.params.unit,
                 })
                 .collect(),
@@ -324,6 +323,7 @@ impl SimulationParams {
     ) -> CreateSimulationV7Params {
         let CreateSimulationV7ParamsFromJson {
             boundary_layer_treatment,
+            ceiling,
             fluid,
             fluid_speed,
             ground_offset,
@@ -333,12 +333,12 @@ impl SimulationParams {
             quality,
             revision,
             yaw_angles,
-            ceiling,
             ..
         } = self.params;
 
         CreateSimulationV7Params {
             boundary_layer_treatment,
+            ceiling,
             fluid,
             fluid_speed,
             ground_offset,
@@ -350,7 +350,6 @@ impl SimulationParams {
             quality,
             revision,
             yaw_angles,
-            ceiling,
         }
     }
 }

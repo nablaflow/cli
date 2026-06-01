@@ -165,7 +165,7 @@ impl<'a> SimulationDetail<'a> {
 
             lines.push(Line::from(vec![
                 Span::styled("Offset: ", STYLE_BOLD),
-                Span::styled(format!("{} m", offset), STYLE_ACCENT),
+                Span::styled(format!("{offset} m"), STYLE_ACCENT),
             ]));
             lines.push(Line::from(vec![
                 Span::styled("Moving: ", STYLE_BOLD),

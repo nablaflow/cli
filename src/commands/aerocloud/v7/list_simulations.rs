@@ -2,9 +2,9 @@ use crate::{
     aerocloud::{
         Client, fmt,
         types::{
-            Ceiling, CeilingCondition, Fluid, FluidSpeed, Id,
-            ListPageSimulationsV7, PaginationOffset, ProjectV7,
-            SimulationQuality, SimulationResultsV7YawAnglesItem, SimulationV7,
+            Ceiling, CeilingCondition, FluidSpeed, Id, ListPageSimulationsV7,
+            PaginationOffset, ProjectV7, SimulationQuality,
+            SimulationResultsV7YawAnglesItem, SimulationV7,
             SimulationsV7ListStatus, YawAngle,
         },
     },

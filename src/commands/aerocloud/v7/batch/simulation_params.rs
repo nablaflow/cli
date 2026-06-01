@@ -306,7 +306,11 @@ impl SimulationParams {
                 .into_iter()
                 .map(|file| CreateModelV7ParamsFilesItem {
                     name: file.filename,
-                    rotation: file.params.rotation,
+                    rotation: file
+                        .params
+                        .rotation
+                        .map(|q| q.0)
+                        .unwrap_or([1.0, 0.0, 0.0, 0.0]),
                     unit: file.params.unit,
                 })
                 .collect(),
@@ -329,6 +333,7 @@ impl SimulationParams {
             quality,
             revision,
             yaw_angles,
+            ceiling,
             ..
         } = self.params;
 
@@ -345,6 +350,7 @@ impl SimulationParams {
             quality,
             revision,
             yaw_angles,
+            ceiling,
         }
     }
 }

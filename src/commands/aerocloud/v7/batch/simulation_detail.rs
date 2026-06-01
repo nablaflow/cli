@@ -1,7 +1,9 @@
 use crate::{
     aerocloud::{
         fmt,
-        types::{ModelV7, ModelV7FilesItem, Quaternion},
+        types::{
+            Ceiling, CeilingCondition, ModelV7, ModelV7FilesItem, Quaternion,
+        },
     },
     commands::aerocloud::v7::batch::{
         STYLE_ACCENT, STYLE_BOLD, STYLE_DIMMED, STYLE_ERROR, STYLE_NORMAL,
@@ -141,25 +143,38 @@ impl<'a> SimulationDetail<'a> {
 
         lines.push(Line::default());
 
-        lines.push(Line::from(vec![
-            Span::styled("Has ground: ", STYLE_BOLD),
-            Span::styled(bool_to_human(sim.params.has_ground), STYLE_ACCENT),
-        ]));
+        if let Some((boundary, offset, is_moving)) =
+            match (sim.params.has_ground, &sim.params.ceiling) {
+                (true, _) => Some((
+                    "ground",
+                    sim.params.ground_offset.0,
+                    sim.params.is_ground_moving,
+                )),
+                (_, Some(Ceiling { offset, condition })) => Some((
+                    "ceiling",
+                    offset.0,
+                    *condition == CeilingCondition::Moving,
+                )),
+                _ => None,
+            }
+        {
+            lines.push(Line::from(vec![
+                Span::styled("Boundary: ", STYLE_BOLD),
+                Span::styled(boundary, STYLE_ACCENT),
+            ]));
 
-        if sim.params.has_ground {
             lines.push(Line::from(vec![
                 Span::styled("Offset: ", STYLE_BOLD),
-                Span::styled(
-                    format!("{} m", sim.params.ground_offset),
-                    STYLE_ACCENT,
-                ),
+                Span::styled(format!("{} m", offset), STYLE_ACCENT),
             ]));
             lines.push(Line::from(vec![
                 Span::styled("Moving: ", STYLE_BOLD),
-                Span::styled(
-                    bool_to_human(sim.params.is_ground_moving),
-                    STYLE_ACCENT,
-                ),
+                Span::styled(bool_to_human(is_moving), STYLE_ACCENT),
+            ]));
+        } else {
+            lines.push(Line::from(vec![
+                Span::styled("Boundary: ", STYLE_BOLD),
+                Span::styled("no", STYLE_ACCENT),
             ]));
         }
 

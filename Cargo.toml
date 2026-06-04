@@ -16,7 +16,7 @@ dist = true
 [dependencies]
 async-stream = "0.3.6"
 bytesize = "2.3.1"
-chrono = { version = "~0.4.42", features = ["serde"] }
+chrono = { version = "~0.4.45", features = ["serde"] }
 clap = { version = "~4.6", features = ["derive", "env", "color"] }
 clap-stdin = "0.8.0"
 clap_complete = "4.6.5"
@@ -38,7 +38,7 @@ tokio-util = { version = "0.7.17", default-features = false }
 tracing = { version = "~0.1", features = ["release_max_level_debug"] }
 tracing-subscriber = "~0.3"
 update-informer = { version = "1.1", default-features = false, features = ["github", "reqwest", "rustls-tls"] }
-uuid = { version = "1.23.0", features = ["serde", "v4"] }
+uuid = { version = "1.23.2", features = ["serde", "v4"] }
 
 [build-dependencies]
 prettyplease = "0.2.37"

@@ -1,3 +1,11 @@
+# 1.3.0 - 2026-06-04
+
+## AeroCloud
+
+### Features
+
+  - Add support for `ceiling` to v7 simulations [#160](https://github.com/nablaflow/cli/pull/160)
+
 # 1.2.0 - 2026-03-02
 
 ## AeroCloud

@@ -2,9 +2,10 @@ use crate::{
     aerocloud::{
         Client, fmt,
         types::{
-            Fluid, FluidSpeed, Id, ListPageSimulationsV7, PaginationOffset,
-            ProjectV7, SimulationQuality, SimulationResultsV7YawAnglesItem,
-            SimulationV7, SimulationsV7ListStatus, YawAngle,
+            Ceiling, CeilingCondition, FluidSpeed, Id, ListPageSimulationsV7,
+            PaginationOffset, ProjectV7, SimulationQuality,
+            SimulationResultsV7YawAnglesItem, SimulationV7,
+            SimulationsV7ListStatus, YawAngle,
         },
     },
     args::Args,
@@ -87,7 +88,7 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
         "Quality",
         "Yaw angle(s)",
         "Fluid & Speed",
-        "Ground",
+        "Boundary",
         "Boundary layer treatment",
         "Created at",
         "",
@@ -104,10 +105,9 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
                 .map(|v| format!("{v}°"))
                 .join(", "),
             format!("{}, {} m/s", sim.params.fluid, sim.params.fluid_speed),
-            if let (Fluid::Air, true) = (sim.params.fluid, sim.params.has_ground)
-            {
+            if sim.params.has_ground {
                 let mut s = format!(
-                    "present, {}",
+                    "ground, {}",
                     if sim.params.is_ground_moving {
                         "moving"
                     } else {
@@ -118,6 +118,23 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
                 if sim.params.ground_offset.0 != 0.0 {
                     let _ =
                         write!(s, ", offset: {:.2} m", sim.params.ground_offset);
+                }
+
+                s
+            } else if let Some(Ceiling { offset, condition }) =
+                &sim.params.ceiling
+            {
+                let mut s = format!(
+                    "ceiling, {}",
+                    if *condition == CeilingCondition::Moving {
+                        "moving"
+                    } else {
+                        "still"
+                    },
+                );
+
+                if offset.0 != 0.0 {
+                    let _ = write!(s, ", offset: {:.2} m", offset.0);
                 }
 
                 s

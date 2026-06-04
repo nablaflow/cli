@@ -306,7 +306,10 @@ impl SimulationParams {
                 .into_iter()
                 .map(|file| CreateModelV7ParamsFilesItem {
                     name: file.filename,
-                    rotation: file.params.rotation,
+                    rotation: file
+                        .params
+                        .rotation
+                        .map_or([1.0, 0.0, 0.0, 0.0], |q| q.0),
                     unit: file.params.unit,
                 })
                 .collect(),
@@ -320,6 +323,7 @@ impl SimulationParams {
     ) -> CreateSimulationV7Params {
         let CreateSimulationV7ParamsFromJson {
             boundary_layer_treatment,
+            ceiling,
             fluid,
             fluid_speed,
             ground_offset,
@@ -334,6 +338,7 @@ impl SimulationParams {
 
         CreateSimulationV7Params {
             boundary_layer_treatment,
+            ceiling,
             fluid,
             fluid_speed,
             ground_offset,

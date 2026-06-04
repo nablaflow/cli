@@ -70,6 +70,34 @@
         "title": "BoundaryLayerTreatment",
         "type": "string"
       },
+      "Ceiling": {
+        "properties": {
+          "condition": {
+            "$ref": "#/components/schemas/CeilingCondition"
+          },
+          "offset": {
+            "$ref": "#/components/schemas/CeilingOffset"
+          }
+        },
+        "required": [
+          "offset",
+          "condition"
+        ],
+        "title": "Ceiling",
+        "type": "object"
+      },
+      "CeilingCondition": {
+        "enum": [
+          "slip",
+          "moving"
+        ],
+        "title": "CeilingCondition",
+        "type": "string"
+      },
+      "CeilingOffset": {
+        "title": "CeilingOffset",
+        "type": "number"
+      },
       "CreateModelV6Params": {
         "properties": {
           "files": {
@@ -119,7 +147,28 @@
                   "$ref": "#/components/schemas/Filename"
                 },
                 "rotation": {
-                  "$ref": "#/components/schemas/Quaternion"
+                  "default": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "description": "Represents a rotation: <a href=\"https://danceswithcode.net/engineeringnotes/quaternions/quaternions.html\">read more</a>",
+                  "example": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "items": {
+                    "maximum": 1.0,
+                    "minimum": -1.0,
+                    "type": "number"
+                  },
+                  "maxItems": 4,
+                  "minItems": 4,
+                  "title": "Quaternion",
+                  "type": "array"
                 },
                 "unit": {
                   "$ref": "#/components/schemas/FileUnit"
@@ -236,6 +285,9 @@
           "boundary_layer_treatment": {
             "$ref": "#/components/schemas/BoundaryLayerTreatment"
           },
+          "ceiling": {
+            "$ref": "#/components/schemas/Ceiling"
+          },
           "fluid": {
             "$ref": "#/components/schemas/Fluid"
           },
@@ -290,13 +342,13 @@
         "type": "number"
       },
       "Date": {
-        "example": "2026-01-14",
+        "example": "2026-05-28",
         "format": "date",
         "title": "Date",
         "type": "string"
       },
       "DateTime": {
-        "example": "2026-01-17T12:56:22.936861Z",
+        "example": "2026-05-29T17:11:46.790433Z",
         "format": "date-time",
         "title": "DateTime",
         "type": "string"
@@ -343,13 +395,13 @@
         "type": "number"
       },
       "ID": {
-        "example": "019bd630-d147-7ad7-a6b7-44a6e6fc8d3c",
+        "example": "019e821d-fdf6-7a96-9d38-7673121ec5c7",
         "format": "uuid",
         "title": "ID",
         "type": "string"
       },
       "IdempotencyKey": {
-        "example": "019bd630-d148-7729-9565-a7edcc1bf645",
+        "example": "019e821d-fdf6-770d-8b50-0dd5050a6dbb",
         "title": "IdempotencyKey",
         "type": "string"
       },
@@ -686,6 +738,9 @@
                       "name": {
                         "type": "string"
                       },
+                      "refined": {
+                        "type": "boolean"
+                      },
                       "rolling": {
                         "type": "boolean"
                       }
@@ -875,6 +930,12 @@
         "type": "object"
       },
       "Quaternion": {
+        "default": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
         "description": "Represents a rotation: <a href=\"https://danceswithcode.net/engineeringnotes/quaternions/quaternions.html\">read more</a>",
         "example": [
           1.0,
@@ -936,6 +997,9 @@
         "properties": {
           "boundary_layer_treatment": {
             "$ref": "#/components/schemas/BoundaryLayerTreatment"
+          },
+          "ceiling": {
+            "$ref": "#/components/schemas/Ceiling"
           },
           "fluid": {
             "$ref": "#/components/schemas/Fluid"
@@ -1412,6 +1476,9 @@
             "$ref": "#/components/schemas/ForchheimerCoef"
           },
           "is_porous": {
+            "type": "boolean"
+          },
+          "refined": {
             "type": "boolean"
           },
           "rolling": {

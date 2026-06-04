@@ -71,7 +71,9 @@ impl TryInto<CreateModelV7Params> for CreateModelParams {
                                 )
                             })?,
                         unit: file_params.unit,
-                        rotation: file_params.rotation,
+                        rotation: file_params
+                            .rotation
+                            .map_or([1.0, 0.0, 0.0, 0.0], |q| q.0),
                     })
                 })
                 .collect::<eyre::Result<_>>()?,

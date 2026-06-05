@@ -23,10 +23,11 @@ use ratatui::{
     DefaultTerminal, Frame,
     buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect, Size, Spacing},
+    macros::{constraints, line, span, text},
     prelude::Color,
     style::Style,
     symbols::border,
-    text::{Line, Span, Text},
+    text::{Line, Text},
     widgets::{
         Block, Borders, Clear, Gauge, HighlightSpacing, List, ListItem,
         ListState, Padding, Paragraph, ScrollbarState, StatefulWidget, Widget,
@@ -701,7 +702,7 @@ impl Batch {
     ) {
         let block = Block::bordered()
             .title(
-                Line::from(format!(" Simulations ({}) ", simulations.len()))
+                line![format!(" Simulations ({}) ", simulations.len())]
                     .centered(),
             )
             .border_set(border::PLAIN)
@@ -737,26 +738,24 @@ impl Batch {
             Constraint::Length(5), // top and bottom border + content
         );
 
-        let instructions = Line::from(vec![
-            Span::raw(" ("),
-            Span::styled("y", STYLE_ERROR),
-            Span::raw(") yes | ("),
-            Span::styled("n", STYLE_ERROR),
-            Span::raw(") no "),
-        ]);
+        let instructions = line![
+            " (",
+            span!(STYLE_ERROR; "y"),
+            ") yes | (",
+            span!(STYLE_ERROR; "n"),
+            ") no ",
+        ];
 
         let block = Block::bordered()
-            .title(
-                Line::from(Span::styled(" Confirmation ", STYLE_BOLD)).centered(),
-            )
+            .title(line![span!(STYLE_BOLD; " Confirmation ")].centered())
             .title_bottom(instructions.centered())
             .border_set(border::THICK)
             .style(STYLE_ERROR);
 
-        let paragraph = Paragraph::new(vec![
-            Line::default(),
-            Line::raw("Are you sure you want to exit?").centered(),
-            Line::default(),
+        let paragraph = Paragraph::new(text![
+            "",
+            line!["Are you sure you want to exit?"].centered(),
+            "",
         ])
         .block(block)
         .wrap(Wrap { trim: false });
@@ -776,13 +775,10 @@ impl Batch {
             .border_set(border::THICK)
             .style(STYLE_ACCENT);
 
-        let paragraph = Paragraph::new(vec![
-            Line::default(),
-            Line::raw("Reloading").centered(),
-            Line::default(),
-        ])
-        .block(block)
-        .wrap(Wrap { trim: false });
+        let paragraph =
+            Paragraph::new(text!["", line!["Reloading"].centered(), "",])
+                .block(block)
+                .wrap(Wrap { trim: false });
 
         Widget::render(&Clear, area, buf);
         Widget::render(&paragraph, area, buf);
@@ -794,13 +790,13 @@ impl Batch {
         error: &str,
     ) {
         let lines = {
-            let mut l = vec![Line::default()];
+            let mut l = vec![line![]];
 
             for line in error.lines() {
-                l.push(Line::from(line));
+                l.push(line![line]);
             }
 
-            l.push(Line::default());
+            l.push(line![]);
 
             l
         };
@@ -813,10 +809,9 @@ impl Batch {
 
         let block = Block::bordered()
             .title(
-                Line::from(Span::styled(" Failed to reload config ", STYLE_BOLD))
-                    .centered(),
+                line![span!(STYLE_BOLD; " Failed to reload config ")].centered(),
             )
-            .title_bottom(Line::raw(" (q) close and continue ").centered())
+            .title_bottom(line![" (q) close and continue "].centered())
             .border_set(border::THICK)
             .style(STYLE_ERROR);
 
@@ -837,39 +832,35 @@ impl Batch {
             Constraint::Length(6), // top and bottom border + content
         );
 
-        let instructions = Line::from(vec![
-            Span::raw(" ("),
-            Span::styled("y", STYLE_ACCENT),
-            Span::raw(") yes | ("),
-            Span::styled("n", STYLE_ACCENT),
-            Span::raw(") no "),
-        ]);
+        let instructions = line![
+            " (",
+            span!(STYLE_ACCENT; "y"),
+            ") yes | (",
+            span!(STYLE_ACCENT; "n"),
+            ") no ",
+        ];
 
         let block = Block::bordered()
-            .title(
-                Line::from(Span::styled(" Launching batch ", STYLE_BOLD))
-                    .centered(),
-            )
+            .title(line![span!(STYLE_BOLD; " Launching batch ")].centered())
             .title_bottom(instructions.centered())
             .border_set(border::THICK);
 
-        let paragraph = Paragraph::new(vec![
-            Line::default(),
-            Line::from(vec![
-                Span::raw("A total of "),
-                Span::raw(format!(
+        let paragraph = Paragraph::new(text![
+            "",
+            line![
+                "A total of ",
+                span!(STYLE_ACCENT; format!(
                     "{} simulation(s)",
                     simulations
                         .iter()
                         .filter(|sim_params| sim_params.is_submittable())
                         .count(),
-                ))
-                .style(STYLE_ACCENT),
-                Span::raw(" will be submitted."),
-            ])
+                )),
+                " will be submitted.",
+            ]
             .centered(),
-            Line::raw("Are you sure you want to continue?").centered(),
-            Line::default(),
+            line!["Are you sure you want to continue?"].centered(),
+            "",
         ])
         .block(block)
         .wrap(Wrap { trim: false });
@@ -898,27 +889,24 @@ impl Batch {
                 " AeroCloud v7 ".into()
             };
 
-        let instructions = Line::from(vec![
-            " (".into(),
-            Span::styled("tab", STYLE_ACCENT),
-            ") cycle list<->detail | (".into(),
-            Span::styled("<space>", STYLE_ACCENT),
-            ") toggle selection | (".into(),
-            Span::styled("ctrl+r", STYLE_ACCENT),
-            ") reset submission state | (".into(),
-            Span::styled("r", STYLE_ACCENT),
-            ") reload from disk | (".into(),
-            Span::styled("ctrl+o", STYLE_ACCENT),
-            ") submit batch | (".into(),
-            Span::styled("esc", STYLE_ACCENT),
-            ") quit ".into(),
-        ]);
+        let instructions = line![
+            " (",
+            span!(STYLE_ACCENT; "tab"),
+            ") cycle list<->detail | (",
+            span!(STYLE_ACCENT; "<space>"),
+            ") toggle selection | (",
+            span!(STYLE_ACCENT; "ctrl+r"),
+            ") reset submission state | (",
+            span!(STYLE_ACCENT; "r"),
+            ") reload from disk | (",
+            span!(STYLE_ACCENT; "ctrl+o"),
+            ") submit batch | (",
+            span!(STYLE_ACCENT; "esc"),
+            ") quit ",
+        ];
 
         let block = Block::bordered()
-            .title(
-                Line::from(Span::styled(title.into_owned(), STYLE_BOLD))
-                    .centered(),
-            )
+            .title(line![span!(STYLE_BOLD; title)].centered())
             .title_bottom(instructions.style(style).centered())
             .border_set(border::THICK);
 
@@ -938,27 +926,19 @@ impl Batch {
 
         Widget::render(&Clear, area, buf);
 
-        let instructions = Line::from(vec![
-            Span::raw(" ("),
-            Span::styled("q", STYLE_ACCENT),
-            Span::raw(") stop "),
-        ]);
+        let instructions =
+            line![" (", span!(STYLE_ACCENT; "q"), ") stop ",].centered();
 
         Block::bordered()
-            .title(
-                Line::from(Span::styled(" Submitting ", STYLE_BOLD)).centered(),
-            )
-            .title_bottom(instructions.centered())
+            .title(line![span!(STYLE_BOLD; " Submitting ")].centered())
+            .title_bottom(instructions)
             .border_set(border::THICK)
             .render(area, buf);
 
         let [upper, lower] = area.layout(
-            &Layout::vertical([
-                Constraint::Percentage(50),
-                Constraint::Percentage(50),
-            ])
-            .flex(Flex::Center)
-            .margin(2),
+            &Layout::vertical(constraints![==50%, ==50%])
+                .flex(Flex::Center)
+                .margin(2),
         );
 
         #[allow(clippy::cast_precision_loss)]
@@ -968,17 +948,14 @@ impl Batch {
                 Block::new()
                     .borders(Borders::NONE)
                     .padding(Padding::vertical(1))
-                    .title(Line::from("Uploading files").centered()),
+                    .title(line!["Uploading files"].centered()),
             )
             .ratio(if bytes_count.0 == 0 {
                 1.0
             } else {
                 bytes_progress.0 as f64 / bytes_count.0 as f64
             })
-            .label(Span::styled(
-                format!("{bytes_progress}/{bytes_count}"),
-                Style::new().bold(),
-            ))
+            .label(span!(STYLE_BOLD; format!("{bytes_progress}/{bytes_count}")))
             .render(upper, buf);
 
         #[allow(clippy::cast_precision_loss)]
@@ -988,13 +965,10 @@ impl Batch {
                 Block::new()
                     .borders(Borders::NONE)
                     .padding(Padding::vertical(1))
-                    .title(Line::from("Creating simulations").centered()),
+                    .title(line!["Creating simulations"].centered()),
             )
             .ratio(sims_progress as f64 / sims_count as f64)
-            .label(Span::styled(
-                format!("{sims_progress}/{sims_count}"),
-                Style::new().bold(),
-            ))
+            .label(span!(STYLE_BOLD; format!("{sims_progress}/{sims_count}")))
             .render(lower, buf);
     }
 
@@ -1004,19 +978,19 @@ impl Batch {
     }
 
     fn show_min_term_size_notice(&self, area: Rect, buf: &mut Buffer) {
-        let paragraph = Paragraph::new(vec![
-            Line::default(),
-            Line::raw(format!(
+        let paragraph = Paragraph::new(text![
+            "",
+            line![format!(
                 "Terminal size is too small ({}x{}).",
                 self.term_size.width, self.term_size.height,
-            ))
+            )]
             .centered(),
-            Line::raw(format!(
+            line![format!(
                 "Need at least {}x{}",
                 MIN_TERM_SIZE.width, MIN_TERM_SIZE.height
-            ))
+            )]
             .centered(),
-            Line::default(),
+            "",
         ])
         .block(
             Block::bordered()
@@ -1070,23 +1044,23 @@ impl From<&SimulationParams> for ListItem<'_> {
             STYLE_DIMMED
         };
 
-        let mut spans = vec![Span::raw(p.params.name.clone()), Span::raw(" ")];
+        let mut spans = vec![span!(p.params.name.clone()), span!(" ")];
 
         match p.submission_state {
             SubmissionState::Ready => {}
             SubmissionState::Sending => {
-                spans.push(Span::styled("(sending...) ", STYLE_WARNING));
+                spans.push(span!(STYLE_WARNING; "(sending...) "));
             }
             SubmissionState::Error(..) => {
-                spans.push(Span::styled("(error) ", STYLE_ERROR));
+                spans.push(span!(STYLE_ERROR; "(error) "));
             }
             SubmissionState::Sent { .. } => {
-                spans.push(Span::styled("(sent) ", STYLE_SUCCESS));
+                spans.push(span!(STYLE_SUCCESS; "(sent) "));
             }
         }
 
         if p.model_params.is_empty() {
-            spans.push(Span::styled("(no files) ", STYLE_ERROR));
+            spans.push(span!(STYLE_ERROR; "(no files) "));
         }
 
         ListItem::from(Line::from(spans).style(style))

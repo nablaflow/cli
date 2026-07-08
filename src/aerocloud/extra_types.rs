@@ -112,12 +112,12 @@ impl FileV7ParamsFromJson {
                 }
             }
 
-            if part.is_flow_monitor.unwrap_or(false) && 
-                 part.flow_monitor_type.is_none() {
-                    eyre::bail!(
-                        "part `{name}` is marked as a flow monitor but is missing `flow_monitor_type`"
-                    );
-                
+            if part.is_flow_monitor.unwrap_or(false)
+                && part.flow_monitor_type.is_none()
+            {
+                eyre::bail!(
+                    "part `{name}` is marked as a flow monitor but is missing `flow_monitor_type`"
+                );
             }
         }
 

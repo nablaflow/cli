@@ -358,7 +358,7 @@ impl<'a> SimulationDetail<'a> {
                             STYLE_ERROR
                         )
                     }
-                ]))
+                ]));
             }
 
             let is_porous = part.is_porous.unwrap_or(false);

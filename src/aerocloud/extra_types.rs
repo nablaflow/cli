@@ -98,20 +98,26 @@ pub struct FileV7ParamsFromJson {
 impl FileV7ParamsFromJson {
     pub fn ensure_is_valid(&self) -> eyre::Result<()> {
         for (name, part) in &self.parts {
-            if !part.is_porous.unwrap_or(false) {
-                continue;
+            if part.is_porous.unwrap_or(false) {
+                if part.darcy_coeff.is_none() {
+                    eyre::bail!(
+                        "part `{name}` is marked as porous but is missing `darcy_coeff`"
+                    );
+                }
+
+                if part.forchheimer_coeff.is_none() {
+                    eyre::bail!(
+                        "part `{name}` is marked as porous but is missing `forchheimer_coeff`"
+                    );
+                }
             }
 
-            if part.darcy_coeff.is_none() {
-                eyre::bail!(
-                    "part `{name}` is marked as porous but is missing `darcy_coeff`"
-                );
-            }
-
-            if part.forchheimer_coeff.is_none() {
-                eyre::bail!(
-                    "part `{name}` is marked as porous but is missing `forchheimer_coeff`"
-                );
+            if part.is_flow_monitor.unwrap_or(false) {
+                if part.flow_monitor_type.is_none() {
+                    eyre::bail!(
+                        "part `{name}` is marked as a flow monitor but is missing `flow_monitor_type`"
+                    );
+                }
             }
         }
 

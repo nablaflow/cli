@@ -338,6 +338,29 @@ impl<'a> SimulationDetail<'a> {
                 ),
             ]));
 
+            let is_flow_monitor = part.is_flow_monitor.unwrap_or(false);
+
+            lines.push(Line::from(vec![
+                Span::raw("        "),
+                Span::styled("Flow Monitor: ", STYLE_BOLD),
+                Span::styled(bool_to_human(is_flow_monitor), STYLE_ACCENT),
+            ]));
+
+            if is_flow_monitor {
+                lines.push(Line::from(vec![
+                    Span::raw("        "),
+                    Span::styled("Flow monitor type: ", STYLE_BOLD),
+                    if let Some(flow_monitor_type) = &part.flow_monitor_type {
+                        Span::styled(format!("{flow_monitor_type}"), STYLE_ACCENT)
+                    } else {
+                        Span::styled(
+                            "<unspecified> (required when part is marked as flow monitor)",
+                            STYLE_ERROR
+                        )
+                    }
+                ]))
+            }
+
             let is_porous = part.is_porous.unwrap_or(false);
 
             lines.push(Line::from(vec![

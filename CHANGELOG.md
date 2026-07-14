@@ -1,4 +1,4 @@
-# Unreleased
+# 1.4.0 - 2026-07-14
 
 ## AeroCloud
 

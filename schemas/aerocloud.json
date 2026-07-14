@@ -342,13 +342,13 @@
         "type": "number"
       },
       "Date": {
-        "example": "2026-05-28",
+        "example": "2025-01-18",
         "format": "date",
         "title": "Date",
         "type": "string"
       },
       "DateTime": {
-        "example": "2026-05-29T17:11:46.790433Z",
+        "example": "2025-01-18T03:02:04Z",
         "format": "date-time",
         "title": "DateTime",
         "type": "string"
@@ -368,6 +368,14 @@
         "example": "model.obj",
         "pattern": "^[^/]+\\.(obj|stl|jt)$",
         "title": "Filename",
+        "type": "string"
+      },
+      "FlowMonitorType": {
+        "enum": [
+          "volumetric_flow_rate",
+          "mass_flow_rate"
+        ],
+        "title": "FlowMonitorType",
         "type": "string"
       },
       "Fluid": {
@@ -395,13 +403,13 @@
         "type": "number"
       },
       "ID": {
-        "example": "019e821d-fdf6-7a96-9d38-7673121ec5c7",
+        "example": "019f3c5c-5e48-761b-914b-c3d7970b93c9",
         "format": "uuid",
         "title": "ID",
         "type": "string"
       },
       "IdempotencyKey": {
-        "example": "019e821d-fdf6-770d-8b50-0dd5050a6dbb",
+        "example": "019f3c5c-5e48-7c2f-8fc3-718048fd3f48",
         "title": "IdempotencyKey",
         "type": "string"
       },
@@ -532,6 +540,25 @@
           "current_page"
         ],
         "title": "ListPageNav",
+        "type": "object"
+      },
+      "ListPageOrganisation": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Organisation"
+            },
+            "type": "array"
+          },
+          "nav": {
+            "$ref": "#/components/schemas/ListPageNav"
+          }
+        },
+        "required": [
+          "items",
+          "nav"
+        ],
+        "title": "ListPageOrganisation",
         "type": "object"
       },
       "ListPageProjectsV6": {
@@ -723,11 +750,17 @@
                       "darcy_coeff": {
                         "type": "number"
                       },
+                      "flow_monitor_type": {
+                        "$ref": "#/components/schemas/FlowMonitorType"
+                      },
                       "forchheimer_coeff": {
                         "type": "number"
                       },
                       "id": {
                         "$ref": "#/components/schemas/ID"
+                      },
+                      "is_flow_monitor": {
+                        "type": "boolean"
                       },
                       "is_porous": {
                         "type": "boolean"
@@ -805,6 +838,73 @@
         "title": "ModelV7",
         "type": "object"
       },
+      "Organisation": {
+        "properties": {
+          "created_at": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/OrganisationMember"
+            },
+            "type": "array"
+          },
+          "name": {
+            "example": "ACME Corp.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "members",
+          "created_at"
+        ],
+        "title": "Organisation",
+        "type": "object"
+      },
+      "OrganisationMember": {
+        "properties": {
+          "added_at": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "email": {
+            "description": "Email address",
+            "format": "email",
+            "type": "string"
+          },
+          "full_name": {
+            "description": "Full name",
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ID"
+          },
+          "role": {
+            "$ref": "#/components/schemas/OrganisationMemberRole"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role"
+        ],
+        "title": "OrganisationMember",
+        "type": "object"
+      },
+      "OrganisationMemberRole": {
+        "enum": [
+          "owner",
+          "admin",
+          "collaborator",
+          "auditor"
+        ],
+        "title": "OrganisationMemberRole",
+        "type": "string"
+      },
       "PaginationLimit": {
         "default": 10,
         "maximum": 20,
@@ -821,12 +921,10 @@
       "PersonalAccessToken": {
         "properties": {
           "created_at": {
-            "format": "date-time",
-            "type": "string"
+            "$ref": "#/components/schemas/DateTime"
           },
           "expires_at": {
-            "format": "date-time",
-            "type": "string"
+            "$ref": "#/components/schemas/DateTime"
           },
           "name": {
             "type": "string"
@@ -1472,8 +1570,14 @@
           "darcy_coeff": {
             "$ref": "#/components/schemas/DarcyCoeff"
           },
+          "flow_monitor_type": {
+            "$ref": "#/components/schemas/FlowMonitorType"
+          },
           "forchheimer_coeff": {
             "$ref": "#/components/schemas/ForchheimerCoef"
+          },
+          "is_flow_monitor": {
+            "type": "boolean"
           },
           "is_porous": {
             "type": "boolean"
@@ -1650,6 +1754,74 @@
         },
         "tags": [
           "users"
+        ]
+      }
+    },
+    "/users/self/orgs": {
+      "get": {
+        "callbacks": {},
+        "operationId": "users.self.orgs",
+        "parameters": [
+          {
+            "description": "",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimit"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationOffset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/Organisation"
+                      },
+                      "type": "array"
+                    },
+                    "nav": {
+                      "$ref": "#/components/schemas/ListPageNav"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nav"
+                  ],
+                  "title": "ListPageOrganisation",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Orgs which the current user is a member of"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "users",
+          "orgs"
         ]
       }
     },

@@ -1,3 +1,11 @@
+# Unreleased
+
+## AeroCloud
+
+### Features
+
+  - Add support for `flow_monitor` to v7 simulations [#167](https://github.com/nablaflow/cli/pull/167)
+
 # 1.3.0 - 2026-06-04
 
 ## AeroCloud

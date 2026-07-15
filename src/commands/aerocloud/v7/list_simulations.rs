@@ -55,7 +55,7 @@ pub async fn run(
     }
 
     if args.json {
-        println!("{}", &serde_json::to_string(&all_items)?);
+        println!("{}", serde_json::to_string(&all_items)?);
     } else {
         let project = client.projects_v7_get(project_id).await?.into_inner();
 

@@ -1,3 +1,11 @@
+# Unreleased
+
+### Chores
+
+  - Bump rustc to 1.97.0
+  - Bump flake inputs
+  - Bump rust deps
+
 # 1.4.0 - 2026-07-14
 
 ## AeroCloud

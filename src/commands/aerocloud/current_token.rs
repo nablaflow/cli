@@ -15,7 +15,7 @@ pub async fn run(args: &Args, client: &Client) -> eyre::Result<()> {
         .into_inner();
 
     if args.json {
-        println!("{}", &serde_json::to_string(&token_info)?);
+        println!("{}", serde_json::to_string(&token_info)?);
     } else {
         let mut table = new_dynamic_table();
         table.set_header(vec!["Name", "Created at", "Expires at", "Scopes"]);

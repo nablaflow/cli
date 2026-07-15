@@ -29,7 +29,7 @@ pub async fn run(args: &Args, client: &Client) -> eyre::Result<()> {
     }
 
     if args.json {
-        println!("{}", &serde_json::to_string(&all_items)?);
+        println!("{}", serde_json::to_string(&all_items)?);
     } else {
         print_human(&all_items);
     }

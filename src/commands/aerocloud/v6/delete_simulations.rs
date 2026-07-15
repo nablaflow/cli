@@ -11,7 +11,7 @@ pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
             if args.json {
                 println!(
                     "{}",
-                    &serde_json::to_string(&json!({
+                    serde_json::to_string(&json!({
                         "error": format!("{}", err),
                         "simulation_id": id,
                     }))?

@@ -8,6 +8,7 @@ use crate::aerocloud::{
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
+use lexical_sort::natural_lexical_cmp;
 use std::path::{Path, PathBuf};
 use tokio::fs;
 use uuid::Uuid;
@@ -202,6 +203,10 @@ impl SimulationParams {
                 },
             )?);
         }
+
+        sims_params.sort_unstable_by(|a, b| {
+            natural_lexical_cmp(&a.params.name, &b.params.name)
+        });
 
         Ok(sims_params)
     }

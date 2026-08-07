@@ -1,8 +1,14 @@
 # Unreleased
 
+## AeroCloud
+
+### Improvements
+
+  - In `batch`, sort simulation names lexicographically.
+
 ### Chores
 
-  - Bump rustc to 1.97.0
+  - Bump rustc to 1.97.1
   - Bump flake inputs
   - Bump rust deps
 

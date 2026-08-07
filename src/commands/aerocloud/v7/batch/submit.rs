@@ -7,7 +7,6 @@ use crate::{
         Event,
         simulation_params::{FileParams, ModelParams, SimulationParams},
     },
-    http::UPLOAD_REQ_TIMEOUT,
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
@@ -23,12 +22,14 @@ pub fn submit_batch_in_background(
     project_id: &Id,
     sims: Vec<SimulationParams>,
     client: &Client,
+    file_upload_client: &reqwest::Client,
     cancellation_token: &CancellationToken,
     tx: &mpsc::Sender<Event>,
 ) {
     for sim in sims {
         let project_id = project_id.clone();
         let client = client.clone();
+        let file_upload_client = file_upload_client.clone();
         let cancellation_token = cancellation_token.clone();
         let tx = tx.clone();
 
@@ -39,7 +40,7 @@ pub fn submit_batch_in_background(
                 () = cancellation_token.cancelled() => {
                     tracing::debug!("cancellation token triggered");
                 }
-                res = submit_sim(project_id, sim, client, tx.clone()) => {
+                res = submit_sim(project_id, sim, client, file_upload_client, tx.clone()) => {
                     tx.send(Event::SimSubmitted { internal_id, res: res.map(Box::new) }).await?;
                 }
             }
@@ -53,9 +54,11 @@ async fn submit_sim(
     project_id: Id,
     sim: SimulationParams,
     client: Client,
+    file_upload_client: reqwest::Client,
     tx: mpsc::Sender<Event>,
 ) -> eyre::Result<SimulationV7> {
-    let model_id = submit_model_if_needed(&client, &sim, tx).await?;
+    let model_id =
+        submit_model_if_needed(&client, &file_upload_client, &sim, tx).await?;
 
     let sim = client
         .simulations_v7_create(
@@ -71,6 +74,7 @@ async fn submit_sim(
 
 async fn submit_model_if_needed(
     client: &Client,
+    file_upload_client: &reqwest::Client,
     sim: &SimulationParams,
     tx: mpsc::Sender<Event>,
 ) -> eyre::Result<Id> {
@@ -90,7 +94,7 @@ async fn submit_model_if_needed(
                 .map_err(fmt_progenitor_err)?
                 .into_inner();
 
-            upload_files(client, &files, model_files, &tx)
+            upload_files(file_upload_client, &files, model_files, &tx)
                 .await
                 .wrap_err("uploading files")?;
 
@@ -110,7 +114,7 @@ async fn submit_model_if_needed(
 }
 
 async fn upload_files(
-    client: &Client,
+    client: &reqwest::Client,
     files: &[ModelV7FilesItem],
     params: &[FileParams],
     tx: &mpsc::Sender<Event>,
@@ -132,7 +136,7 @@ async fn upload_files(
             file_params.size,
             upload_url.0.clone(),
             file_params.path.clone(),
-            client.client.clone(),
+            client.clone(),
             tx.clone(),
         ));
     }
@@ -178,7 +182,6 @@ async fn upload_file(
         .put(upload_url)
         .body(reqwest::Body::wrap_stream(async_stream))
         .header(CONTENT_LENGTH, size.0.to_string())
-        .timeout(UPLOAD_REQ_TIMEOUT)
         .send()
         .await
         .wrap_err_with(|| format!("uploading `{}`", path.display()))?;

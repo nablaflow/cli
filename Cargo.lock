@@ -1479,6 +1479,7 @@ dependencies = [
  "syn 3.0.3",
  "tokio",
  "tokio-util",
+ "tower",
  "tracing",
  "tracing-subscriber",
  "update-informer",
@@ -2717,8 +2718,10 @@ dependencies = [
  "pin-project-lite",
  "sync_wrapper",
  "tokio",
+ "tokio-util",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]

@@ -56,7 +56,31 @@ pub struct Args {
         default_value_t = 360,
         help = "Maximum amount in seconds to wait for HTTP responses to arrive"
     )]
-    pub http_timeout_secs: u64,
+    pub api_http_timeout_secs: u64,
+
+    #[arg(
+        long,
+        env = "NF_FILE_UPLOAD_TIMEOUT_SECS",
+        default_value_t = Duration::from_hours(6).as_secs(),
+        help = "Maximum amount in seconds to wait for a single file upload to complete"
+    )]
+    pub file_upload_http_timeout_secs: u64,
+
+    #[arg(
+        long,
+        env = "NF_FILE_UPLOAD_CONCURRENCY",
+        default_value_t = 1,
+        help = "How many files to upload concurrently. Might improve upload speed, but it might also increase failures due to file server rate-limiting"
+    )]
+    pub file_upload_concurrency: usize,
+
+    #[arg(
+        long,
+        env = "NF_API_REQUEST_CONCURRENCY",
+        default_value_t = 8,
+        help = "How many API requests can be in-flight at the same time. Increasing this might hit API server rate-limiting."
+    )]
+    pub api_request_concurrency: usize,
 
     #[arg(
         short = 'H',
@@ -99,8 +123,12 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn http_timeout(&self) -> Duration {
-        Duration::from_secs(self.http_timeout_secs)
+    pub fn api_http_timeout(&self) -> Duration {
+        Duration::from_secs(self.api_http_timeout_secs)
+    }
+
+    pub fn file_upload_http_timeout(&self) -> Duration {
+        Duration::from_secs(self.file_upload_http_timeout_secs)
     }
 }
 

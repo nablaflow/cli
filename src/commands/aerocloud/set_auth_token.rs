@@ -2,7 +2,7 @@ use crate::{
     args::Args,
     commands::aerocloud::current_token,
     config::{Config, Token},
-    http::build_aerocloud_client_from_config,
+    http,
 };
 use color_eyre::eyre::{self, WrapErr};
 use tracing::info;
@@ -16,8 +16,7 @@ pub async fn run(
 
     config.aerocloud_token = Some(token.to_owned());
 
-    let client =
-        build_aerocloud_client_from_config(&config, &args.http_timeout())?;
+    let client = http::build_aerocloud_client(&config, args)?;
 
     current_token::run(args, &client)
         .await

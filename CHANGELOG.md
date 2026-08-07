@@ -2,9 +2,22 @@
 
 ## AeroCloud
 
+### Breaking changes
+
+  - Removed flags:
+      - `--http-timeout-secs`, see below.
+
 ### Improvements
 
   - In `batch`, sort simulation names lexicographically.
+  - Concurrency limits on HTTP requests to avoid rate-limits.
+    New flags:
+      - `--api-http-timeout-secs`
+      - `--file-upload-http-timeout-secs`
+      - `--file-upload-concurrency`
+      - `--api-request-concurrency`
+    Removed flags:
+      - `--http-timeout-secs`
 
 ### Chores
 

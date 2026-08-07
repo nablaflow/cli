@@ -7,11 +7,9 @@ use crate::{
         },
     },
     args::Args,
-    http::UPLOAD_REQ_TIMEOUT,
 };
 use color_eyre::eyre::{self, WrapErr, bail};
 use itertools::Itertools;
-use progenitor_client::ClientInfo;
 use reqwest::header::CONTENT_LENGTH;
 use std::{collections::HashMap, path::PathBuf};
 use tokio::{
@@ -81,7 +79,12 @@ impl TryInto<CreateModelV7Params> for CreateModelParams {
     }
 }
 
-pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()> {
+pub async fn run(
+    args: &Args,
+    api_client: &Client,
+    file_upload_client: &reqwest::Client,
+    params: &str,
+) -> eyre::Result<()> {
     let idempotency_key = new_idempotency_key();
 
     let params: CreateModelParams =
@@ -93,7 +96,7 @@ pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()>
         id: model_id,
         files,
         ..
-    } = client
+    } = api_client
         .models_v7_create(&idempotency_key, &params.clone().try_into()?)
         .await
         .map_err(fmt_progenitor_err)?
@@ -101,7 +104,7 @@ pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()>
 
     debug!("model created with id {model_id}");
 
-    upload_files(client, &files, &params)
+    upload_files(file_upload_client, &files, &params)
         .await
         .wrap_err("uploading files")?;
 
@@ -111,13 +114,13 @@ pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()>
         id: model_id,
         files,
         ..
-    } = client
+    } = api_client
         .models_v7_finalise(&model_id, &idempotency_key)
         .await
         .map_err(fmt_progenitor_err)?
         .into_inner();
 
-    update_parts(client, &model_id, &files, &params)
+    update_parts(api_client, &model_id, &files, &params)
         .await
         .wrap_err("updating parts")?;
 
@@ -136,7 +139,7 @@ pub async fn run(args: &Args, client: &Client, params: &str) -> eyre::Result<()>
 }
 
 async fn update_parts(
-    client: &Client,
+    api_client: &Client,
     model_id: &Id,
     files: &[ModelV7FilesItem],
     params: &CreateModelParams,
@@ -170,13 +173,13 @@ async fn update_parts(
                 continue;
             };
 
-            let client = client.clone();
+            let api_client = api_client.clone();
             let model_id = model_id.clone();
             let part_params = part_params.clone();
             let part_id = part_id.clone();
 
             set.spawn(async move {
-                client
+                api_client
                     .parts_v7_update(&model_id, &part_id, &part_params)
                     .await
                     .map_err(fmt_progenitor_err)
@@ -198,7 +201,7 @@ async fn update_parts(
 }
 
 async fn upload_files(
-    client: &Client,
+    client: &reqwest::Client,
     files: &[ModelV7FilesItem],
     params: &CreateModelParams,
 ) -> eyre::Result<()> {
@@ -223,9 +226,9 @@ async fn upload_files(
             .ok_or_else(|| eyre::eyre!("no upload url found in response"))?;
 
         set.spawn(upload_file(
+            client.clone(),
             upload_url.into(),
             file.path.clone(),
-            client.client().clone(),
         ));
     }
 
@@ -237,9 +240,9 @@ async fn upload_files(
 }
 
 async fn upload_file(
+    client: reqwest::Client,
     upload_url: String,
     path: PathBuf,
-    client: reqwest::Client,
 ) -> eyre::Result<()> {
     let body = AsyncFile::open(&path)
         .await
@@ -251,7 +254,6 @@ async fn upload_file(
         .put(upload_url)
         .body(body)
         .header(CONTENT_LENGTH, metadata.len().to_string())
-        .timeout(UPLOAD_REQ_TIMEOUT)
         .send()
         .await
         .wrap_err_with(|| format!("failed to upload file {}", path.display()))?;

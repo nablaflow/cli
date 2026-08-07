@@ -64,9 +64,14 @@ const MIN_TERM_SIZE: Size = Size::new(110, 38);
 
 const SLEEP_FOR_FEEDBACK: Duration = Duration::from_millis(100);
 
-pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
+pub async fn run(
+    api_client: &Client,
+    file_upload_client: &reqwest::Client,
+    root_dir: Option<&Path>,
+) -> eyre::Result<()> {
     let sims = if let Some(root_dir) = root_dir {
-        let sims = SimulationParams::many_from_root_dir(client, root_dir).await?;
+        let sims =
+            SimulationParams::many_from_root_dir(api_client, root_dir).await?;
 
         if sims.is_empty() {
             tracing::error!("no simulations found in `{}`", root_dir.display());
@@ -79,8 +84,12 @@ pub async fn run(client: &Client, root_dir: Option<&Path>) -> eyre::Result<()> {
         vec![]
     };
 
-    let mut app =
-        Batch::new(client.clone(), root_dir.map(ToOwned::to_owned), sims);
+    let mut app = Batch::new(
+        api_client.clone(),
+        file_upload_client.clone(),
+        root_dir.map(ToOwned::to_owned),
+        sims,
+    );
 
     let mut terminal = ratatui::init();
     let result = app.run(&mut terminal).await;
@@ -112,6 +121,8 @@ pub fn refresh_sims_in_background(
 #[derive(Debug)]
 struct Batch {
     client: Client,
+    file_upload_client: reqwest::Client,
+
     running: bool,
     term_size: Size,
 
@@ -194,6 +205,7 @@ async fn handle_term_events(tx: mpsc::Sender<Event>) -> eyre::Result<()> {
 impl Batch {
     fn new(
         client: Client,
+        file_upload_client: reqwest::Client,
         root_dir: Option<PathBuf>,
         simulations: Vec<SimulationParams>,
     ) -> Self {
@@ -204,6 +216,7 @@ impl Batch {
             root_dir,
             simulations,
             client,
+            file_upload_client,
         }
     }
 
@@ -461,6 +474,7 @@ impl Batch {
                             &project.id,
                             sims_to_submit,
                             &self.client,
+                            &self.file_upload_client,
                             &cancellation_token,
                             tx,
                         );

@@ -189,6 +189,13 @@ impl<'a> SimulationDetail<'a> {
                 ),
             ]));
         }
+
+        lines.push(Line::default());
+
+        lines.push(Line::from(vec![
+            Span::styled("Assistant: ", STYLE_BOLD),
+            Span::styled(bool_to_human(sim.params.assistant), STYLE_ACCENT),
+        ]));
     }
 
     fn new_model(files: &'a [FileParams], lines: &mut Vec<Line<'a>>) {

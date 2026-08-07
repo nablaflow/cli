@@ -338,10 +338,12 @@ impl SimulationParams {
             quality,
             revision,
             yaw_angles,
+            assistant,
             ..
         } = self.params;
 
         CreateSimulationV7Params {
+            assistant,
             boundary_layer_treatment,
             ceiling,
             fluid,

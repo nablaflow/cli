@@ -38,6 +38,9 @@ pub struct CreateSimulationV7ParamsFromJson {
     pub boundary_layer_treatment: Option<BoundaryLayerTreatment>,
 
     #[serde(default)]
+    pub assistant: bool,
+
+    #[serde(default)]
     pub model_id: Option<Id>,
 
     #[serde(default)]

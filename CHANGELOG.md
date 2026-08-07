@@ -7,6 +7,10 @@
   - Removed flags:
       - `--http-timeout-secs`, see below.
 
+### Features
+
+  - Add support for enabling `assistant` to v7 simulations.
+
 ### Improvements
 
   - In `batch`, sort simulation names lexicographically.

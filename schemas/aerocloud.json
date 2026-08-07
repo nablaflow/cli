@@ -282,6 +282,10 @@
       },
       "CreateSimulationV7Params": {
         "properties": {
+          "assistant": {
+            "default": false,
+            "type": "boolean"
+          },
           "boundary_layer_treatment": {
             "$ref": "#/components/schemas/BoundaryLayerTreatment"
           },

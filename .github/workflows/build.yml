@@ -27,7 +27,7 @@ jobs:
     runs-on: ["arc-runner-small-${{ matrix.platform }}"]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: cachix/cachix-action@v17
         with:

@@ -339,6 +339,7 @@ impl SimulationParams {
             revision,
             yaw_angles,
             assistant,
+            symmetry,
             ..
         } = self.params;
 
@@ -357,6 +358,7 @@ impl SimulationParams {
             quality,
             revision,
             yaw_angles,
+            symmetry,
         }
     }
 }

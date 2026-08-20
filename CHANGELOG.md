@@ -1,3 +1,11 @@
+# 1.6.0 - Unreleased
+
+## AeroCloud
+
+### Features
+
+  - Add support for `symmetry` to v7 simulations [#174](https://github.com/nablaflow/cli/pull/174)
+
 # 1.5.0 - 2026-08-07
 
 ## AeroCloud

@@ -357,8 +357,8 @@ impl SimulationParams {
             project_id,
             quality,
             revision,
-            yaw_angles,
             symmetry,
+            yaw_angles,
         }
     }
 }

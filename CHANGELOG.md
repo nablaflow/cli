@@ -1,4 +1,4 @@
-# 1.6.0 - Unreleased
+# Unreleased
 
 ## AeroCloud
 

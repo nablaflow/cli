@@ -42,7 +42,7 @@ pub struct CreateSimulationV7ParamsFromJson {
     pub assistant: bool,
 
     #[serde(default)]
-    pub symmetry: Option<Symmetry>,
+    pub symmetry: Symmetry,
 
     #[serde(default)]
     pub model_id: Option<Id>,

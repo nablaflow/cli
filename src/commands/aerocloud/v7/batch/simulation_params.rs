@@ -357,7 +357,7 @@ impl SimulationParams {
             project_id,
             quality,
             revision,
-            symmetry,
+            symmetry: Some(symmetry),
             yaw_angles,
         }
     }

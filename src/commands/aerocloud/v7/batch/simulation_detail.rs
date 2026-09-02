@@ -199,12 +199,10 @@ impl<'a> SimulationDetail<'a> {
 
         lines.push(Line::default());
 
-        if let Some(v) = sim.params.symmetry {
-            lines.push(Line::from(vec![
-                Span::styled("Symmetry: ", STYLE_BOLD),
-                Span::styled(fmt::human_symmetry(v), STYLE_ACCENT),
-            ]));
-        }
+        lines.push(Line::from(vec![
+            Span::styled("Symmetry: ", STYLE_BOLD),
+            Span::styled(fmt::human_symmetry(sim.params.symmetry), STYLE_ACCENT),
+        ]));
     }
 
     fn new_model(files: &'a [FileParams], lines: &mut Vec<Line<'a>>) {

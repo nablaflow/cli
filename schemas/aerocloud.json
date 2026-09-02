@@ -322,6 +322,9 @@
           "revision": {
             "type": "string"
           },
+          "symmetry": {
+            "$ref": "#/components/schemas/Symmetry"
+          },
           "yaw_angles": {
             "$ref": "#/components/schemas/YawAngles"
           }
@@ -407,13 +410,13 @@
         "type": "number"
       },
       "ID": {
-        "example": "019f3c5c-5e48-761b-914b-c3d7970b93c9",
+        "example": "6bf1fafd-35e9-4b4f-9b21-2ed9b731b12d",
         "format": "uuid",
         "title": "ID",
         "type": "string"
       },
       "IdempotencyKey": {
-        "example": "019f3c5c-5e48-7c2f-8fc3-718048fd3f48",
+        "example": "1603dfa0-738c-4273-af9d-7b840a5e3909",
         "title": "IdempotencyKey",
         "type": "string"
       },
@@ -1124,6 +1127,9 @@
           "quality": {
             "$ref": "#/components/schemas/SimulationQuality"
           },
+          "symmetry": {
+            "$ref": "#/components/schemas/Symmetry"
+          },
           "yaw_angles": {
             "$ref": "#/components/schemas/YawAngles"
           }
@@ -1547,6 +1553,17 @@
         ],
         "title": "SimulationV7",
         "type": "object"
+      },
+      "Symmetry": {
+        "default": "off",
+        "enum": [
+          "off",
+          "center",
+          "left",
+          "right"
+        ],
+        "title": "Symmetry",
+        "type": "string"
       },
       "Token": {
         "discriminator": {

@@ -1,6 +1,7 @@
 use crate::aerocloud::types::{
     BoundaryLayerTreatment, Ceiling, FileUnit, Fluid, FluidSpeed, GroundOffset,
-    Id, Quaternion, SimulationQuality, UpdatePartV7Params, YawAngle, YawAngles,
+    Id, Quaternion, SimulationQuality, Symmetry, UpdatePartV7Params, YawAngle,
+    YawAngles,
 };
 use color_eyre::eyre;
 use std::{borrow::Cow, collections::BTreeMap};
@@ -39,6 +40,9 @@ pub struct CreateSimulationV7ParamsFromJson {
 
     #[serde(default)]
     pub assistant: bool,
+
+    #[serde(default)]
+    pub symmetry: Symmetry,
 
     #[serde(default)]
     pub model_id: Option<Id>,

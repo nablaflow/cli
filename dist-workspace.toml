@@ -34,8 +34,9 @@ aarch64-pc-windows-msvc = "windows-2022"
 
 [dist.github-action-commits]
 "actions/checkout" = "v7"
-"actions/upload-artifact" = "v7"
 "actions/download-artifact" = "v8"
+"actions/upload-artifact" = "v7"
+"azure/login" = "v3"
 
 [dist.azure-windows-sign]
 endpoint = "https://neu.codesigning.azure.net/"

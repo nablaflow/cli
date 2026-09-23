@@ -3,6 +3,7 @@
     clippy::doc_markdown,
     clippy::match_same_arms,
     clippy::missing_const_for_fn,
+    clippy::struct_excessive_bools,
     clippy::unnecessary_trailing_comma,
     clippy::unused_self,
     clippy::use_self,

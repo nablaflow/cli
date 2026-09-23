@@ -6,6 +6,7 @@ use crate::aerocloud::types::{
 use color_eyre::eyre;
 use std::{borrow::Cow, collections::BTreeMap};
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(serde::Deserialize, Clone, Debug)]
 pub struct CreateSimulationV7ParamsFromJson {
     #[serde(default)]
@@ -43,6 +44,9 @@ pub struct CreateSimulationV7ParamsFromJson {
 
     #[serde(default)]
     pub symmetry: Symmetry,
+
+    #[serde(default)]
+    pub has_tyre_plinth: bool,
 
     #[serde(default)]
     pub model_id: Option<Id>,

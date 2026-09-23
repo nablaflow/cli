@@ -8,6 +8,7 @@
   "fluid": "air",
   "has_ground": true,
   "is_ground_moving": false,
+  "has_tyre_plinth": true,
   "ground_offset": 0.0,
   "yaw_angles": [0.0]
 }

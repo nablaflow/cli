@@ -1,3 +1,11 @@
+# Unreleased
+
+## AeroCloud
+
+### Features
+
+  - Add support for `has_tyre_plinth` to v7 simulations
+
 # 1.6.0 - 2026-09-02
 
 ## AeroCloud

@@ -304,6 +304,10 @@
           "has_ground": {
             "type": "boolean"
           },
+          "has_tyre_plinth": {
+            "default": false,
+            "type": "boolean"
+          },
           "is_ground_moving": {
             "type": "boolean"
           },
@@ -395,6 +399,7 @@
       },
       "FluidSpeed": {
         "description": "in m/s",
+        "exclusiveMinimum": true,
         "maximum": 100.0,
         "minimum": 0.001,
         "title": "FluidSpeed",
@@ -1116,6 +1121,9 @@
             "$ref": "#/components/schemas/GroundOffset"
           },
           "has_ground": {
+            "type": "boolean"
+          },
+          "has_tyre_plinth": {
             "type": "boolean"
           },
           "is_ground_moving": {

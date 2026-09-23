@@ -1692,6 +1692,8 @@
       },
       "YawAngle": {
         "description": "in degrees",
+        "maximum": 180.0,
+        "minimum": -180.0,
         "title": "YawAngle",
         "type": "number"
       },

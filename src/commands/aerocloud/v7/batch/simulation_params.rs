@@ -339,6 +339,7 @@ impl SimulationParams {
             yaw_angles,
             assistant,
             symmetry,
+            has_tyre_plinth,
             ..
         } = self.params;
 
@@ -358,6 +359,7 @@ impl SimulationParams {
             revision,
             symmetry: Some(symmetry),
             yaw_angles,
+            has_tyre_plinth,
         }
     }
 }

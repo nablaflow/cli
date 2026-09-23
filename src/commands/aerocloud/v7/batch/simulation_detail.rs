@@ -88,6 +88,7 @@ impl<'a> SimulationDetail<'a> {
         lines.push(Line::default());
     }
 
+    #[allow(clippy::too_many_lines)]
     fn general_lines(sim: &'a SimulationParams, lines: &mut Vec<Line<'a>>) {
         if !sim.selected {
             lines.push(Line::from(vec![Span::styled(
@@ -171,6 +172,16 @@ impl<'a> SimulationDetail<'a> {
                 Span::styled("Moving: ", STYLE_BOLD),
                 Span::styled(bool_to_human(is_moving), STYLE_ACCENT),
             ]));
+
+            if sim.params.has_ground {
+                lines.push(Line::from(vec![
+                    Span::styled("Tyre plinth: ", STYLE_BOLD),
+                    Span::styled(
+                        bool_to_human(sim.params.has_tyre_plinth),
+                        STYLE_ACCENT,
+                    ),
+                ]));
+            }
         } else {
             lines.push(Line::from(vec![
                 Span::styled("Boundary: ", STYLE_BOLD),

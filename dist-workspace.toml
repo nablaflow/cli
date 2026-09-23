@@ -22,7 +22,6 @@ allow-dirty = [
 
 targets = [
   "aarch64-apple-darwin",
-  "aarch64-pc-windows-msvc",
   "aarch64-unknown-linux-musl",
   "x86_64-apple-darwin",
   "x86_64-pc-windows-msvc",
@@ -37,3 +36,8 @@ aarch64-pc-windows-msvc = "windows-2022"
 "actions/checkout" = "v7"
 "actions/upload-artifact" = "v7"
 "actions/download-artifact" = "v8"
+
+[dist.azure-windows-sign]
+endpoint = "https://neu.codesigning.azure.net/"
+account-name = "nablaflow"
+certificate-profile-name = "public"

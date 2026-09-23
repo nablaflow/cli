@@ -1,5 +1,10 @@
 # Unreleased
 
+## General
+
+  - Sign Windows `.exe`s via Azure Artifact Signing.
+  - Temporarily drop native support for Windows ARM (`aarch64-pc-windows-msvc`), as `cargo-dist` is not able to sign them. Will be put back once it does.
+
 ## AeroCloud
 
 ### Features

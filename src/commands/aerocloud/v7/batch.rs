@@ -228,7 +228,7 @@ impl Batch {
 
         tokio::spawn(handle_term_events(event_tx.clone()));
 
-        if let State::Init = self.state {
+        if matches!(self.state, State::Init) {
             refresh_projects_in_background(self.client.clone(), event_tx.clone());
 
             self.state = State::PickingProject {
@@ -266,7 +266,7 @@ impl Batch {
             return Ok(());
         }
 
-        if let Event::Exit = event {
+        if matches!(event, Event::Exit) {
             self.immediate_exit();
             return Ok(());
         }
@@ -591,7 +591,7 @@ impl Batch {
         Ok(())
     }
 
-    fn immediate_exit(&mut self) {
+    const fn immediate_exit(&mut self) {
         self.running = false;
     }
 
@@ -986,7 +986,7 @@ impl Batch {
             .render(lower, buf);
     }
 
-    fn is_term_size_not_enough(&self) -> bool {
+    const fn is_term_size_not_enough(&self) -> bool {
         self.term_size.width < MIN_TERM_SIZE.width
             || self.term_size.height < MIN_TERM_SIZE.height
     }

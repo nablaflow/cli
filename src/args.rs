@@ -123,11 +123,11 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn api_http_timeout(&self) -> Duration {
+    pub const fn api_http_timeout(&self) -> Duration {
         Duration::from_secs(self.api_http_timeout_secs)
     }
 
-    pub fn file_upload_http_timeout(&self) -> Duration {
+    pub const fn file_upload_http_timeout(&self) -> Duration {
         Duration::from_secs(self.file_upload_http_timeout_secs)
     }
 }

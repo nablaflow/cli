@@ -54,7 +54,7 @@ fn print_human(projects: &[ProjectV7]) {
     for project in projects {
         table.add_row(vec![
             format!("{}", project.id),
-            format!("{}", project.name),
+            project.name.clone(),
             format!("{}", project.status),
             format!("{}", project.created_at.with_timezone(&Local)),
             link(&project.browser_url),

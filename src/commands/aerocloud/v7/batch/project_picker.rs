@@ -98,7 +98,7 @@ impl ProjectPickerState {
             return Ok(());
         }
 
-        if let Event::ProjectsLoading = event {
+        if matches!(event, Event::ProjectsLoading) {
             *self = Self::Loading;
 
             return Ok(());

@@ -90,7 +90,7 @@ fn print_human(project: &ProjectV6, items: &[SimulationV6]) {
 
     for sim in items {
         table.add_row(vec![
-            format!("{}", sim.name),
+            sim.name.clone(),
             fmt::human_simulation_status(sim.status).into(),
             format!("{}", sim.params.quality),
             sim.params
@@ -99,8 +99,7 @@ fn print_human(project: &ProjectV6, items: &[SimulationV6]) {
                 .map(|v| format!("{v}°"))
                 .join(", "),
             format!("{}, {} m/s", sim.params.fluid, sim.params.fluid_speed),
-            if let (Fluid::Air, true) = (sim.params.fluid, sim.params.has_ground)
-            {
+            if (sim.params.fluid, sim.params.has_ground) == (Fluid::Air, true) {
                 let mut s = format!(
                     "present, {}",
                     if sim.params.is_ground_moving {
@@ -175,7 +174,7 @@ fn print_results_human(project: &ProjectV6, items: &[SimulationV6]) {
 
     for (sim, res) in items {
         table.add_row(vec![
-            format!("{}", sim.name),
+            sim.name.clone(),
             format!("{}", sim.params.quality),
             format!("{}°", res.yaw_angle),
             format!("{}, {} m/s", sim.params.fluid, sim.params.fluid_speed),

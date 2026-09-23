@@ -544,6 +544,6 @@ impl StatefulWidget for &SimulationDetail<'_> {
     }
 }
 
-fn bool_to_human(b: bool) -> &'static str {
+const fn bool_to_human(b: bool) -> &'static str {
     if b { "yes" } else { "no" }
 }

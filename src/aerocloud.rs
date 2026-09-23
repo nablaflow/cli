@@ -1,9 +1,11 @@
 #![allow(
     clippy::default_trait_access,
     clippy::doc_markdown,
-    clippy::unused_self,
     clippy::match_same_arms,
+    clippy::missing_const_for_fn,
     clippy::unnecessary_trailing_comma,
+    clippy::unused_self,
+    clippy::use_self,
     dead_code
 )]
 

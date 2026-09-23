@@ -51,14 +51,14 @@ pub enum ModelParams {
 }
 
 impl ModelParams {
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         match self {
             Self::New { files } => files.is_empty(),
             Self::Existing { model } => model.files.is_empty(),
         }
     }
 
-    pub fn is_submittable(&self) -> bool {
+    pub const fn is_submittable(&self) -> bool {
         match self {
             Self::New { files } => !files.is_empty(),
             Self::Existing { .. } => true,
@@ -83,8 +83,7 @@ impl ModelParams {
                 continue;
             }
 
-            if let Some("json") =
-                path.extension().and_then(|os_str| os_str.to_str())
+            if path.extension().and_then(|os_str| os_str.to_str()) == Some("json")
             {
                 continue;
             }
@@ -290,7 +289,7 @@ impl SimulationParams {
         Ok(())
     }
 
-    pub fn is_submittable(&self) -> bool {
+    pub const fn is_submittable(&self) -> bool {
         self.selected
             && self.model_params.is_submittable()
             && matches!(

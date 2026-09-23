@@ -96,7 +96,7 @@ fn print_human(project: &ProjectV7, items: &[SimulationV7]) {
 
     for sim in items {
         table.add_row(vec![
-            format!("{}", sim.name),
+            sim.name.clone(),
             fmt::human_simulation_status(sim.status).into(),
             format!("{}", sim.params.quality),
             sim.params
@@ -202,7 +202,7 @@ fn print_results_human(project: &ProjectV7, items: &[SimulationV7]) {
 
     for (sim, res) in items {
         table.add_row(vec![
-            format!("{}", sim.name),
+            sim.name.clone(),
             format!("{}", sim.params.quality),
             format!("{}°", res.yaw_angle),
             format!("{}, {} m/s", sim.params.fluid, sim.params.fluid_speed),

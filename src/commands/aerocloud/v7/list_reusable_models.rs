@@ -49,7 +49,7 @@ fn print_human(models: &[ModelV7]) {
     for model in models {
         table.add_row(vec![
             format!("{}", model.id),
-            format!("{}", model.name),
+            model.name.clone(),
             format!("{}", model.files.len()),
             format!(
                 "{}",

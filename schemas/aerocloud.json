@@ -3074,6 +3074,16 @@
             },
             "description": "Created"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "`Idempotency-Key` is missing or supplied more than once"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -3094,6 +3104,16 @@
             },
             "description": "Forbidden"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "A request with the same `Idempotency-Key` is still being processed"
+          },
           "410": {
             "content": {
               "application/json": {
@@ -3112,7 +3132,17 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Invalid request body or `Idempotency-Key` is missing"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "tags": [
@@ -3346,6 +3376,16 @@
             },
             "description": "OK"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "`Idempotency-Key` is missing or supplied more than once"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -3376,6 +3416,16 @@
             },
             "description": "Not Found"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "A request with the same `Idempotency-Key` is still being processed"
+          },
           "410": {
             "content": {
               "application/json": {
@@ -3394,7 +3444,17 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Invalid request body or `Idempotency-Key` is missing"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "tags": [
@@ -3624,6 +3684,16 @@
             },
             "description": "Created"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "`Idempotency-Key` is missing or supplied more than once"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -3644,6 +3714,16 @@
             },
             "description": "Forbidden"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "A request with the same `Idempotency-Key` is still being processed"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -3652,7 +3732,17 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Invalid request body or `Idempotency-Key` is missing"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "tags": [
@@ -4038,6 +4128,16 @@
             },
             "description": "Created"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "`Idempotency-Key` is missing or supplied more than once"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4068,6 +4168,16 @@
             },
             "description": "Forbidden"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "A request with the same `Idempotency-Key` is still being processed"
+          },
           "410": {
             "content": {
               "application/json": {
@@ -4086,7 +4196,17 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Invalid request body or `Idempotency-Key` is missing"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "tags": [

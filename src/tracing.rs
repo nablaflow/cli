@@ -21,6 +21,12 @@ pub fn init(args: &Args) -> eyre::Result<()> {
             )
             .with_max_level(max_level)
             .init();
+    } else if args.is_interactive_ui() {
+        // NOTE: writing to stderr would corrupt the UI.
+        tracing_subscriber::fmt()
+            .with_writer(io::sink)
+            .with_max_level(max_level)
+            .init();
     } else {
         tracing_subscriber::fmt()
             .with_writer(io::stderr)

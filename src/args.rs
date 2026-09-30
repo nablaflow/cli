@@ -8,6 +8,7 @@ use crate::{
     },
     config::{Config, Token},
 };
+use bytesize::ByteSize;
 use clap::{
     Parser, Subcommand,
     builder::styling::{AnsiColor, Styles},
@@ -15,7 +16,7 @@ use clap::{
 use clap_complete::aot::Shell;
 use clap_stdin::{FileOrStdin, MaybeStdin};
 use reqwest::Url;
-use std::{path::PathBuf, time::Duration};
+use std::{num::NonZeroUsize, path::PathBuf, time::Duration};
 
 const STYLES: Styles = Styles::styled()
     .header(AnsiColor::Green.on_default().bold())
@@ -69,18 +70,34 @@ pub struct Args {
     #[arg(
         long,
         env = "NF_FILE_UPLOAD_CONCURRENCY",
-        default_value_t = 1,
-        help = "How many files to upload concurrently. Might improve upload speed, but it might also increase failures due to file server rate-limiting"
+        default_value_t = NonZeroUsize::new(8).unwrap(),
+        help = "How many small files to upload concurrently (see `--large-file-threshold`)"
     )]
-    pub file_upload_concurrency: usize,
+    pub file_upload_concurrency: NonZeroUsize,
+
+    #[arg(
+        long,
+        env = "NF_LARGE_FILE_UPLOAD_CONCURRENCY",
+        default_value_t = NonZeroUsize::MIN,
+        help = "How many large files to upload concurrently (see `--large-file-threshold`). Large files tend to saturate bandwidth, so uploading them concurrently rarely helps"
+    )]
+    pub large_file_upload_concurrency: NonZeroUsize,
+
+    #[arg(
+        long,
+        env = "NF_LARGE_FILE_THRESHOLD",
+        default_value_t = ByteSize::mib(64),
+        help = "Files of this size or larger are considered large (e.g. `64MiB`, `1GB`)"
+    )]
+    pub large_file_threshold: ByteSize,
 
     #[arg(
         long,
         env = "NF_API_REQUEST_CONCURRENCY",
-        default_value_t = 8,
-        help = "How many API requests can be in-flight at the same time. Increasing this might hit API server rate-limiting."
+        default_value_t = NonZeroUsize::new(16).unwrap(),
+        help = "How many API requests can be in-flight at the same time when creating models and simulations. Finalising models is not limited. Increasing this might hit API server rate-limiting."
     )]
-    pub api_request_concurrency: usize,
+    pub api_request_concurrency: NonZeroUsize,
 
     #[arg(
         short = 'H',
@@ -123,6 +140,18 @@ pub struct Args {
 }
 
 impl Args {
+    /// Whether the command takes over the terminal with an interactive UI.
+    pub const fn is_interactive_ui(&self) -> bool {
+        matches!(
+            self.scope,
+            Scope::AeroCloud {
+                command: AeroCloudScope::V7 {
+                    command: AeroCloudV7Command::Batch { .. }
+                }
+            }
+        )
+    }
+
     pub const fn api_http_timeout(&self) -> Duration {
         Duration::from_secs(self.api_http_timeout_secs)
     }

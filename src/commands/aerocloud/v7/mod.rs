@@ -7,4 +7,5 @@ pub mod delete_simulations;
 pub mod list_projects;
 pub mod list_reusable_models;
 pub mod list_simulations;
+pub mod model_submission;
 pub mod wait_for_simulations;

@@ -1,22 +1,22 @@
 use crate::{
-    aerocloud::{
-        Client, fmt_progenitor_err, new_idempotency_key,
-        types::{
-            CreateModelV7Params, CreateModelV7ParamsFilesItem, FileUnit, Id,
-            ModelV7, ModelV7FilesItem, Quaternion, UpdatePartV7Params,
-        },
+    aerocloud::types::{
+        CreateModelV7Params, CreateModelV7ParamsFilesItem, FileUnit, Filename,
+        Quaternion, UpdatePartV7Params,
     },
     args::Args,
+    commands::aerocloud::v7::model_submission::{
+        FileSpec, ModelSpec, ModelSubmitter,
+    },
+    progress::no_progress,
 };
+use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr, bail};
 use itertools::Itertools;
-use reqwest::header::CONTENT_LENGTH;
-use std::{collections::HashMap, path::PathBuf};
-use tokio::{
-    fs::{self, File as AsyncFile},
-    task::JoinSet,
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
 };
-use tracing::{debug, info, warn};
+use tokio::fs;
 
 #[derive(Debug, serde::Deserialize, Clone)]
 struct CreateModelParams {
@@ -33,6 +33,19 @@ struct CreateModelFileParams {
     parts: HashMap<String, UpdatePartV7Params>,
 }
 
+fn filename(path: &Path) -> eyre::Result<Filename> {
+    path.file_name()
+        .ok_or_else(|| {
+            eyre::eyre!("file `{}` does not have a file name", path.display())
+        })?
+        .to_str()
+        .ok_or_else(|| {
+            eyre::eyre!("file `{}` contains invalid utf-8 chars", path.display())
+        })?
+        .try_into()
+        .wrap_err_with(|| format!("file `{}` is not compatible", path.display()))
+}
+
 impl TryInto<CreateModelV7Params> for CreateModelParams {
     type Error = eyre::Error;
 
@@ -45,29 +58,7 @@ impl TryInto<CreateModelV7Params> for CreateModelParams {
                 .into_iter()
                 .map(|file_params| {
                     Ok(CreateModelV7ParamsFilesItem {
-                        name: file_params
-                            .path
-                            .file_name()
-                            .ok_or_else(|| {
-                                eyre::eyre!(
-                                    "file `{}` does not have a file name",
-                                    file_params.path.display()
-                                )
-                            })?
-                            .to_str()
-                            .ok_or_else(|| {
-                                eyre::eyre!(
-                                    "file `{}` contains invalid utf-8 chars",
-                                    file_params.path.display()
-                                )
-                            })?
-                            .try_into()
-                            .wrap_err_with(|| {
-                                format!(
-                                    "file `{}` is not compatible",
-                                    file_params.path.display()
-                                )
-                            })?,
+                        name: filename(&file_params.path)?,
                         unit: file_params.unit,
                         rotation: file_params
                             .rotation
@@ -81,48 +72,23 @@ impl TryInto<CreateModelV7Params> for CreateModelParams {
 
 pub async fn run(
     args: &Args,
-    api_client: &Client,
-    file_upload_client: &reqwest::Client,
+    submitter: &ModelSubmitter,
     params: &str,
 ) -> eyre::Result<()> {
-    let idempotency_key = new_idempotency_key();
-
     let params: CreateModelParams =
         serde_json::from_str(params).wrap_err("failed to parse json")?;
 
-    validate_files(&params.files).await?;
+    let files = validate_files(&params.files).await?;
 
-    let ModelV7 {
-        id: model_id,
-        files,
-        ..
-    } = api_client
-        .models_v7_create(&idempotency_key, &params.clone().try_into()?)
-        .await
-        .map_err(fmt_progenitor_err)?
-        .into_inner();
-
-    debug!("model created with id {model_id}");
-
-    upload_files(file_upload_client, &files, &params)
-        .await
-        .wrap_err("uploading files")?;
-
-    let idempotency_key = new_idempotency_key();
-
-    let ModelV7 {
-        id: model_id,
-        files,
-        ..
-    } = api_client
-        .models_v7_finalise(&model_id, &idempotency_key)
-        .await
-        .map_err(fmt_progenitor_err)?
-        .into_inner();
-
-    update_parts(api_client, &model_id, &files, &params)
-        .await
-        .wrap_err("updating parts")?;
+    let model_id = submitter
+        .submit_model(
+            ModelSpec {
+                params: params.try_into()?,
+                files,
+            },
+            no_progress(),
+        )
+        .await?;
 
     if args.json {
         println!(
@@ -138,136 +104,11 @@ pub async fn run(
     Ok(())
 }
 
-async fn update_parts(
-    api_client: &Client,
-    model_id: &Id,
-    files: &[ModelV7FilesItem],
-    params: &CreateModelParams,
-) -> eyre::Result<()> {
-    let mut set = JoinSet::new();
+async fn validate_files(
+    files: &[CreateModelFileParams],
+) -> eyre::Result<Vec<FileSpec>> {
+    let mut specs = Vec::with_capacity(files.len());
 
-    for file in &params.files {
-        let returned_file = files
-            .iter()
-            .find(|f| {
-                Some(f.name.as_ref())
-                    == file.path.file_name().and_then(|s| s.to_str())
-            })
-            .ok_or_else(|| {
-                eyre::eyre!(
-                    "file in given params was not returned from the server"
-                )
-            })?;
-
-        for (part_name, part_params) in &file.parts {
-            let Some(part_id) = returned_file
-                .parts
-                .iter()
-                .find(|part| part.name == *part_name)
-                .map(|part| &part.id)
-            else {
-                warn!(
-                    "part named `{part_name}` was not found in uploaded file `{:?}`",
-                    returned_file.name
-                );
-                continue;
-            };
-
-            let api_client = api_client.clone();
-            let model_id = model_id.clone();
-            let part_params = part_params.clone();
-            let part_id = part_id.clone();
-
-            set.spawn(async move {
-                api_client
-                    .parts_v7_update(&model_id, &part_id, &part_params)
-                    .await
-                    .map_err(fmt_progenitor_err)
-                    .map(|_| {
-                        info!(
-                            "updated part `{}` with {:?}",
-                            part_id, part_params
-                        );
-                    })
-            });
-        }
-    }
-
-    for res in set.join_all().await {
-        let () = res.wrap_err("failed to update part")?;
-    }
-
-    Ok(())
-}
-
-async fn upload_files(
-    client: &reqwest::Client,
-    files: &[ModelV7FilesItem],
-    params: &CreateModelParams,
-) -> eyre::Result<()> {
-    let mut set = JoinSet::new();
-
-    for file in &params.files {
-        let returned_file = files
-            .iter()
-            .find(|f| {
-                Some(f.name.as_ref())
-                    == file.path.file_name().and_then(|s| s.to_str())
-            })
-            .ok_or_else(|| {
-                eyre::eyre!(
-                    "file in given params was not returned from the server"
-                )
-            })?;
-
-        let upload_url = returned_file
-            .upload_url
-            .clone()
-            .ok_or_else(|| eyre::eyre!("no upload url found in response"))?;
-
-        set.spawn(upload_file(
-            client.clone(),
-            upload_url.into(),
-            file.path.clone(),
-        ));
-    }
-
-    for res in set.join_all().await {
-        let () = res.wrap_err("failed to upload file")?;
-    }
-
-    Ok(())
-}
-
-async fn upload_file(
-    client: reqwest::Client,
-    upload_url: String,
-    path: PathBuf,
-) -> eyre::Result<()> {
-    let body = AsyncFile::open(&path)
-        .await
-        .wrap_err_with(|| format!("failed to open file {}", path.display()))?;
-
-    let metadata = body.metadata().await?;
-
-    let res = client
-        .put(upload_url)
-        .body(body)
-        .header(CONTENT_LENGTH, metadata.len().to_string())
-        .send()
-        .await
-        .wrap_err_with(|| format!("failed to upload file {}", path.display()))?;
-
-    if res.status() != 200 {
-        bail!("failed to upload file {}: {res:?}", path.display());
-    }
-
-    info!("uploaded {}", path.display());
-
-    Ok(())
-}
-
-async fn validate_files(files: &[CreateModelFileParams]) -> eyre::Result<()> {
     for file in files {
         let attr = fs::metadata(&file.path).await.with_context(|| {
             format!("checking file `{}`", file.path.display())
@@ -276,11 +117,22 @@ async fn validate_files(files: &[CreateModelFileParams]) -> eyre::Result<()> {
         if !attr.is_file() {
             bail!("file {} does not exist", file.path.display());
         }
+
+        specs.push(FileSpec {
+            path: file.path.clone(),
+            filename: filename(&file.path)?,
+            size: ByteSize::b(attr.len()),
+            parts: file
+                .parts
+                .iter()
+                .map(|(name, params)| (name.clone(), params.clone()))
+                .collect(),
+        });
     }
 
     if !files.iter().map(|file| file.path.file_name()).all_unique() {
         bail!("all file names must be unique");
     }
 
-    Ok(())
+    Ok(specs)
 }

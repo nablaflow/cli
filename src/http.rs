@@ -6,22 +6,39 @@ use crate::{
 use color_eyre::eyre::{self, WrapErr};
 use reqwest::{Client, header};
 use std::time::Duration;
-use tower::limit::concurrency::ConcurrencyLimitLayer;
 
 static USER_AGENT: &str = concat!("nf-cli", "/", env!("CARGO_PKG_VERSION"),);
 static TOKEN_HEADER: &str = "x-nablaflow-token";
+
+/// Finalising a model keeps the request open until processing is done, which can take up to
+/// 10 minutes.
+const FINALISE_HTTP_TIMEOUT: Duration = Duration::from_mins(15);
 
 pub fn build_aerocloud_client(
     config: &Config,
     args: &Args,
 ) -> eyre::Result<aerocloud::Client> {
+    build_aerocloud_client_with_timeout(config, &args.api_http_timeout())
+}
+
+pub fn build_aerocloud_finalise_client(
+    config: &Config,
+    args: &Args,
+) -> eyre::Result<aerocloud::Client> {
+    build_aerocloud_client_with_timeout(
+        config,
+        &args.api_http_timeout().max(FINALISE_HTTP_TIMEOUT),
+    )
+}
+
+fn build_aerocloud_client_with_timeout(
+    config: &Config,
+    timeout: &Duration,
+) -> eyre::Result<aerocloud::Client> {
     let base_url = config.hostname().join("/aerocloud")?;
 
-    let http_client = build_http_client(
-        Some(config.aerocloud_token_or_fail()?),
-        &args.api_http_timeout(),
-        args.api_request_concurrency,
-    )?;
+    let http_client =
+        build_http_client(Some(config.aerocloud_token_or_fail()?), timeout)?;
 
     Ok(aerocloud::Client::new_with_client(
         base_url.as_ref(),
@@ -30,17 +47,12 @@ pub fn build_aerocloud_client(
 }
 
 pub fn build_file_upload_client(args: &Args) -> eyre::Result<Client> {
-    build_http_client(
-        None,
-        &args.file_upload_http_timeout(),
-        args.file_upload_concurrency,
-    )
+    build_http_client(None, &args.file_upload_http_timeout())
 }
 
 fn build_http_client(
     token: Option<&Token>,
     timeout: &Duration,
-    concurrency_limit: usize,
 ) -> eyre::Result<Client> {
     let mut headers = header::HeaderMap::new();
 
@@ -55,7 +67,6 @@ fn build_http_client(
         .user_agent(USER_AGENT)
         .timeout(*timeout)
         .default_headers(headers)
-        .connector_layer(ConcurrencyLimitLayer::new(concurrency_limit))
         .build()
         .wrap_err("building http client")
 }

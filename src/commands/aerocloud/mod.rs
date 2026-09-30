@@ -160,12 +160,6 @@ pub async fn run(
                 self::v7::wait_for_simulations::run(args, &api_client, ids).await
             }
             AeroCloudV7Command::Batch { root_dir } => {
-                if args.debug && args.log_to_path.is_none() {
-                    eyre::bail!(
-                        "must log to file, otherwise the UI would get corrupted by logs"
-                    );
-                }
-
                 self::v7::batch::run(
                     &api_client,
                     &ModelSubmitter::new(args, &config)?,

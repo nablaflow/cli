@@ -28,21 +28,31 @@ async fn main() -> eyre::Result<()> {
         check_for_new_version();
     }
 
-    let config = Config::load(&args).await?;
+    let result = run(&args).await;
+
+    if let Some(logs) = crate::tracing::log_buffer() {
+        eprintln!("Logs written to `{}`", logs.path().display());
+    }
+
+    result
+}
+
+async fn run(args: &Args) -> eyre::Result<()> {
+    let config = Config::load(args).await?;
 
     match args.scope {
         args::Scope::Config { ref command } => {
-            commands::config::run(&args, config, command).await?;
+            commands::config::run(args, config, command).await?;
         }
         args::Scope::AeroCloud { ref command } => {
-            commands::aerocloud::run(&args, config, command).await?;
+            commands::aerocloud::run(args, config, command).await?;
         }
         args::Scope::GenerateCompletions { shell } => {
             let mut args = Args::command();
             let name = args.get_name().to_string();
             clap_complete::generate(shell, &mut args, name, &mut io::stdout());
         }
-        args::Scope::GenerateManpage { dest } => {
+        args::Scope::GenerateManpage { ref dest } => {
             let cmd = Args::command();
             clap_mangen::generate_to(cmd, dest)?;
         }

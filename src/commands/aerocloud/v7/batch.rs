@@ -4,6 +4,7 @@ use crate::{
         types::{ProjectV7, SimulationV7},
     },
     commands::aerocloud::v7::batch::{
+        log_view::{LogView, LogViewState},
         project_picker::{
             ProjectPicker, ProjectPickerState, refresh_projects_in_background,
         },
@@ -13,6 +14,7 @@ use crate::{
     },
     commands::aerocloud::v7::model_submission::ModelSubmitter,
     fmt::human_err_report,
+    tracing::LogBuffer,
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
@@ -39,12 +41,14 @@ use std::{
     borrow::Cow,
     mem,
     path::{Path, PathBuf},
+    sync::Arc,
     time::Duration,
 };
 use tokio::{sync::mpsc, time};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+mod log_view;
 mod project_picker;
 mod simulation_detail;
 mod simulation_params;
@@ -67,6 +71,9 @@ const MIN_TERM_SIZE: Size = Size::new(110, 38);
 
 const SLEEP_FOR_FEEDBACK: Duration = Duration::from_millis(100);
 
+/// Minimum interval between redraws caused by new log lines.
+const LOG_REDRAW_INTERVAL: Duration = Duration::from_millis(100);
+
 pub async fn run(
     api_client: &Client,
     submitter: &ModelSubmitter,
@@ -87,11 +94,14 @@ pub async fn run(
         vec![]
     };
 
+    let logs = crate::tracing::log_buffer();
+
     let mut app = Batch::new(
         api_client.clone(),
         submitter.clone(),
         root_dir.map(ToOwned::to_owned),
         sims,
+        logs,
     );
 
     let mut terminal = ratatui::init();
@@ -131,6 +141,7 @@ struct Batch {
 
     root_dir: Option<PathBuf>,
     simulations: Vec<SimulationParams>,
+    logs: Option<Arc<LogBuffer>>,
 
     state: State,
 }
@@ -166,6 +177,8 @@ enum State {
         project: Box<ProjectV7>,
         sims_list_state: ListState,
         sim_detail_scrollbar_state: ScrollbarState,
+        /// Overlay on top of any `ActiveState`, so that e.g. submission keeps progressing.
+        log_view: Option<LogViewState>,
     },
 }
 
@@ -182,6 +195,7 @@ pub enum Event {
         internal_id: Uuid,
         res: eyre::Result<Box<SimulationV7>, eyre::Report>,
     },
+    LogsUpdated,
     Exit,
 }
 
@@ -205,12 +219,26 @@ async fn handle_term_events(tx: mpsc::Sender<Event>) -> eyre::Result<()> {
     Ok(())
 }
 
+async fn forward_log_updates(
+    logs: Arc<LogBuffer>,
+    tx: mpsc::Sender<Event>,
+) -> eyre::Result<()> {
+    loop {
+        logs.changed().await;
+        tx.send(Event::LogsUpdated).await?;
+
+        // NOTE: coalesce bursts of lines into a single redraw.
+        time::sleep(LOG_REDRAW_INTERVAL).await;
+    }
+}
+
 impl Batch {
     fn new(
         client: Client,
         submitter: ModelSubmitter,
         root_dir: Option<PathBuf>,
         simulations: Vec<SimulationParams>,
+        logs: Option<Arc<LogBuffer>>,
     ) -> Self {
         Self {
             state: State::Init,
@@ -218,6 +246,7 @@ impl Batch {
             term_size: Size::default(),
             root_dir,
             simulations,
+            logs,
             client,
             submitter,
         }
@@ -230,6 +259,10 @@ impl Batch {
         let (event_tx, mut event_rx) = mpsc::channel(10);
 
         tokio::spawn(handle_term_events(event_tx.clone()));
+
+        if let Some(ref logs) = self.logs {
+            tokio::spawn(forward_log_updates(Arc::clone(logs), event_tx.clone()));
+        }
 
         if matches!(self.state, State::Init) {
             refresh_projects_in_background(self.client.clone(), event_tx.clone());
@@ -274,6 +307,11 @@ impl Batch {
             return Ok(());
         }
 
+        // NOTE: only needs a redraw.
+        if matches!(event, Event::LogsUpdated) {
+            return Ok(());
+        }
+
         match self.state {
             State::Init => {}
             State::PickingProject { ref mut state } => {
@@ -284,6 +322,7 @@ impl Batch {
                         sims_list_state: ListState::default()
                             .with_selected(Some(0)),
                         sim_detail_scrollbar_state: ScrollbarState::default(),
+                        log_view: None,
                     };
                 } else {
                     state.handle_event(event, self.client.clone(), tx).await?;
@@ -308,11 +347,31 @@ impl Batch {
             ref mut state,
             ref mut sims_list_state,
             ref mut sim_detail_scrollbar_state,
-            ..
+            ref mut log_view,
         } = self.state
         else {
             return Ok(());
         };
+
+        // NOTE: while logs are shown they capture all key presses, every other event is still
+        // handled by the underlying state.
+        if let Event::KeyPressed(key_event) = event
+            && let Some(ref logs) = self.logs
+        {
+            if let Some(view) = log_view {
+                if !view.handle_key(key_event, logs) {
+                    *log_view = None;
+                }
+
+                return Ok(());
+            }
+
+            if key_event.code == KeyCode::Char('l') {
+                *log_view = Some(LogViewState::default());
+
+                return Ok(());
+            }
+        }
 
         let mut curr_state = mem::take(state);
         let mut next_state: Option<ActiveState> = None;
@@ -626,11 +685,13 @@ impl Batch {
         StatefulWidget::render(&ProjectPicker, lower, buf, state);
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_state_active(
         state: &ActiveState,
         simulations: &[SimulationParams],
         sims_list_state: &mut ListState,
         sim_detail_scrollbar_state: &mut ScrollbarState,
+        log_view: Option<(&mut LogViewState, &LogBuffer)>,
         area: Rect,
         buf: &mut Buffer,
     ) {
@@ -641,7 +702,13 @@ impl Batch {
         .vertical_margin(1)
         .horizontal_margin(2);
 
-        let [left_area, right_area] = area.layout(&layout);
+        // NOTE: leave the row above the bottom border free for the instructions.
+        let panes_area = Rect {
+            height: area.height.saturating_sub(1),
+            ..area
+        };
+
+        let [left_area, right_area] = panes_area.layout(&layout);
 
         Self::render_sims_list(
             state,
@@ -693,6 +760,16 @@ impl Batch {
                 );
             }
             ActiveState::ViewingList | ActiveState::ViewingDetail => {}
+        }
+
+        if let Some((log_view_state, logs)) = log_view {
+            let area = center(
+                area,
+                Constraint::Percentage(90),
+                Constraint::Percentage(85),
+            );
+
+            StatefulWidget::render(&LogView { logs }, area, buf, log_view_state);
         }
     }
 
@@ -914,28 +991,50 @@ impl Batch {
                 " AeroCloud v7 ".into()
             };
 
-        let instructions = line![
+        let instructions_upper = line![
             " (",
             span!(STYLE_ACCENT; "tab"),
             ") cycle list<->detail | (",
             span!(STYLE_ACCENT; "<space>"),
             ") toggle selection | (",
             span!(STYLE_ACCENT; "ctrl+r"),
-            ") reset submission state | (",
+            ") reset submission state ",
+        ];
+
+        let instructions_lower = line![
+            " (",
             span!(STYLE_ACCENT; "r"),
             ") reload from disk | (",
             span!(STYLE_ACCENT; "ctrl+o"),
             ") submit batch | (",
+            span!(STYLE_ACCENT; "l"),
+            ") logs | (",
             span!(STYLE_ACCENT; "esc"),
             ") quit ",
         ];
 
         let block = Block::bordered()
             .title(line![span!(STYLE_BOLD; title)].centered())
-            .title_bottom(instructions.style(style).centered())
+            .title_bottom(instructions_lower.style(style).centered())
             .border_set(border::THICK);
 
         Widget::render(&block, area, buf);
+
+        // NOTE: a block can only have one line of bottom titles, so render the other on the
+        // row right above the border.
+        if area.height >= 3 {
+            let upper_area = Rect::new(
+                area.x + 1,
+                area.bottom() - 2,
+                area.width.saturating_sub(2),
+                1,
+            );
+
+            instructions_upper
+                .style(style)
+                .centered()
+                .render(upper_area, buf);
+        }
     }
 
     fn render_submitting(
@@ -1046,6 +1145,7 @@ impl Widget for &mut Batch {
                 ref state,
                 ref mut sims_list_state,
                 ref mut sim_detail_scrollbar_state,
+                ref mut log_view,
                 ..
             } => {
                 Batch::render_state_active(
@@ -1053,6 +1153,7 @@ impl Widget for &mut Batch {
                     &self.simulations,
                     sims_list_state,
                     sim_detail_scrollbar_state,
+                    log_view.as_mut().zip(self.logs.as_deref()),
                     area,
                     buf,
                 );

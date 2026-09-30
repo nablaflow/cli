@@ -1,5 +1,9 @@
 # Unreleased
 
+## General
+
+  - Log files written via `--log-to-path` no longer contain ANSI color codes.
+
 ## AeroCloud
 
 ### Breaking changes
@@ -18,6 +22,7 @@
     - Logs no longer get written over the UI when `--log-to-path` is not set.
     - Upload progress stays accurate across retries and failed simulations, and no longer slows uploads down.
     - Improve readability of text inside progress bars.
+    - Press `l` to show logs in a scrollable view that follows new lines as they come in. Logs are also written to a temporary file (unless `--log-to-path` is set), whose path is printed on exit.
 
 # 1.7.0 - 2026-09-23
 

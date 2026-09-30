@@ -9,6 +9,7 @@ use crate::{
             ProjectPicker, ProjectPickerState, refresh_projects_in_background,
         },
         simulation_detail::{SimulationDetail, SimulationDetailState},
+        simulation_list::{SimulationList, SimulationListState},
         simulation_params::{SimulationParams, SubmissionState},
         submit::submit_batch_in_background,
     },
@@ -30,10 +31,10 @@ use ratatui::{
     prelude::Color,
     style::Style,
     symbols::border,
-    text::{Line, Text},
+    text::Text,
     widgets::{
-        Block, Borders, Clear, Gauge, HighlightSpacing, List, ListItem,
-        ListState, Padding, Paragraph, StatefulWidget, Widget, Wrap,
+        Block, Borders, Clear, Gauge, Padding, Paragraph, StatefulWidget, Widget,
+        Wrap,
     },
 };
 use std::{
@@ -50,6 +51,7 @@ use uuid::Uuid;
 mod log_view;
 mod project_picker;
 mod simulation_detail;
+mod simulation_list;
 mod simulation_params;
 mod submit;
 
@@ -174,7 +176,7 @@ enum State {
     Active {
         state: ActiveState,
         project: Box<ProjectV7>,
-        sims_list_state: ListState,
+        sims_list_state: SimulationListState,
         sim_detail_state: SimulationDetailState,
         /// Overlay on top of any `ActiveState`, so that e.g. submission keeps progressing.
         log_view: Option<LogViewState>,
@@ -318,8 +320,7 @@ impl Batch {
                     self.state = State::Active {
                         project,
                         state: ActiveState::ViewingList,
-                        sims_list_state: ListState::default()
-                            .with_selected(Some(0)),
+                        sims_list_state: SimulationListState::default(),
                         sim_detail_state: SimulationDetailState::default(),
                         log_view: None,
                     };
@@ -427,6 +428,12 @@ impl Batch {
                     (KeyCode::Down, _) => {
                         sims_list_state.select_next();
                         sim_detail_state.reset();
+                    }
+                    (KeyCode::Left, _) => {
+                        sims_list_state.pan_left();
+                    }
+                    (KeyCode::Right, _) => {
+                        sims_list_state.pan_right();
                     }
                     (KeyCode::Tab, _) => {
                         next_state = Some(ActiveState::ViewingDetail);
@@ -694,7 +701,7 @@ impl Batch {
     fn render_state_active(
         state: &ActiveState,
         simulations: &[SimulationParams],
-        sims_list_state: &mut ListState,
+        sims_list_state: &mut SimulationListState,
         sim_detail_state: &mut SimulationDetailState,
         log_view: Option<(&mut LogViewState, &LogBuffer)>,
         area: Rect,
@@ -781,7 +788,7 @@ impl Batch {
     fn render_sim_detail(
         state: &ActiveState,
         simulations: &[SimulationParams],
-        sims_list_state: &ListState,
+        sims_list_state: &SimulationListState,
         sim_detail_state: &mut SimulationDetailState,
         area: Rect,
         buf: &mut Buffer,
@@ -803,39 +810,20 @@ impl Batch {
     fn render_sims_list(
         state: &ActiveState,
         simulations: &[SimulationParams],
-        sims_list_state: &mut ListState,
+        sims_list_state: &mut SimulationListState,
         area: Rect,
         buf: &mut Buffer,
     ) {
-        let block = Block::bordered()
-            .title(
-                line![format!(" Simulations ({}) ", simulations.len())]
-                    .centered(),
-            )
-            .border_set(border::PLAIN)
-            .border_style(if matches!(state, ActiveState::ViewingList) {
-                STYLE_NORMAL
-            } else {
-                STYLE_DIMMED
-            })
-            .style(
-                if matches!(
-                    state,
-                    ActiveState::ViewingList | ActiveState::ViewingDetail
-                ) {
-                    STYLE_NORMAL
-                } else {
-                    STYLE_DIMMED
-                },
-            );
+        let list = SimulationList {
+            has_focus: matches!(state, ActiveState::ViewingList),
+            is_dimmed: !matches!(
+                state,
+                ActiveState::ViewingList | ActiveState::ViewingDetail
+            ),
+            sims: simulations,
+        };
 
-        let list = List::new(simulations.iter())
-            .block(block)
-            .highlight_spacing(HighlightSpacing::Always)
-            .highlight_symbol(">> ")
-            .highlight_style(STYLE_ACCENT);
-
-        StatefulWidget::render(list, area, buf, sims_list_state);
+        StatefulWidget::render(&list, area, buf, sims_list_state);
     }
 
     fn render_exit_popup(area: Rect, buf: &mut Buffer) {
@@ -1166,37 +1154,6 @@ impl Widget for &mut Batch {
         }
 
         self.render_template(area, buf);
-    }
-}
-
-impl From<&SimulationParams> for ListItem<'_> {
-    fn from(p: &SimulationParams) -> Self {
-        let style = if p.selected {
-            STYLE_NORMAL
-        } else {
-            STYLE_DIMMED
-        };
-
-        let mut spans = vec![span!(p.params.name.clone()), span!(" ")];
-
-        match p.submission_state {
-            SubmissionState::Ready => {}
-            SubmissionState::Sending => {
-                spans.push(span!(STYLE_WARNING; "(sending...) "));
-            }
-            SubmissionState::Error(..) => {
-                spans.push(span!(STYLE_ERROR; "(error) "));
-            }
-            SubmissionState::Sent { .. } => {
-                spans.push(span!(STYLE_SUCCESS; "(sent) "));
-            }
-        }
-
-        if p.model_params.is_empty() {
-            spans.push(span!(STYLE_ERROR; "(no files) "));
-        }
-
-        ListItem::from(Line::from(spans).style(style))
     }
 }
 

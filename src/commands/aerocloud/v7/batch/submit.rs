@@ -1,46 +1,55 @@
 use crate::{
-    aerocloud::{
-        Client, fmt_progenitor_err, new_idempotency_key,
-        types::{Id, ModelV7, ModelV7FilesItem, SimulationV7},
+    aerocloud::types::{Id, SimulationV7},
+    commands::aerocloud::v7::{
+        batch::{
+            Event,
+            simulation_params::{ModelParams, SimulationParams},
+        },
+        model_submission::{FileSpec, ModelSpec, ModelSubmitter},
     },
-    commands::aerocloud::v7::batch::{
-        Event,
-        simulation_params::{FileParams, ModelParams, SimulationParams},
-    },
+    progress::{ProgressFn, ProgressScope, channel_reporter},
 };
-use bytesize::ByteSize;
-use color_eyre::eyre::{self, WrapErr};
-use futures_util::StreamExt;
-use reqwest::header::CONTENT_LENGTH;
-use std::path::PathBuf;
-use tokio::{fs::File as AsyncFile, sync::mpsc, task::JoinSet};
-use tokio_util::{io::ReaderStream, sync::CancellationToken};
-
-const NOTIFY_UPLOAD_EVERY_BYTES: ByteSize = ByteSize::mb(2);
+use color_eyre::eyre;
+use tokio::sync::mpsc;
+use tokio_util::sync::CancellationToken;
 
 pub fn submit_batch_in_background(
     project_id: &Id,
-    sims: Vec<SimulationParams>,
-    client: &Client,
-    file_upload_client: &reqwest::Client,
+    mut sims: Vec<SimulationParams>,
+    submitter: &ModelSubmitter,
     cancellation_token: &CancellationToken,
     tx: &mpsc::Sender<Event>,
 ) {
+    // Smaller models first, so that they get finalised while larger ones are still uploading.
+    sims.sort_by_key(SimulationParams::files_size);
+
+    let progress = channel_reporter(tx.clone(), Event::UploadProgressed);
+
     for sim in sims {
         let project_id = project_id.clone();
-        let client = client.clone();
-        let file_upload_client = file_upload_client.clone();
+        let submitter = submitter.clone();
         let cancellation_token = cancellation_token.clone();
+        let progress = progress.clone();
         let tx = tx.clone();
 
         tokio::spawn(async move {
             let internal_id = sim.internal_id;
 
+            // NOTE: if the simulation fails, its upload progress gets rolled back and its
+            // files are removed from the total once `SimSubmitted` is received.
+            let scope = ProgressScope::new(progress);
+
             tokio::select! {
                 () = cancellation_token.cancelled() => {
                     tracing::debug!("cancellation token triggered");
                 }
-                res = submit_sim(project_id, sim, client, file_upload_client, tx.clone()) => {
+                res = submit_sim(project_id, sim, &submitter, scope.progress_fn()) => {
+                    if res.is_ok() {
+                        scope.commit();
+                    } else {
+                        drop(scope);
+                    }
+
                     tx.send(Event::SimSubmitted { internal_id, res: res.map(Box::new) }).await?;
                 }
             }
@@ -53,200 +62,37 @@ pub fn submit_batch_in_background(
 async fn submit_sim(
     project_id: Id,
     sim: SimulationParams,
-    client: Client,
-    file_upload_client: reqwest::Client,
-    tx: mpsc::Sender<Event>,
+    submitter: &ModelSubmitter,
+    progress: ProgressFn,
 ) -> eyre::Result<SimulationV7> {
-    let model_id =
-        submit_model_if_needed(&client, &file_upload_client, &sim, tx).await?;
+    let model_id = match &sim.model_params {
+        ModelParams::Existing { model } => model.id.clone(),
+        ModelParams::New { files } => {
+            let spec = ModelSpec {
+                params: sim.clone().into_api_create_model_params().ok_or_else(
+                    || eyre::eyre!("simulation does not define a new model"),
+                )?,
+                files: files
+                    .iter()
+                    .map(|file| FileSpec {
+                        path: file.path.clone(),
+                        filename: file.filename.clone(),
+                        size: file.size,
+                        parts: file
+                            .params
+                            .parts
+                            .iter()
+                            .map(|(name, params)| (name.clone(), params.clone()))
+                            .collect(),
+                    })
+                    .collect(),
+            };
 
-    let sim = client
-        .simulations_v7_create(
-            &new_idempotency_key(),
-            &sim.into_api_params(model_id, project_id),
-        )
-        .await
-        .map_err(fmt_progenitor_err)?
-        .into_inner();
-
-    Ok(sim)
-}
-
-async fn submit_model_if_needed(
-    client: &Client,
-    file_upload_client: &reqwest::Client,
-    sim: &SimulationParams,
-    tx: mpsc::Sender<Event>,
-) -> eyre::Result<Id> {
-    match &sim.model_params {
-        ModelParams::Existing { model } => Ok(model.id.clone()),
-        ModelParams::New { files: model_files } => {
-            let ModelV7 {
-                id: model_id,
-                files,
-                ..
-            } = client
-                .models_v7_create(
-                    &new_idempotency_key(),
-                    &sim.clone().into_api_create_model_params().unwrap(),
-                )
-                .await
-                .map_err(fmt_progenitor_err)?
-                .into_inner();
-
-            upload_files(file_upload_client, &files, model_files, &tx)
-                .await
-                .wrap_err("uploading files")?;
-
-            let ModelV7 { files, .. } = client
-                .models_v7_finalise(&model_id, &new_idempotency_key())
-                .await
-                .map_err(fmt_progenitor_err)?
-                .into_inner();
-
-            update_parts(client, &model_id, &files, model_files)
-                .await
-                .wrap_err("updating parts")?;
-
-            Ok(model_id)
-        }
-    }
-}
-
-async fn upload_files(
-    client: &reqwest::Client,
-    files: &[ModelV7FilesItem],
-    params: &[FileParams],
-    tx: &mpsc::Sender<Event>,
-) -> eyre::Result<()> {
-    let mut set = JoinSet::new();
-
-    for file_params in params {
-        let Some(returned_file) =
-            files.iter().find(|f| f.name == file_params.filename)
-        else {
-            eyre::bail!("file in given params was not returned from the server");
-        };
-
-        let Some(ref upload_url) = returned_file.upload_url else {
-            eyre::bail!("no upload url found in response");
-        };
-
-        set.spawn(upload_file(
-            file_params.size,
-            upload_url.0.clone(),
-            file_params.path.clone(),
-            client.clone(),
-            tx.clone(),
-        ));
-    }
-
-    for res in set.join_all().await {
-        let () = res.wrap_err("failed to upload file")?;
-    }
-
-    Ok(())
-}
-
-async fn upload_file(
-    size: ByteSize,
-    upload_url: String,
-    path: PathBuf,
-    client: reqwest::Client,
-    tx: mpsc::Sender<Event>,
-) -> eyre::Result<()> {
-    let file = AsyncFile::open(&path)
-        .await
-        .wrap_err_with(|| format!("opening `{}`", path.display()))?;
-
-    let mut reader_stream = ReaderStream::new(file);
-
-    let async_stream = async_stream::stream! {
-        let mut sent_until_last_notification = ByteSize::default();
-
-        while let Some(chunk) = reader_stream.next().await {
-            if let Ok(chunk) = &chunk {
-                sent_until_last_notification += ByteSize::b(chunk.len() as u64);
-
-                if sent_until_last_notification >= NOTIFY_UPLOAD_EVERY_BYTES {
-                    let _ = tx.send(Event::FileUploaded(sent_until_last_notification)).await;
-                    sent_until_last_notification = ByteSize::default();
-                }
-            }
-
-            yield chunk;
+            submitter.submit_model(spec, progress).await?
         }
     };
 
-    let res = client
-        .put(upload_url)
-        .body(reqwest::Body::wrap_stream(async_stream))
-        .header(CONTENT_LENGTH, size.0.to_string())
-        .send()
+    submitter
+        .create_simulation(&sim.into_api_params(model_id, project_id))
         .await
-        .wrap_err_with(|| format!("uploading `{}`", path.display()))?;
-
-    if res.status() != 200 {
-        eyre::bail!("failed to upload `{}`: {res:?}", path.display());
-    }
-
-    tracing::debug!("uploaded {}", path.display());
-
-    Ok(())
-}
-
-async fn update_parts(
-    client: &Client,
-    model_id: &Id,
-    files: &[ModelV7FilesItem],
-    params: &[FileParams],
-) -> eyre::Result<()> {
-    let mut set = JoinSet::new();
-
-    for file_params in params {
-        let Some(returned_file) =
-            files.iter().find(|f| f.name == file_params.filename)
-        else {
-            eyre::bail!("file in given params was not returned from the server");
-        };
-
-        for (part_name, part_params) in &file_params.params.parts {
-            let Some(part_id) = returned_file
-                .parts
-                .iter()
-                .find(|part| part.name == *part_name)
-                .map(|part| &part.id)
-            else {
-                eyre::bail!(
-                    "part named `{part_name}` was not found in uploaded file `{}`",
-                    file_params.path.display()
-                );
-            };
-
-            let client = client.clone();
-            let model_id = model_id.clone();
-            let part_params = part_params.clone();
-            let part_id = part_id.clone();
-
-            let path = file_params.path.clone();
-
-            set.spawn(async move {
-                client
-                    .parts_v7_update(&model_id, &part_id, &part_params)
-                    .await
-                    .map_err(fmt_progenitor_err)
-                    .map(|_| {
-                        tracing::debug!(
-                            "updated part `{part_id}` for file `{}` with {part_params:?}", path.display()
-                        );
-                    })
-            });
-        }
-    }
-
-    for res in set.join_all().await {
-        let () = res.wrap_err("failed to update part")?;
-    }
-
-    Ok(())
 }

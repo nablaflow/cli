@@ -1,5 +1,6 @@
 use crate::{
     args::{AeroCloudScope, AeroCloudV6Command, AeroCloudV7Command, Args},
+    commands::aerocloud::v7::model_submission::ModelSubmitter,
     config::Config,
     http,
 };
@@ -24,9 +25,6 @@ pub async fn run(
 
     let api_client = http::build_aerocloud_client(&config, args)
         .context("building api client")?;
-
-    let file_upload_client = http::build_file_upload_client(args)
-        .context("building file upload client")?;
 
     match subcommand {
         AeroCloudScope::SetAuthToken { .. } => Ok(()),
@@ -125,8 +123,7 @@ pub async fn run(
             AeroCloudV7Command::CreateModel { params } => {
                 self::v7::create_model::run(
                     args,
-                    &api_client,
-                    &file_upload_client,
+                    &ModelSubmitter::new(args, &config)?,
                     &params
                         .clone()
                         .contents()
@@ -171,7 +168,7 @@ pub async fn run(
 
                 self::v7::batch::run(
                     &api_client,
-                    &file_upload_client,
+                    &ModelSubmitter::new(args, &config)?,
                     root_dir.as_ref().map(PathBuf::as_path),
                 )
                 .await

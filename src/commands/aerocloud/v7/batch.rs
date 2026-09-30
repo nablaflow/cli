@@ -11,6 +11,7 @@ use crate::{
         simulation_params::{SimulationParams, SubmissionState},
         submit::submit_batch_in_background,
     },
+    commands::aerocloud::v7::model_submission::ModelSubmitter,
     fmt::human_err_report,
 };
 use bytesize::ByteSize;
@@ -66,7 +67,7 @@ const SLEEP_FOR_FEEDBACK: Duration = Duration::from_millis(100);
 
 pub async fn run(
     api_client: &Client,
-    file_upload_client: &reqwest::Client,
+    submitter: &ModelSubmitter,
     root_dir: Option<&Path>,
 ) -> eyre::Result<()> {
     let sims = if let Some(root_dir) = root_dir {
@@ -86,7 +87,7 @@ pub async fn run(
 
     let mut app = Batch::new(
         api_client.clone(),
-        file_upload_client.clone(),
+        submitter.clone(),
         root_dir.map(ToOwned::to_owned),
         sims,
     );
@@ -121,7 +122,7 @@ pub fn refresh_sims_in_background(
 #[derive(Debug)]
 struct Batch {
     client: Client,
-    file_upload_client: reqwest::Client,
+    submitter: ModelSubmitter,
 
     running: bool,
     term_size: Size,
@@ -173,7 +174,7 @@ pub enum Event {
     ProjectsLoading,
     ProjectsUpdated(eyre::Result<Vec<ProjectV7>>),
     ProjectSelected(Box<ProjectV7>),
-    FileUploaded(ByteSize),
+    UploadProgressed(i64),
     SimsReloaded(eyre::Result<Vec<SimulationParams>>),
     SimSubmitted {
         internal_id: Uuid,
@@ -205,7 +206,7 @@ async fn handle_term_events(tx: mpsc::Sender<Event>) -> eyre::Result<()> {
 impl Batch {
     fn new(
         client: Client,
-        file_upload_client: reqwest::Client,
+        submitter: ModelSubmitter,
         root_dir: Option<PathBuf>,
         simulations: Vec<SimulationParams>,
     ) -> Self {
@@ -216,7 +217,7 @@ impl Batch {
             root_dir,
             simulations,
             client,
-            file_upload_client,
+            submitter,
         }
     }
 
@@ -473,8 +474,7 @@ impl Batch {
                         submit_batch_in_background(
                             &project.id,
                             sims_to_submit,
-                            &self.client,
-                            &self.file_upload_client,
+                            &self.submitter,
                             &cancellation_token,
                             tx,
                         );
@@ -538,14 +538,16 @@ impl Batch {
             }
             (
                 ActiveState::Submitting { bytes_progress, .. },
-                Event::FileUploaded(size),
+                Event::UploadProgressed(delta),
             ) => {
-                *bytes_progress += size;
+                *bytes_progress =
+                    ByteSize::b(bytes_progress.0.saturating_add_signed(delta));
             }
             (
                 ActiveState::Submitting {
                     sims_progress,
                     sims_count,
+                    bytes_count,
                     ..
                 },
                 Event::SimSubmitted { internal_id, res },
@@ -561,6 +563,13 @@ impl Batch {
                             browser_url: sim.browser_url.clone(),
                         },
                         Err(err) => {
+                            // NOTE: its upload progress has been rolled back already.
+                            *bytes_count = ByteSize::b(
+                                bytes_count
+                                    .0
+                                    .saturating_sub(sim_params.files_size().0),
+                            );
+
                             SubmissionState::Error(human_err_report(&err))
                         }
                     };

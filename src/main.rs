@@ -10,7 +10,10 @@ mod commands;
 mod config;
 mod fmt;
 mod http;
+mod progress;
+mod retry;
 mod tracing;
+mod upload;
 mod utils;
 
 #[tokio::main(flavor = "current_thread")]

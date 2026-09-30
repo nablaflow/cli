@@ -53,10 +53,12 @@ mod submit;
 // Made using https://budavariam.github.io/asciiart-text/multi variant `ANSI Shadow`
 const LOGO_ASCII_ART: &str = include_str!("../../../aerocloud/logo.txt");
 
+const COLOR_ACCENT: Color = Color::Rgb(0xff, 0xbc, 0x00);
+
 const STYLE_NORMAL: Style = Style::new();
 const STYLE_DIMMED: Style = Style::new().dim();
 const STYLE_BOLD: Style = Style::new().bold();
-const STYLE_ACCENT: Style = Style::new().fg(Color::Rgb(0xff, 0xbc, 0x00)).bold();
+const STYLE_ACCENT: Style = Style::new().fg(COLOR_ACCENT).bold();
 const STYLE_SUCCESS: Style = Style::new().green().bold();
 const STYLE_ERROR: Style = Style::new().red().bold();
 const STYLE_WARNING: Style = Style::new().yellow().bold();
@@ -980,6 +982,7 @@ impl Batch {
             })
             .label(span!(STYLE_BOLD; format!("{bytes_progress}/{bytes_count}")))
             .render(upper, buf);
+        darken_label_over_filled_gauge(upper, buf);
 
         #[allow(clippy::cast_precision_loss)]
         Gauge::default()
@@ -993,6 +996,7 @@ impl Batch {
             .ratio(sims_progress as f64 / sims_count as f64)
             .label(span!(STYLE_BOLD; format!("{sims_progress}/{sims_count}")))
             .render(lower, buf);
+        darken_label_over_filled_gauge(lower, buf);
     }
 
     const fn is_term_size_not_enough(&self) -> bool {
@@ -1096,4 +1100,18 @@ fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
         .areas(area);
     let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
     area
+}
+
+/// `Gauge` swaps fg/bg for label cells over the filled part, leaving the text in
+/// the terminal's default fg (usually white) on top of the accent color, which is
+/// hard to read. Those are the only cells with an accent background, so force
+/// their text to black.
+fn darken_label_over_filled_gauge(area: Rect, buf: &mut Buffer) {
+    for pos in area.positions() {
+        let cell = &mut buf[pos];
+
+        if cell.bg == COLOR_ACCENT {
+            cell.set_fg(Color::Black);
+        }
+    }
 }

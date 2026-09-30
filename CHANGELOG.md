@@ -10,12 +10,14 @@
 
 ### Improvements
 
-  - `v7 create-model` and `v7 batch`: small files upload in parallel, large ones sequentially. Each model is finalised as soon as its own files are uploaded, in parallel with other uploads, and its simulation is created right after.
   - Retry failed uploads and API requests with exponential backoff. Every upload attempt fetches a fresh upload url, so queued uploads no longer fail on expired urls.
   - Finalising a model has its own 15 minute HTTP timeout.
   - Read files in 1MiB chunks when uploading.
-  - `v7 batch`: logs no longer get written over the UI when `--log-to-path` is not set.
-  - `v7 batch`: upload progress stays accurate across retries and failed simulations, and no longer slows uploads down.
+  - `v7 create-model` and `v7 batch`: small files upload in parallel, large ones sequentially. Each model is finalised as soon as its own files are uploaded, in parallel with other uploads, and its simulation is created right after.
+  - `v7 batch`:
+    - Logs no longer get written over the UI when `--log-to-path` is not set.
+    - Upload progress stays accurate across retries and failed simulations, and no longer slows uploads down.
+    - Improve readability of text inside progress bars.
 
 # 1.7.0 - 2026-09-23
 

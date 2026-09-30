@@ -12,8 +12,8 @@ use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
+    macros::{line, span},
     symbols::border,
-    text::{Line, Span},
     widgets::{
         Block, Cell, Clear, HighlightSpacing, Paragraph, Row, StatefulWidget,
         Table, TableState, Widget, Wrap,
@@ -159,22 +159,19 @@ impl StatefulWidget for &ProjectPicker {
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         Clear.render(area, buf);
 
-        let title =
-            Line::from(Span::style(" Select a project ".into(), STYLE_BOLD));
+        let title = line![span!(STYLE_BOLD; " Select a project ")];
 
-        let instructions = Line::from(vec![
-            " (".into(),
-            Span::style("esc".into(), STYLE_ACCENT),
-            ") quit | (".into(),
-            Span::style("↑".into(), STYLE_ACCENT),
-            ") move up | (".into(),
-            Span::style("↓".into(), STYLE_ACCENT),
-            ") move down | (".into(),
-            Span::style("enter".into(), STYLE_ACCENT),
-            ") select | (".into(),
-            Span::style("r".into(), STYLE_ACCENT),
-            ") refresh ".into(),
-        ]);
+        let instructions = line![
+            " (",
+            span!(STYLE_ACCENT; "esc"),
+            ") quit | (",
+            span!(STYLE_ACCENT; "↑/↓"),
+            ") scroll | (",
+            span!(STYLE_ACCENT; "enter"),
+            ") select | (",
+            span!(STYLE_ACCENT; "r"),
+            ") refresh ",
+        ];
 
         let main_block = Block::bordered()
             .title(title.centered())
@@ -187,7 +184,7 @@ impl StatefulWidget for &ProjectPicker {
                     .inner(area)
                     .centered_vertically(Constraint::Percentage(20));
 
-                Line::from(Span::styled("Loading...", STYLE_BOLD))
+                line![span!(STYLE_BOLD; "Loading...")]
                     .centered()
                     .render(inner_area, buf);
 
@@ -198,13 +195,10 @@ impl StatefulWidget for &ProjectPicker {
                     .inner(area)
                     .centered_vertically(Constraint::Percentage(20));
 
-                Paragraph::new(Span::styled(
-                    format!("Failed: {err}"),
-                    STYLE_ERROR,
-                ))
-                .wrap(Wrap { trim: true })
-                .centered()
-                .render(inner_area, buf);
+                Paragraph::new(span!(STYLE_ERROR; format!("Failed: {err}")))
+                    .wrap(Wrap { trim: true })
+                    .centered()
+                    .render(inner_area, buf);
 
                 main_block.render(area, buf);
             }
@@ -217,8 +211,8 @@ impl StatefulWidget for &ProjectPicker {
                 let table = Table::new(projects.iter(), widths)
                     .header(
                         Row::new(vec![
-                            Cell::from(Span::styled("Name", STYLE_BOLD)),
-                            Cell::from(Span::styled("Created at", STYLE_BOLD)),
+                            Cell::from(span!(STYLE_BOLD; "Name")),
+                            Cell::from(span!(STYLE_BOLD; "Created at")),
                         ])
                         .top_margin(1)
                         .bottom_margin(1),

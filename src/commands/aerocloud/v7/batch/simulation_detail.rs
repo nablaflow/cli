@@ -17,6 +17,7 @@ use itertools::Itertools;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
+    macros::{line, span},
     symbols::border,
     text::{Line, Span, Text},
     widgets::{
@@ -25,6 +26,38 @@ use ratatui::{
     },
 };
 use std::borrow::Cow;
+
+const HORIZONTAL_SCROLL_STEP: u16 = 8;
+
+#[derive(Debug, Default)]
+pub struct SimulationDetailState {
+    scrollbar: ScrollbarState,
+    left: u16,
+}
+
+impl SimulationDetailState {
+    /// Scrolls back to the top-left corner, e.g. when another simulation is selected.
+    pub fn reset(&mut self) {
+        self.scrollbar.first();
+        self.left = 0;
+    }
+
+    pub fn scroll_up(&mut self) {
+        self.scrollbar.prev();
+    }
+
+    pub fn scroll_down(&mut self) {
+        self.scrollbar.next();
+    }
+
+    pub const fn pan_left(&mut self) {
+        self.left = self.left.saturating_sub(HORIZONTAL_SCROLL_STEP);
+    }
+
+    pub const fn pan_right(&mut self) {
+        self.left = self.left.saturating_add(HORIZONTAL_SCROLL_STEP);
+    }
+}
 
 pub struct SimulationDetail<'a> {
     pub has_focus: bool,
@@ -36,7 +69,7 @@ impl<'a> SimulationDetail<'a> {
     const GENERIC_TITLE: &'static str = " Params ";
 
     fn block(&self) -> Block<'_> {
-        Block::bordered()
+        let block = Block::bordered()
             .title(Line::from(self.block_title()).centered())
             .border_set(border::PLAIN)
             .border_style(if self.has_focus {
@@ -48,7 +81,25 @@ impl<'a> SimulationDetail<'a> {
                 STYLE_DIMMED
             } else {
                 STYLE_NORMAL
-            })
+            });
+
+        if self.has_focus && self.sim.is_some() {
+            block.title_bottom(Self::instructions().centered())
+        } else {
+            block
+        }
+    }
+
+    fn instructions() -> Line<'static> {
+        line![
+            " (",
+            span!(STYLE_ACCENT; "↑/↓"),
+            ") scroll | (",
+            span!(STYLE_ACCENT; "←/→"),
+            ") pan | (",
+            span!(STYLE_ACCENT; "shift+↑/↓"),
+            ") prev/next sim ",
+        ]
     }
 
     fn block_title(&self) -> Cow<'_, str> {
@@ -504,14 +555,9 @@ impl<'a> SimulationDetail<'a> {
 }
 
 impl StatefulWidget for &SimulationDetail<'_> {
-    type State = ScrollbarState;
+    type State = SimulationDetailState;
 
-    fn render(
-        self,
-        area: Rect,
-        buf: &mut Buffer,
-        scrollbar_state: &mut Self::State,
-    ) {
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let block = self.block();
 
         let Some(sim) = self.sim else {
@@ -539,19 +585,26 @@ impl StatefulWidget for &SimulationDetail<'_> {
             }
         }
 
-        *scrollbar_state = scrollbar_state.content_length(lines.len());
+        state.scrollbar = state.scrollbar.content_length(lines.len());
+
+        // NOTE: stop panning once the longest line is fully visible.
+        let max_width = lines.iter().map(Line::width).max().unwrap_or(0);
+        let max_left = u16::try_from(max_width)
+            .unwrap_or(u16::MAX)
+            .saturating_sub(block.inner(area).width);
+        state.left = state.left.min(max_left);
 
         Paragraph::new(lines)
             .scroll((
-                u16::try_from(scrollbar_state.get_position()).unwrap_or(0),
-                0,
+                u16::try_from(state.scrollbar.get_position()).unwrap_or(0),
+                state.left,
             ))
             .block(block)
             .render(area, buf);
 
         let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight);
 
-        StatefulWidget::render(scrollbar, area, buf, scrollbar_state);
+        StatefulWidget::render(scrollbar, area, buf, &mut state.scrollbar);
     }
 }
 

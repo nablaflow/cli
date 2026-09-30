@@ -8,7 +8,7 @@ use crate::{
         project_picker::{
             ProjectPicker, ProjectPickerState, refresh_projects_in_background,
         },
-        simulation_detail::SimulationDetail,
+        simulation_detail::{SimulationDetail, SimulationDetailState},
         simulation_params::{SimulationParams, SubmissionState},
         submit::submit_batch_in_background,
     },
@@ -33,8 +33,7 @@ use ratatui::{
     text::{Line, Text},
     widgets::{
         Block, Borders, Clear, Gauge, HighlightSpacing, List, ListItem,
-        ListState, Padding, Paragraph, ScrollbarState, StatefulWidget, Widget,
-        Wrap,
+        ListState, Padding, Paragraph, StatefulWidget, Widget, Wrap,
     },
 };
 use std::{
@@ -176,7 +175,7 @@ enum State {
         state: ActiveState,
         project: Box<ProjectV7>,
         sims_list_state: ListState,
-        sim_detail_scrollbar_state: ScrollbarState,
+        sim_detail_state: SimulationDetailState,
         /// Overlay on top of any `ActiveState`, so that e.g. submission keeps progressing.
         log_view: Option<LogViewState>,
     },
@@ -321,7 +320,7 @@ impl Batch {
                         state: ActiveState::ViewingList,
                         sims_list_state: ListState::default()
                             .with_selected(Some(0)),
-                        sim_detail_scrollbar_state: ScrollbarState::default(),
+                        sim_detail_state: SimulationDetailState::default(),
                         log_view: None,
                     };
                 } else {
@@ -346,7 +345,7 @@ impl Batch {
             ref project,
             ref mut state,
             ref mut sims_list_state,
-            ref mut sim_detail_scrollbar_state,
+            ref mut sim_detail_state,
             ref mut log_view,
         } = self.state
         else {
@@ -423,11 +422,11 @@ impl Batch {
                     }
                     (KeyCode::Up, _) => {
                         sims_list_state.select_previous();
-                        sim_detail_scrollbar_state.first();
+                        sim_detail_state.reset();
                     }
                     (KeyCode::Down, _) => {
                         sims_list_state.select_next();
-                        sim_detail_scrollbar_state.first();
+                        sim_detail_state.reset();
                     }
                     (KeyCode::Tab, _) => {
                         next_state = Some(ActiveState::ViewingDetail);
@@ -481,17 +480,23 @@ impl Batch {
                     }
                     (KeyCode::Up, KeyModifiers::SHIFT) => {
                         sims_list_state.select_previous();
-                        sim_detail_scrollbar_state.first();
+                        sim_detail_state.reset();
                     }
                     (KeyCode::Down, KeyModifiers::SHIFT) => {
                         sims_list_state.select_next();
-                        sim_detail_scrollbar_state.first();
+                        sim_detail_state.reset();
                     }
                     (KeyCode::Up, _) => {
-                        sim_detail_scrollbar_state.prev();
+                        sim_detail_state.scroll_up();
                     }
                     (KeyCode::Down, _) => {
-                        sim_detail_scrollbar_state.next();
+                        sim_detail_state.scroll_down();
+                    }
+                    (KeyCode::Left, _) => {
+                        sim_detail_state.pan_left();
+                    }
+                    (KeyCode::Right, _) => {
+                        sim_detail_state.pan_right();
                     }
                     (KeyCode::Tab, _) => {
                         next_state = Some(ActiveState::ViewingList);
@@ -690,7 +695,7 @@ impl Batch {
         state: &ActiveState,
         simulations: &[SimulationParams],
         sims_list_state: &mut ListState,
-        sim_detail_scrollbar_state: &mut ScrollbarState,
+        sim_detail_state: &mut SimulationDetailState,
         log_view: Option<(&mut LogViewState, &LogBuffer)>,
         area: Rect,
         buf: &mut Buffer,
@@ -722,7 +727,7 @@ impl Batch {
             state,
             simulations,
             sims_list_state,
-            sim_detail_scrollbar_state,
+            sim_detail_state,
             right_area,
             buf,
         );
@@ -777,7 +782,7 @@ impl Batch {
         state: &ActiveState,
         simulations: &[SimulationParams],
         sims_list_state: &ListState,
-        sim_detail_scrollbar_state: &mut ScrollbarState,
+        sim_detail_state: &mut SimulationDetailState,
         area: Rect,
         buf: &mut Buffer,
     ) {
@@ -792,7 +797,7 @@ impl Batch {
                 .and_then(|idx| simulations.get(idx)),
         };
 
-        StatefulWidget::render(&detail, area, buf, sim_detail_scrollbar_state);
+        StatefulWidget::render(&detail, area, buf, sim_detail_state);
     }
 
     fn render_sims_list(
@@ -1144,7 +1149,7 @@ impl Widget for &mut Batch {
             State::Active {
                 ref state,
                 ref mut sims_list_state,
-                ref mut sim_detail_scrollbar_state,
+                ref mut sim_detail_state,
                 ref mut log_view,
                 ..
             } => {
@@ -1152,7 +1157,7 @@ impl Widget for &mut Batch {
                     state,
                     &self.simulations,
                     sims_list_state,
-                    sim_detail_scrollbar_state,
+                    sim_detail_state,
                     log_view.as_mut().zip(self.logs.as_deref()),
                     area,
                     buf,

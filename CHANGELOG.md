@@ -23,6 +23,7 @@
     - Upload progress stays accurate across retries and failed simulations, and no longer slows uploads down.
     - Improve readability of text inside progress bars.
     - Press `l` to show logs in a scrollable view that follows new lines as they come in. Logs are also written to a temporary file (unless `--log-to-path` is set), whose path is printed on exit.
+    - Pan the simulation detail pane horizontally with `←/→` when it has focus. Its key bindings are now shown at the bottom of the pane while focused.
 
 # 1.7.0 - 2026-09-23
 

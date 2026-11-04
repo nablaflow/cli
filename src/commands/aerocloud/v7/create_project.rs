@@ -21,6 +21,7 @@ pub async fn run(
             &CreateProjectV7Params {
                 name: name.into(),
                 description: description.map(ToOwned::to_owned),
+                members: vec![],
             },
         )
         .await

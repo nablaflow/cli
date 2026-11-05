@@ -1,4 +1,5 @@
 use crate::args::Args;
+use clap::parser::ValueSource;
 use color_eyre::eyre::{self, WrapErr};
 use reqwest::Url;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -8,6 +9,14 @@ use tokio::fs as tokio_fs;
 pub const DEFAULT_HOSTNAME: &str = "https://api.nablaflow.io";
 
 pub type Token = String;
+
+/// Where the `AeroCloud` token in use came from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TokenSource {
+    Flag,
+    Env,
+    ConfigFile(PathBuf),
+}
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Config {
@@ -21,6 +30,9 @@ pub struct Config {
         default
     )]
     pub hostname: Option<Url>,
+
+    #[serde(skip)]
+    pub aerocloud_token_source: Option<TokenSource>,
 }
 
 impl Config {
@@ -31,6 +43,17 @@ impl Config {
     pub async fn load(args: &Args) -> eyre::Result<Self> {
         let mut config = Self::load_from_path(&args.config_path).await?;
 
+        config.aerocloud_token_source = if args.aerocloud_auth_token.is_some() {
+            Some(match args.aerocloud_auth_token_source {
+                Some(ValueSource::EnvVariable) => TokenSource::Env,
+                _ => TokenSource::Flag,
+            })
+        } else {
+            config
+                .aerocloud_token
+                .as_ref()
+                .map(|_| TokenSource::ConfigFile(args.config_path.clone()))
+        };
         config.aerocloud_token =
             args.aerocloud_auth_token.clone().or(config.aerocloud_token);
         config.hostname = args.hostname.clone().or(config.hostname);

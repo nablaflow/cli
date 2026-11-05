@@ -1,5 +1,5 @@
 use crate::{args::Args, config::Config};
-use clap::{CommandFactory, Parser};
+use clap::CommandFactory;
 use color_eyre::eyre::{self, WrapErr};
 use std::io;
 use update_informer::{Check, registry};
@@ -20,7 +20,7 @@ mod utils;
 async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
 
-    let args = Args::parse();
+    let args = Args::parse_with_sources();
 
     crate::tracing::init(&args).wrap_err("initializing tracing")?;
 
@@ -45,7 +45,13 @@ async fn run(args: &Args) -> eyre::Result<()> {
             commands::config::run(args, config, command).await?;
         }
         args::Scope::AeroCloud { ref command } => {
-            commands::aerocloud::run(args, config, command).await?;
+            let token_source = config.aerocloud_token_source.clone();
+
+            commands::aerocloud::run(args, config, command)
+                .await
+                .map_err(|err| {
+                    aerocloud::with_token_hint(err, token_source.as_ref())
+                })?;
         }
         args::Scope::GenerateCompletions { shell } => {
             let mut args = Args::command();

@@ -11,12 +11,16 @@
 )]
 
 use crate::{
-    aerocloud::types::{IdempotencyKey, JsonErrorResponse},
+    aerocloud::types::{
+        IdempotencyKey, JsonErrorResponse, JsonErrorResponseErrorsItem,
+    },
+    config::TokenSource,
     retry::{self, Failure},
     utils::new_dynamic_table,
 };
-use color_eyre::eyre::Report;
+use color_eyre::{Section, eyre::Report};
 use reqwest::StatusCode;
+use serde::Deserialize;
 use uuid::Uuid;
 
 pub mod extra_types;
@@ -40,55 +44,136 @@ impl From<Error<JsonErrorResponse>> for ApiError {
     }
 }
 
+/// Error body returned by the auth gateway (Oathkeeper) in front of the API, e.g. for
+/// invalid or expired tokens. It does not match [`JsonErrorResponse`], so it fails to parse.
+#[derive(Deserialize)]
+struct GatewayErrorResponse {
+    error: GatewayError,
+}
+
+#[derive(Deserialize)]
+struct GatewayError {
+    code: u16,
+    message: String,
+}
+
 impl ApiError {
     pub fn status(&self) -> Option<StatusCode> {
-        self.0.status()
+        self.0
+            .status()
+            .or_else(|| self.gateway_error().map(|(status, _)| status))
+    }
+
+    fn gateway_error(&self) -> Option<(StatusCode, String)> {
+        let Error::InvalidResponsePayload(ref body, _) = *self.0 else {
+            return None;
+        };
+
+        let GatewayErrorResponse { error } = serde_json::from_slice(body).ok()?;
+
+        Some((StatusCode::from_u16(error.code).ok()?, error.message))
     }
 }
 
 impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Error::ErrorResponse(ref res) = *self.0 else {
-            return self.0.fmt(f);
-        };
-
-        let status = res.status();
-        let errors = &res.errors;
-
-        // Errors that do not point to an attribute are about the whole request.
-        if errors
-            .iter()
-            .all(|e| matches!(e.source.pointer.as_str(), "" | "/"))
-        {
-            let details = errors
-                .iter()
-                .map(|e| e.detail.as_str())
-                .collect::<Vec<_>>()
-                .join("; ");
-
-            return if details.is_empty() {
-                write!(f, "API responded with {status}")
-            } else {
-                write!(f, "API responded with {status}: {details}")
-            };
+        if let Some((status, message)) = self.gateway_error() {
+            return write!(f, "API responded with {status}: {message}");
         }
 
-        let mut table = new_dynamic_table();
-        table.set_header(vec!["Attribute", "Reason"]);
-
-        for error in errors {
-            table.add_row(vec![&error.source.pointer, &error.detail]);
+        match *self.0 {
+            Error::ErrorResponse(ref res) => {
+                fmt_error_response(f, res.status(), &res.errors)
+            }
+            Error::UnexpectedResponse(ref res) => {
+                write!(f, "API responded with {}", res.status())
+            }
+            _ => self.0.fmt(f),
         }
-
-        write!(f, "API responded with {status}:\n{table}")
     }
+}
+
+fn fmt_error_response(
+    f: &mut std::fmt::Formatter<'_>,
+    status: StatusCode,
+    errors: &[JsonErrorResponseErrorsItem],
+) -> std::fmt::Result {
+    // Errors that do not point to an attribute are about the whole request.
+    if errors
+        .iter()
+        .all(|e| matches!(e.source.pointer.as_str(), "" | "/"))
+    {
+        let details = errors
+            .iter()
+            .map(|e| e.detail.as_str())
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        return if details.is_empty() {
+            write!(f, "API responded with {status}")
+        } else {
+            write!(f, "API responded with {status}: {details}")
+        };
+    }
+
+    let mut table = new_dynamic_table();
+    table.set_header(vec!["Attribute", "Reason"]);
+
+    for error in errors {
+        table.add_row(vec![&error.source.pointer, &error.detail]);
+    }
+
+    write!(f, "API responded with {status}:\n{table}")
 }
 
 impl std::error::Error for ApiError {
     // Skips the wrapped error itself, its message would repeat this one.
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        if self.gateway_error().is_some() {
+            // The parsing error is expected, not a cause worth showing.
+            return None;
+        }
+
         self.0.source()
     }
+}
+
+/// Suggests how to replace the token when the API rejected it.
+pub fn with_token_hint(report: Report, source: Option<&TokenSource>) -> Report {
+    match source {
+        Some(source) if is_unauthorized(&report) => {
+            report.suggestion(token_hint(source))
+        }
+        _ => report,
+    }
+}
+
+fn is_unauthorized(report: &Report) -> bool {
+    report
+        .chain()
+        .filter_map(|err| err.downcast_ref::<ApiError>())
+        .any(|err| err.status() == Some(StatusCode::UNAUTHORIZED))
+}
+
+fn token_hint(source: &TokenSource) -> String {
+    let (origin, fix) = match source {
+        TokenSource::Flag => (
+            "passed with `--aerocloud-auth-token`".to_owned(),
+            "pass it instead",
+        ),
+        TokenSource::Env => (
+            "set in `NF_AEROCLOUD_AUTH_TOKEN`".to_owned(),
+            "update the variable",
+        ),
+        TokenSource::ConfigFile(path) => (
+            format!("stored in `{}`", path.display()),
+            "save it with `nf aerocloud set-auth-token`",
+        ),
+    };
+
+    format!(
+        "The auth token {origin} is invalid or expired.\n            Generate a new one at {NEW_TOKEN_URL} and {fix}."
+    )
 }
 
 pub fn fmt_progenitor_err(err: Error<JsonErrorResponse>) -> Report {
@@ -124,12 +209,13 @@ include!(concat!(env!("OUT_DIR"), "/codegen_aerocloud.rs"));
 #[cfg(test)]
 mod tests {
     use super::{
-        ApiError, Error, ResponseValue,
+        ApiError, Error, ResponseValue, TokenSource, is_unauthorized, token_hint,
         types::{
             JsonErrorResponse, JsonErrorResponseErrorsItem,
             JsonErrorResponseErrorsItemSource,
         },
     };
+    use color_eyre::eyre::Report;
     use reqwest::{StatusCode, header::HeaderMap};
 
     fn api_error(status: StatusCode, errors: &[(&str, &str)]) -> ApiError {
@@ -185,6 +271,77 @@ mod tests {
         );
         assert!(msg.contains("/name"));
         assert!(msg.contains("can't be blank"));
+    }
+
+    fn invalid_payload(body: &'static [u8]) -> ApiError {
+        let err = serde_json::from_slice::<JsonErrorResponse>(body).unwrap_err();
+
+        Error::InvalidResponsePayload(body.into(), err).into()
+    }
+
+    #[test]
+    fn gateway_errors_are_parsed() {
+        let err = invalid_payload(
+            br#"{"error":{"code":401,"status":"Unauthorized","message":"Access credentials are invalid"}}"#,
+        );
+
+        assert_eq!(err.status(), Some(StatusCode::UNAUTHORIZED));
+        assert!(std::error::Error::source(&err).is_none());
+
+        assert_eq!(
+            err.to_string(),
+            "API responded with 401 Unauthorized: Access credentials are invalid"
+        );
+    }
+
+    #[test]
+    fn gateway_errors_carry_their_status() {
+        let err = invalid_payload(
+            br#"{"error":{"code":503,"status":"Service Unavailable","message":"upstream down"}}"#,
+        );
+
+        assert_eq!(err.status(), Some(StatusCode::SERVICE_UNAVAILABLE));
+        assert_eq!(
+            err.to_string(),
+            "API responded with 503 Service Unavailable: upstream down"
+        );
+    }
+
+    #[test]
+    fn other_invalid_payloads_keep_their_message() {
+        let err = invalid_payload(br#"{"unexpected":true}"#);
+
+        assert_eq!(err.status(), None);
+        assert!(err.to_string().starts_with("Invalid Response Payload"));
+    }
+
+    #[test]
+    fn unauthorized_is_found_through_context() {
+        let err = invalid_payload(
+            br#"{"error":{"code":401,"status":"Unauthorized","message":"Access credentials are invalid"}}"#,
+        );
+        let report = Report::new(err).wrap_err("listing projects");
+
+        assert!(is_unauthorized(&report));
+        assert!(!is_unauthorized(&Report::new(api_error(
+            StatusCode::FORBIDDEN,
+            &[]
+        ))));
+    }
+
+    #[test]
+    fn token_hint_names_the_source() {
+        assert!(
+            token_hint(&TokenSource::Flag).contains("`--aerocloud-auth-token`")
+        );
+        assert!(
+            token_hint(&TokenSource::Env).contains("`NF_AEROCLOUD_AUTH_TOKEN`")
+        );
+
+        let hint =
+            token_hint(&TokenSource::ConfigFile("/tmp/config.json".into()));
+        assert!(hint.contains("`/tmp/config.json`"));
+        assert!(hint.contains("nf aerocloud set-auth-token"));
     }
 
     #[test]

@@ -10,8 +10,9 @@ use crate::{
 };
 use bytesize::ByteSize;
 use clap::{
-    Parser, Subcommand,
+    CommandFactory, FromArgMatches, Parser, Subcommand,
     builder::styling::{AnsiColor, Styles},
+    parser::ValueSource,
 };
 use clap_complete::aot::Shell;
 use clap_stdin::{FileOrStdin, MaybeStdin};
@@ -116,6 +117,10 @@ pub struct Args {
     )]
     pub aerocloud_auth_token: Option<Token>,
 
+    /// Whether `aerocloud_auth_token` came from the command line or the env.
+    #[arg(skip)]
+    pub aerocloud_auth_token_source: Option<ValueSource>,
+
     #[arg(
         short,
         long,
@@ -140,6 +145,18 @@ pub struct Args {
 }
 
 impl Args {
+    /// Like [`Parser::parse`], also recording where some values came from.
+    pub fn parse_with_sources() -> Self {
+        let matches = Self::command().get_matches();
+        let mut args =
+            Self::from_arg_matches(&matches).unwrap_or_else(|err| err.exit());
+
+        args.aerocloud_auth_token_source =
+            matches.value_source("aerocloud_auth_token");
+
+        args
+    }
+
     /// Whether the command takes over the terminal with an interactive UI.
     pub const fn is_interactive_ui(&self) -> bool {
         matches!(

@@ -1,7 +1,13 @@
 {
   inputs = {
+    systems.url = "github:nix-systems/triplet";
+
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+      inputs.systems.follows = "systems";
+    };
 
     crane.url = "github:ipetkov/crane/v0.24.0";
 

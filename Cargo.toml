@@ -38,7 +38,7 @@ tokio = { version = "1.53.1", default-features = false, features = ["rt", "macro
 tokio-util = { version = "0.7.17", default-features = false }
 tracing = { version = "~0.1", features = ["release_max_level_debug"] }
 tracing-subscriber = "~0.3"
-update-informer = { version = "1.1", default-features = false, features = ["github", "reqwest", "rustls-tls"] }
+update-informer = { git = "https://github.com/mgrachev/update-informer", rev = "0583dc6adffe366011c6ec794a4aeab91ef56e12", default-features = false, features = ["github", "reqwest", "rustls"] }
 uuid = { version = "1.23.0", features = ["serde", "v4"] }
 
 [build-dependencies]

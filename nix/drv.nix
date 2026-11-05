@@ -65,7 +65,7 @@ in {
       // {
         inherit cargoArtifacts;
 
-        cargoClippyExtraArgs = "--all-targets -- --deny warnings -W clippy::pedantic";
+        cargoClippyExtraArgs = "--all-targets -- --deny warnings -W clippy::all -W clippy::pedantic";
       });
 
     fmt = craneLib.cargoFmt commonArgs;

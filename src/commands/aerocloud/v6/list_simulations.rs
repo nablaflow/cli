@@ -179,7 +179,7 @@ fn print_results_human(project: &ProjectV6, items: &[SimulationV6]) {
             format!("{}°", res.yaw_angle),
             format!("{}, {} m/s", sim.params.fluid, sim.params.fluid_speed),
             res.surface_area
-                .map_or(NOT_AVAILABLE.into(), |v| format!("{v:.2} m²")),
+                .map_or_else(|| NOT_AVAILABLE.into(), |v| format!("{v:.2} m²")),
             format!("{:.2} N", res.fd),
             format!("{:.2} N", res.fl),
             format!("{:.2} N", res.fs),
@@ -193,9 +193,11 @@ fn print_results_human(project: &ProjectV6, items: &[SimulationV6]) {
             format!("{:.2} Nm", res.my),
             format!("{:.2} Nm", res.mp),
             res.heat_transfer
-                .map_or(NOT_AVAILABLE.into(), |v| format!("{v:.2} W/K")),
-            res.heat_transfer_coefficient
-                .map_or(NOT_AVAILABLE.into(), |v| format!("{v:.2} W/m²K")),
+                .map_or_else(|| NOT_AVAILABLE.into(), |v| format!("{v:.2} W/K")),
+            res.heat_transfer_coefficient.map_or_else(
+                || NOT_AVAILABLE.into(),
+                |v| format!("{v:.2} W/m²K"),
+            ),
         ]);
     }
 

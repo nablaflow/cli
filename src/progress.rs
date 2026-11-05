@@ -102,7 +102,7 @@ impl ProgressScope {
 
         Arc::new(move |delta| {
             let still_open = net
-                .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |net| {
+                .try_update(Ordering::Relaxed, Ordering::Relaxed, |net| {
                     if net == Self::CLOSED {
                         None
                     } else {

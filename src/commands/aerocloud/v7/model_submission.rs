@@ -9,7 +9,7 @@
 
 use crate::{
     aerocloud::{
-        ResponseValue, new_idempotency_key, retry_failure,
+        ResponseValue, Workspace, new_idempotency_key, retry_failure,
         types::{
             CreateModelV7Params, CreateSimulationV7Params, Filename, Id, ModelV7,
             ModelV7FilesItem, SimulationV7, UpdatePartV7Params,
@@ -66,18 +66,18 @@ impl ModelSubmitter {
     pub fn new(
         args: &Args,
         config: &Config,
-        org_id: Option<Id>,
+        workspace: Workspace,
     ) -> eyre::Result<Self> {
         Ok(Self {
             api: V7Client::new(
                 http::build_aerocloud_client(config, args)
                     .wrap_err("building api client")?,
-                org_id.clone(),
+                workspace.clone(),
             ),
             finalise_api: V7Client::new(
                 http::build_aerocloud_finalise_client(config, args)
                     .wrap_err("building api client for finalising")?,
-                org_id,
+                workspace,
             ),
             uploader: Uploader::new(
                 http::build_file_upload_client(args)

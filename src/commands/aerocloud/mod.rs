@@ -1,11 +1,11 @@
 use crate::{
-    aerocloud::{Client, types::Id, v7::V7Client},
+    aerocloud::{Client, Workspace, v7::V7Client},
     args::{
         AeroCloudOrgCommand, AeroCloudScope, AeroCloudV6Command,
         AeroCloudV7Command, Args,
     },
     commands::aerocloud::v7::{
-        batch::Workspace, model_submission::ModelSubmitter,
+        batch::WorkspaceLabel, model_submission::ModelSubmitter,
     },
     config::Config,
     http,
@@ -108,34 +108,21 @@ pub async fn run(
             personal,
             command,
         } => {
-            let org_id = pick_org_id(
+            let workspace = Workspace::pick(
                 *personal,
-                org.as_ref(),
-                config.aerocloud_org.as_ref().map(|org| &org.id),
+                org.clone(),
+                config.aerocloud_org.as_ref().map(|org| org.id.clone()),
             );
 
             run_v7(
                 args,
                 &config,
                 &api_client,
-                V7Client::new(api_client.clone(), org_id),
+                V7Client::new(api_client.clone(), workspace),
                 command,
             )
             .await
         }
-    }
-}
-
-/// `--personal` wins over `--org` (or its env), which wins over the configured default.
-fn pick_org_id(
-    personal: bool,
-    from_args: Option<&Id>,
-    from_config: Option<&Id>,
-) -> Option<Id> {
-    if personal {
-        None
-    } else {
-        from_args.or(from_config).cloned()
     }
 }
 
@@ -188,7 +175,11 @@ async fn run_v7(
         AeroCloudV7Command::CreateModel { params } => {
             self::v7::create_model::run(
                 args,
-                &ModelSubmitter::new(args, config, api_client.org_id().cloned())?,
+                &ModelSubmitter::new(
+                    args,
+                    config,
+                    api_client.workspace().clone(),
+                )?,
                 &params
                     .clone()
                     .contents()
@@ -223,32 +214,15 @@ async fn run_v7(
         AeroCloudV7Command::Batch { root_dir } => {
             self::v7::batch::run(
                 &api_client,
-                Workspace::resolve(client, api_client.org_id()).await,
-                &ModelSubmitter::new(args, config, api_client.org_id().cloned())?,
+                WorkspaceLabel::resolve(client, api_client.workspace()).await,
+                &ModelSubmitter::new(
+                    args,
+                    config,
+                    api_client.workspace().clone(),
+                )?,
                 root_dir.as_ref().map(PathBuf::as_path),
             )
             .await
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::pick_org_id;
-    use crate::aerocloud::types::Id;
-    use uuid::Uuid;
-
-    #[test]
-    fn org_id_precedence() {
-        let args = Id(Uuid::from_u128(1));
-        let config = Id(Uuid::from_u128(2));
-        let pick = |personal, args: Option<&Id>, config: Option<&Id>| {
-            pick_org_id(personal, args, config).map(|id| *id)
-        };
-
-        assert_eq!(pick(false, None, None), None);
-        assert_eq!(pick(false, None, Some(&config)), Some(*config));
-        assert_eq!(pick(false, Some(&args), Some(&config)), Some(*args));
-        assert_eq!(pick(true, Some(&args), Some(&config)), None);
     }
 }

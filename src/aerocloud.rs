@@ -27,6 +27,8 @@ pub mod extra_types;
 pub mod fmt;
 pub mod v7;
 
+pub type Workspace = crate::workspace::Workspace<types::Id>;
+
 pub const NEW_TOKEN_URL: &str = "https://aerocloud.nablaflow.io/developer/api";
 
 pub fn new_idempotency_key() -> IdempotencyKey {

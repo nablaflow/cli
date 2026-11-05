@@ -1,11 +1,11 @@
 //! AeroCloud v7 client that targets either personal or organisation endpoints.
 //!
-//! Every method calls the personal endpoint (e.g. `/v7/projects`) when no organisation is
-//! set, or its organisation counterpart (e.g. `/org/{org_id}/v7/projects`) otherwise.
+//! Every method calls the personal endpoint (e.g. `/v7/projects`) in the personal
+//! workspace, or its organisation counterpart (e.g. `/org/{org_id}/v7/projects`) otherwise.
 //! Both are generated from the schema, so any divergence between the two breaks the build.
 
 use super::{
-    ApiError, ByteStream, Client, Error, ResponseValue,
+    ApiError, ByteStream, Client, Error, ResponseValue, Workspace,
     types::{
         CreateModelV7Params, CreateProjectV7Params, CreateSimulationV7Params,
         FluidSpeed, Id, IdempotencyKey, ListPageModelsV7, ListPageProjectsV7,
@@ -21,7 +21,7 @@ type Res<T> = Result<ResponseValue<T>, ApiError>;
 #[derive(Debug, Clone)]
 pub struct V7Client {
     inner: Client,
-    org_id: Option<Id>,
+    workspace: Workspace,
 }
 
 /// Generates methods that forward their arguments as-is to either endpoint.
@@ -31,9 +31,11 @@ macro_rules! dispatch {
     )*) => {
         $(
             pub async fn $name(&self, $($arg: $ty),*) -> Res<$ret> {
-                match &self.org_id {
-                    None => self.inner.$name($($arg),*).await,
-                    Some(org_id) => self.inner.$org_name(org_id, $($arg),*).await,
+                match &self.workspace {
+                    Workspace::Personal => self.inner.$name($($arg),*).await,
+                    Workspace::Org(org_id) => {
+                        self.inner.$org_name(org_id, $($arg),*).await
+                    }
                 }
                 .map_err(ApiError::from)
             }
@@ -42,12 +44,12 @@ macro_rules! dispatch {
 }
 
 impl V7Client {
-    pub const fn new(inner: Client, org_id: Option<Id>) -> Self {
-        Self { inner, org_id }
+    pub const fn new(inner: Client, workspace: Workspace) -> Self {
+        Self { inner, workspace }
     }
 
-    pub const fn org_id(&self) -> Option<&Id> {
-        self.org_id.as_ref()
+    pub const fn workspace(&self) -> &Workspace {
+        &self.workspace
     }
 
     dispatch! {
@@ -105,8 +107,8 @@ impl V7Client {
         status: Option<SimulationsV7ListStatus>,
         yaw_angle: Option<&YawAngle>,
     ) -> Res<ListPageSimulationsV7> {
-        match &self.org_id {
-            None => {
+        match &self.workspace {
+            Workspace::Personal => {
                 self.inner
                     .simulations_v7_list(
                         project_id,
@@ -119,7 +121,7 @@ impl V7Client {
                     )
                     .await
             }
-            Some(org_id) => {
+            Workspace::Org(org_id) => {
                 self.inner
                     .org_simulations_v7_list(
                         org_id,
@@ -142,7 +144,7 @@ impl V7Client {
         limit: Option<&PaginationLimit>,
         offset: Option<&PaginationOffset>,
     ) -> Res<ListPageModelsV7> {
-        if self.org_id.is_some() {
+        if let Workspace::Org(_) = self.workspace {
             return Err(Error::InvalidRequest(
                 "reusable models are not available for organisations".into(),
             )

@@ -4,7 +4,7 @@ use crate::{
         v7::V7Client,
     },
     commands::aerocloud::v7::batch::{
-        Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR, Workspace,
+        Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR, WorkspaceLabel,
     },
 };
 use color_eyre::eyre;
@@ -24,7 +24,7 @@ use tokio::sync::mpsc;
 
 #[derive(Debug, Clone)]
 pub struct ProjectPicker<'a> {
-    pub workspace: &'a Workspace,
+    pub workspace: &'a WorkspaceLabel,
 }
 
 #[derive(Debug, Default)]

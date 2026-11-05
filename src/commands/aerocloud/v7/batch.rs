@@ -1,6 +1,6 @@
 use crate::{
     aerocloud::{
-        Client,
+        Client, Workspace,
         types::{Id, ProjectV7, SimulationV7},
         v7::V7Client,
     },
@@ -76,17 +76,17 @@ const SLEEP_FOR_FEEDBACK: Duration = Duration::from_millis(100);
 /// Minimum interval between redraws caused by new log lines.
 const LOG_REDRAW_INTERVAL: Duration = Duration::from_millis(100);
 
-/// Where the batch operates, shown in headers.
+/// Names the workspace the batch operates in, shown in headers.
 #[derive(Debug, Clone)]
-pub enum Workspace {
+pub enum WorkspaceLabel {
     Personal,
     Org { id: Id, name: Option<String> },
 }
 
-impl Workspace {
+impl WorkspaceLabel {
     /// Looks up the organisation name, falling back to its id if that fails.
-    pub async fn resolve(client: &Client, org_id: Option<&Id>) -> Self {
-        let Some(org_id) = org_id else {
+    pub async fn resolve(client: &Client, workspace: &Workspace) -> Self {
+        let Workspace::Org(org_id) = workspace else {
             return Self::Personal;
         };
 
@@ -124,7 +124,7 @@ impl Workspace {
 
 pub async fn run(
     api_client: &V7Client,
-    workspace: Workspace,
+    workspace: WorkspaceLabel,
     submitter: &ModelSubmitter,
     root_dir: Option<&Path>,
 ) -> eyre::Result<()> {
@@ -184,7 +184,7 @@ pub fn refresh_sims_in_background(
 #[derive(Debug)]
 struct Batch {
     client: V7Client,
-    workspace: Workspace,
+    workspace: WorkspaceLabel,
     submitter: ModelSubmitter,
 
     running: bool,
@@ -286,7 +286,7 @@ async fn forward_log_updates(
 impl Batch {
     fn new(
         client: V7Client,
-        workspace: Workspace,
+        workspace: WorkspaceLabel,
         submitter: ModelSubmitter,
         root_dir: Option<PathBuf>,
         simulations: Vec<SimulationParams>,
@@ -731,7 +731,7 @@ impl Batch {
 
     fn render_state_picking_project(
         state: &mut ProjectPickerState,
-        workspace: &Workspace,
+        workspace: &WorkspaceLabel,
         area: Rect,
         buf: &mut Buffer,
     ) {
@@ -1239,12 +1239,12 @@ fn darken_label_over_filled_gauge(area: Rect, buf: &mut Buffer) {
 
 #[cfg(test)]
 mod tests {
-    use super::{STYLE_ACCENT, Workspace};
+    use super::{STYLE_ACCENT, WorkspaceLabel};
     use crate::aerocloud::types::Id;
     use ratatui::text::Line;
     use uuid::Uuid;
 
-    fn label(workspace: &Workspace) -> (String, Vec<String>) {
+    fn label(workspace: &WorkspaceLabel) -> (String, Vec<String>) {
         let spans = workspace.spans();
         let highlighted = spans
             .iter()
@@ -1260,21 +1260,21 @@ mod tests {
         let id = Id(Uuid::from_u128(1));
 
         assert_eq!(
-            label(&Workspace::Personal),
+            label(&WorkspaceLabel::Personal),
             (
                 "personal workspace".into(),
                 vec!["personal workspace".into()]
             )
         );
         assert_eq!(
-            label(&Workspace::Org {
+            label(&WorkspaceLabel::Org {
                 id: id.clone(),
                 name: Some("ACME Corp.".into())
             }),
             ("org ACME Corp.".into(), vec!["ACME Corp.".into()])
         );
         assert_eq!(
-            label(&Workspace::Org { id, name: None }),
+            label(&WorkspaceLabel::Org { id, name: None }),
             (
                 "org 00000000-0000-0000-0000-000000000001".into(),
                 vec!["00000000-0000-0000-0000-000000000001".into()]

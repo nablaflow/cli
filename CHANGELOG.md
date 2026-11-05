@@ -1,3 +1,17 @@
+# Unreleased
+
+## General
+
+  - Tables no longer squeeze every column down to a single character when the terminal reports no width, e.g. under `docker run -t` or in Nix builds.
+
+## AeroCloud
+
+### Improvements
+
+  - API errors are shown as a short message, e.g. `API responded with 403 Forbidden: …`, instead of a dump of the whole response. Errors about specific attributes are still shown as a table.
+  - Invalid or expired tokens are reported as `401 Unauthorized`, with a suggestion on how to replace the token depending on where it came from: `--aerocloud-auth-token`, `NF_AEROCLOUD_AUTH_TOKEN` or the config file.
+  - Temporary errors from the authentication gateway (e.g. `503 Service Unavailable`) are retried like other temporary failures.
+
 # 1.8.0 - 2026-09-30
 
 ## General

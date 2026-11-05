@@ -4,7 +4,7 @@ use crate::{
         v7::V7Client,
     },
     commands::aerocloud::v7::batch::{
-        Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR,
+        Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR, Workspace,
     },
 };
 use color_eyre::eyre;
@@ -14,6 +14,7 @@ use ratatui::{
     layout::{Constraint, Rect},
     macros::{line, span},
     symbols::border,
+    text::{Line, Span},
     widgets::{
         Block, Cell, Clear, HighlightSpacing, Paragraph, Row, StatefulWidget,
         Table, TableState, Widget, Wrap,
@@ -22,7 +23,9 @@ use ratatui::{
 use tokio::sync::mpsc;
 
 #[derive(Debug, Clone)]
-pub struct ProjectPicker;
+pub struct ProjectPicker<'a> {
+    pub workspace: &'a Workspace,
+}
 
 #[derive(Debug, Default)]
 pub enum ProjectPickerState {
@@ -152,13 +155,16 @@ impl ProjectPickerState {
     }
 }
 
-impl StatefulWidget for &ProjectPicker {
+impl StatefulWidget for &ProjectPicker<'_> {
     type State = ProjectPickerState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         Clear.render(area, buf);
 
-        let title = line![span!(STYLE_BOLD; " Select a project ")];
+        let mut title = vec![Span::from(" Select a project from ")];
+        title.extend(self.workspace.spans());
+        title.push(" ".into());
+        let title = Line::from(title).style(STYLE_BOLD);
 
         let instructions = line![
             " (",

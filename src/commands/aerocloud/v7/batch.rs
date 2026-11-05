@@ -1,8 +1,10 @@
 use crate::{
     aerocloud::{
-        types::{ProjectV7, SimulationV7},
+        Client,
+        types::{Id, ProjectV7, SimulationV7},
         v7::V7Client,
     },
+    commands::aerocloud::org,
     commands::aerocloud::v7::batch::{
         log_view::{LogView, LogViewState},
         project_picker::{
@@ -31,14 +33,13 @@ use ratatui::{
     prelude::Color,
     style::Style,
     symbols::border,
-    text::Text,
+    text::{Line, Span, Text},
     widgets::{
         Block, Borders, Clear, Gauge, Padding, Paragraph, StatefulWidget, Widget,
         Wrap,
     },
 };
 use std::{
-    borrow::Cow,
     mem,
     path::{Path, PathBuf},
     sync::Arc,
@@ -75,8 +76,55 @@ const SLEEP_FOR_FEEDBACK: Duration = Duration::from_millis(100);
 /// Minimum interval between redraws caused by new log lines.
 const LOG_REDRAW_INTERVAL: Duration = Duration::from_millis(100);
 
+/// Where the batch operates, shown in headers.
+#[derive(Debug, Clone)]
+pub enum Workspace {
+    Personal,
+    Org { id: Id, name: Option<String> },
+}
+
+impl Workspace {
+    /// Looks up the organisation name, falling back to its id if that fails.
+    pub async fn resolve(client: &Client, org_id: Option<&Id>) -> Self {
+        let Some(org_id) = org_id else {
+            return Self::Personal;
+        };
+
+        let name = match org::list::fetch_all(client).await {
+            Ok(orgs) => orgs
+                .into_iter()
+                .find(|org| *org.id == **org_id)
+                .map(|org| org.name),
+            Err(err) => {
+                tracing::warn!("failed to fetch organisation name: {err}");
+                None
+            }
+        };
+
+        Self::Org {
+            id: org_id.clone(),
+            name,
+        }
+    }
+
+    /// Names the workspace, highlighting it.
+    fn spans(&self) -> Vec<Span<'_>> {
+        match self {
+            Self::Personal => vec![span!(STYLE_ACCENT; "personal workspace")],
+            Self::Org { id, name } => vec![
+                "org ".into(),
+                name.as_deref().map_or_else(
+                    || span!(STYLE_ACCENT; id.to_string()),
+                    |name| span!(STYLE_ACCENT; name),
+                ),
+            ],
+        }
+    }
+}
+
 pub async fn run(
     api_client: &V7Client,
+    workspace: Workspace,
     submitter: &ModelSubmitter,
     root_dir: Option<&Path>,
 ) -> eyre::Result<()> {
@@ -99,6 +147,7 @@ pub async fn run(
 
     let mut app = Batch::new(
         api_client.clone(),
+        workspace,
         submitter.clone(),
         root_dir.map(ToOwned::to_owned),
         sims,
@@ -135,6 +184,7 @@ pub fn refresh_sims_in_background(
 #[derive(Debug)]
 struct Batch {
     client: V7Client,
+    workspace: Workspace,
     submitter: ModelSubmitter,
 
     running: bool,
@@ -236,6 +286,7 @@ async fn forward_log_updates(
 impl Batch {
     fn new(
         client: V7Client,
+        workspace: Workspace,
         submitter: ModelSubmitter,
         root_dir: Option<PathBuf>,
         simulations: Vec<SimulationParams>,
@@ -249,6 +300,7 @@ impl Batch {
             simulations,
             logs,
             client,
+            workspace,
             submitter,
         }
     }
@@ -679,6 +731,7 @@ impl Batch {
 
     fn render_state_picking_project(
         state: &mut ProjectPickerState,
+        workspace: &Workspace,
         area: Rect,
         buf: &mut Buffer,
     ) {
@@ -694,7 +747,7 @@ impl Batch {
             .centered()
             .render(upper.centered_vertically(Constraint::Ratio(1, 2)), buf);
 
-        StatefulWidget::render(&ProjectPicker, lower, buf, state);
+        StatefulWidget::render(&ProjectPicker { workspace }, lower, buf, state);
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -977,12 +1030,12 @@ impl Batch {
             STYLE_DIMMED
         };
 
-        let title: Cow<'_, str> =
-            if let State::Active { ref project, .. } = self.state {
-                format!(" AeroCloud v7 (project: `{}`) ", project.name).into()
-            } else {
-                " AeroCloud v7 ".into()
-            };
+        let mut title = vec![Span::from(" AeroCloud v7 (")];
+        title.extend(self.workspace.spans());
+        if let State::Active { ref project, .. } = self.state {
+            title.push(format!(", project: `{}`", project.name).into());
+        }
+        title.push(") ".into());
 
         let instructions_upper = line![
             " (",
@@ -1007,7 +1060,7 @@ impl Batch {
         ];
 
         let block = Block::bordered()
-            .title(line![span!(STYLE_BOLD; title)].centered())
+            .title(Line::from(title).style(STYLE_BOLD).centered())
             .title_bottom(instructions_lower.style(style).centered())
             .border_set(border::THICK);
 
@@ -1132,7 +1185,12 @@ impl Widget for &mut Batch {
         match self.state {
             State::Init => {}
             State::PickingProject { ref mut state } => {
-                Batch::render_state_picking_project(state, area, buf);
+                Batch::render_state_picking_project(
+                    state,
+                    &self.workspace,
+                    area,
+                    buf,
+                );
             }
             State::Active {
                 ref state,
@@ -1176,5 +1234,51 @@ fn darken_label_over_filled_gauge(area: Rect, buf: &mut Buffer) {
         if cell.bg == COLOR_ACCENT {
             cell.set_fg(Color::Black);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{STYLE_ACCENT, Workspace};
+    use crate::aerocloud::types::Id;
+    use ratatui::text::Line;
+    use uuid::Uuid;
+
+    fn label(workspace: &Workspace) -> (String, Vec<String>) {
+        let spans = workspace.spans();
+        let highlighted = spans
+            .iter()
+            .filter(|span| span.style == STYLE_ACCENT)
+            .map(|span| span.content.to_string())
+            .collect();
+
+        (Line::from(spans).to_string(), highlighted)
+    }
+
+    #[test]
+    fn workspace_labels() {
+        let id = Id(Uuid::from_u128(1));
+
+        assert_eq!(
+            label(&Workspace::Personal),
+            (
+                "personal workspace".into(),
+                vec!["personal workspace".into()]
+            )
+        );
+        assert_eq!(
+            label(&Workspace::Org {
+                id: id.clone(),
+                name: Some("ACME Corp.".into())
+            }),
+            ("org ACME Corp.".into(), vec!["ACME Corp.".into()])
+        );
+        assert_eq!(
+            label(&Workspace::Org { id, name: None }),
+            (
+                "org 00000000-0000-0000-0000-000000000001".into(),
+                vec!["00000000-0000-0000-0000-000000000001".into()]
+            )
+        );
     }
 }

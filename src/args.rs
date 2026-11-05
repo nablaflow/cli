@@ -218,6 +218,22 @@ pub enum AeroCloudScope {
         token: MaybeStdin<Token>,
     },
 
+    #[command(
+        about = "Set the organisation AeroCloud v7 commands operate within by default"
+    )]
+    SetOrg {
+        #[arg(
+            value_name = "ORG_ID",
+            help = "An organisation id from `nf aerocloud org list`"
+        )]
+        org_id: Id,
+    },
+
+    #[command(
+        about = "Unset the default organisation, operating within your personal workspace"
+    )]
+    UnsetOrg,
+
     #[command(about = "Operate on organisations")]
     Org {
         #[command(subcommand)]
@@ -237,9 +253,16 @@ pub enum AeroCloudScope {
             global = true,
             value_name = "ORG_ID",
             env = "NF_AEROCLOUD_ORG",
-            help = "Operate within an organisation, from `nf aerocloud org list`, instead of your personal workspace"
+            help = "Operate within an organisation, from `nf aerocloud org list`, instead of your personal workspace. Takes precedence over the one set with `nf aerocloud set-org`"
         )]
         org: Option<Id>,
+
+        #[arg(
+            long,
+            global = true,
+            help = "Operate within your personal workspace, ignoring `--org` and the organisation set with `nf aerocloud set-org`"
+        )]
+        personal: bool,
 
         #[command(subcommand)]
         command: AeroCloudV7Command,

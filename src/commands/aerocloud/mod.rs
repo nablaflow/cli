@@ -1,10 +1,12 @@
 use crate::{
-    aerocloud::v7::V7Client,
+    aerocloud::{Client, types::Id, v7::V7Client},
     args::{
         AeroCloudOrgCommand, AeroCloudScope, AeroCloudV6Command,
         AeroCloudV7Command, Args,
     },
-    commands::aerocloud::v7::model_submission::ModelSubmitter,
+    commands::aerocloud::v7::{
+        batch::Workspace, model_submission::ModelSubmitter,
+    },
     config::Config,
     http,
 };
@@ -15,6 +17,8 @@ pub mod current_token;
 pub mod current_user;
 pub mod org;
 pub mod set_auth_token;
+pub mod set_org;
+pub mod unset_org;
 pub mod v6;
 pub mod v7;
 
@@ -24,15 +28,24 @@ pub async fn run(
     config: Config,
     subcommand: &AeroCloudScope,
 ) -> eyre::Result<()> {
-    if let AeroCloudScope::SetAuthToken { token } = subcommand {
-        return self::set_auth_token::run(args, config, token).await;
+    match subcommand {
+        AeroCloudScope::SetAuthToken { token } => {
+            return self::set_auth_token::run(args, config, token).await;
+        }
+        AeroCloudScope::UnsetOrg => {
+            return self::unset_org::run(args).await;
+        }
+        _ => {}
     }
 
     let api_client = http::build_aerocloud_client(&config, args)
         .context("building api client")?;
 
     match subcommand {
-        AeroCloudScope::SetAuthToken { .. } => Ok(()),
+        AeroCloudScope::SetAuthToken { .. } | AeroCloudScope::UnsetOrg => Ok(()),
+        AeroCloudScope::SetOrg { org_id } => {
+            self::set_org::run(args, &api_client, org_id).await
+        }
         AeroCloudScope::CurrentUser => {
             self::current_user::run(args, &api_client).await
         }
@@ -90,11 +103,22 @@ pub async fn run(
                 .await
             }
         },
-        AeroCloudScope::V7 { org, command } => {
+        AeroCloudScope::V7 {
+            org,
+            personal,
+            command,
+        } => {
+            let org_id = pick_org_id(
+                *personal,
+                org.as_ref(),
+                config.aerocloud_org.as_ref().map(|org| &org.id),
+            );
+
             run_v7(
                 args,
                 &config,
-                V7Client::new(api_client, org.clone()),
+                &api_client,
+                V7Client::new(api_client.clone(), org_id),
                 command,
             )
             .await
@@ -102,9 +126,23 @@ pub async fn run(
     }
 }
 
+/// `--personal` wins over `--org` (or its env), which wins over the configured default.
+fn pick_org_id(
+    personal: bool,
+    from_args: Option<&Id>,
+    from_config: Option<&Id>,
+) -> Option<Id> {
+    if personal {
+        None
+    } else {
+        from_args.or(from_config).cloned()
+    }
+}
+
 async fn run_v7(
     args: &Args,
     config: &Config,
+    client: &Client,
     api_client: V7Client,
     command: &AeroCloudV7Command,
 ) -> eyre::Result<()> {
@@ -185,10 +223,32 @@ async fn run_v7(
         AeroCloudV7Command::Batch { root_dir } => {
             self::v7::batch::run(
                 &api_client,
+                Workspace::resolve(client, api_client.org_id()).await,
                 &ModelSubmitter::new(args, config, api_client.org_id().cloned())?,
                 root_dir.as_ref().map(PathBuf::as_path),
             )
             .await
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::pick_org_id;
+    use crate::aerocloud::types::Id;
+    use uuid::Uuid;
+
+    #[test]
+    fn org_id_precedence() {
+        let args = Id(Uuid::from_u128(1));
+        let config = Id(Uuid::from_u128(2));
+        let pick = |personal, args: Option<&Id>, config: Option<&Id>| {
+            pick_org_id(personal, args, config).map(|id| *id)
+        };
+
+        assert_eq!(pick(false, None, None), None);
+        assert_eq!(pick(false, None, Some(&config)), Some(*config));
+        assert_eq!(pick(false, Some(&args), Some(&config)), Some(*args));
+        assert_eq!(pick(true, Some(&args), Some(&config)), None);
     }
 }

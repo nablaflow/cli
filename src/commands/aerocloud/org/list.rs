@@ -16,6 +16,19 @@ pub async fn run(
     client: &Client,
     show_members: bool,
 ) -> eyre::Result<()> {
+    let all_items = fetch_all(client).await?;
+
+    if args.json {
+        println!("{}", serde_json::to_string(&all_items)?);
+    } else {
+        print_human(&all_items, show_members);
+    }
+
+    Ok(())
+}
+
+/// Fetches every organisation the current user is a member of.
+pub async fn fetch_all(client: &Client) -> eyre::Result<Vec<Organisation>> {
     let mut all_items = vec![];
     let mut offset = PaginationOffset(0u64);
 
@@ -35,13 +48,7 @@ pub async fn run(
         }
     }
 
-    if args.json {
-        println!("{}", serde_json::to_string(&all_items)?);
-    } else {
-        print_human(&all_items, show_members);
-    }
-
-    Ok(())
+    Ok(all_items)
 }
 
 fn print_human(orgs: &[Organisation], show_members: bool) {

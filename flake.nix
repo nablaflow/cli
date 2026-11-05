@@ -42,11 +42,20 @@
         inputsFrom = builtins.attrValues self.checks.${system};
 
         packages = with pkgs; [
-          nablaflow-cli.rustToolchain
           cargo-audit
           cargo-dist
           cargo-outdated
+          libwebp
+          nablaflow-cli.rustToolchain
+          python3
+          shellcheck
+          vhs
         ];
+
+        # Font used by scripts/batch-screenshots.sh, without installing it system-wide.
+        BATCH_SCREENSHOTS_FONTCONFIG = pkgs.makeFontsConf {
+          fontDirectories = [pkgs.jetbrains-mono];
+        };
       };
 
       apps.default = flake-utils.lib.mkApp {

@@ -4,8 +4,9 @@ use crate::{
         v7::V7Client,
     },
     commands::aerocloud::v7::batch::{
-        Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR, WorkspaceLabel,
+        Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR,
     },
+    commands::aerocloud::workspace_label::WorkspaceLabel,
 };
 use color_eyre::eyre;
 use crossterm::event::{KeyCode, KeyModifiers};

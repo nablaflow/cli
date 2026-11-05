@@ -1,10 +1,8 @@
 use crate::{
     aerocloud::{
-        Client, Workspace,
-        types::{Id, ProjectV7, SimulationV7},
+        types::{ProjectV7, SimulationV7},
         v7::V7Client,
     },
-    commands::aerocloud::org,
     commands::aerocloud::v7::batch::{
         log_view::{LogView, LogViewState},
         project_picker::{
@@ -16,6 +14,7 @@ use crate::{
         submit::submit_batch_in_background,
     },
     commands::aerocloud::v7::model_submission::ModelSubmitter,
+    commands::aerocloud::workspace_label::WorkspaceLabel,
     fmt::human_err_report,
     tracing::LogBuffer,
 };
@@ -76,37 +75,7 @@ const SLEEP_FOR_FEEDBACK: Duration = Duration::from_millis(100);
 /// Minimum interval between redraws caused by new log lines.
 const LOG_REDRAW_INTERVAL: Duration = Duration::from_millis(100);
 
-/// Names the workspace the batch operates in, shown in headers.
-#[derive(Debug, Clone)]
-pub enum WorkspaceLabel {
-    Personal,
-    Org { id: Id, name: Option<String> },
-}
-
 impl WorkspaceLabel {
-    /// Looks up the organisation name, falling back to its id if that fails.
-    pub async fn resolve(client: &Client, workspace: &Workspace) -> Self {
-        let Workspace::Org(org_id) = workspace else {
-            return Self::Personal;
-        };
-
-        let name = match org::list::fetch_all(client).await {
-            Ok(orgs) => orgs
-                .into_iter()
-                .find(|org| *org.id == **org_id)
-                .map(|org| org.name),
-            Err(err) => {
-                tracing::warn!("failed to fetch organisation name: {err}");
-                None
-            }
-        };
-
-        Self::Org {
-            id: org_id.clone(),
-            name,
-        }
-    }
-
     /// Names the workspace, highlighting it.
     fn spans(&self) -> Vec<Span<'_>> {
         match self {

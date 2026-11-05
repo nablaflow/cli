@@ -4,9 +4,8 @@ use crate::{
         AeroCloudOrgCommand, AeroCloudScope, AeroCloudV6Command,
         AeroCloudV7Command, Args,
     },
-    commands::aerocloud::v7::{
-        batch::WorkspaceLabel, model_submission::ModelSubmitter,
-    },
+    commands::aerocloud::v7::model_submission::ModelSubmitter,
+    commands::aerocloud::workspace_label::WorkspaceLabel,
     config::Config,
     http,
 };
@@ -21,6 +20,7 @@ pub mod set_org;
 pub mod unset_org;
 pub mod v6;
 pub mod v7;
+pub mod workspace_label;
 
 #[allow(clippy::too_many_lines)]
 pub async fn run(
@@ -126,6 +126,19 @@ pub async fn run(
     }
 }
 
+async fn label(
+    config: &Config,
+    client: &Client,
+    api_client: &V7Client,
+) -> WorkspaceLabel {
+    WorkspaceLabel::resolve(
+        client,
+        api_client.workspace(),
+        config.aerocloud_org.as_ref(),
+    )
+    .await
+}
+
 async fn run_v7(
     args: &Args,
     config: &Config,
@@ -133,6 +146,11 @@ async fn run_v7(
     api_client: V7Client,
     command: &AeroCloudV7Command,
 ) -> eyre::Result<()> {
+    // NOTE: on stderr, so results can still be piped. Batch shows it in its headers.
+    if !args.json && !matches!(command, AeroCloudV7Command::Batch { .. }) {
+        eprintln!("Workspace: {}", label(config, client, &api_client).await);
+    }
+
     match command {
         AeroCloudV7Command::ListProjects { status } => {
             self::v7::list_projects::run(args, &api_client, *status).await
@@ -214,7 +232,7 @@ async fn run_v7(
         AeroCloudV7Command::Batch { root_dir } => {
             self::v7::batch::run(
                 &api_client,
-                WorkspaceLabel::resolve(client, api_client.workspace()).await,
+                label(config, client, &api_client).await,
                 &ModelSubmitter::new(
                     args,
                     config,

@@ -25,6 +25,7 @@ use uuid::Uuid;
 
 pub mod extra_types;
 pub mod fmt;
+pub mod v7;
 
 pub const NEW_TOKEN_URL: &str = "https://aerocloud.nablaflow.io/developer/api";
 

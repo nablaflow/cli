@@ -1,7 +1,7 @@
 use crate::{
     aerocloud::{
-        Client,
         types::{ProjectV7, SimulationV7},
+        v7::V7Client,
     },
     commands::aerocloud::v7::batch::{
         log_view::{LogView, LogViewState},
@@ -76,7 +76,7 @@ const SLEEP_FOR_FEEDBACK: Duration = Duration::from_millis(100);
 const LOG_REDRAW_INTERVAL: Duration = Duration::from_millis(100);
 
 pub async fn run(
-    api_client: &Client,
+    api_client: &V7Client,
     submitter: &ModelSubmitter,
     root_dir: Option<&Path>,
 ) -> eyre::Result<()> {
@@ -114,7 +114,7 @@ pub async fn run(
 }
 
 pub fn refresh_sims_in_background(
-    client: Client,
+    client: V7Client,
     root_dir: &Path,
     tx: mpsc::Sender<Event>,
 ) {
@@ -134,7 +134,7 @@ pub fn refresh_sims_in_background(
 
 #[derive(Debug)]
 struct Batch {
-    client: Client,
+    client: V7Client,
     submitter: ModelSubmitter,
 
     running: bool,
@@ -235,7 +235,7 @@ async fn forward_log_updates(
 
 impl Batch {
     fn new(
-        client: Client,
+        client: V7Client,
         submitter: ModelSubmitter,
         root_dir: Option<PathBuf>,
         simulations: Vec<SimulationParams>,

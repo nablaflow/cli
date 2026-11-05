@@ -1,7 +1,8 @@
 use crate::{
     aerocloud::{
-        Client, fmt_progenitor_err, new_idempotency_key,
+        new_idempotency_key,
         types::{CreateSimulationV7Params, Id},
+        v7::V7Client,
     },
     args::Args,
     fmt::link,
@@ -10,7 +11,7 @@ use color_eyre::eyre::{self, WrapErr};
 
 pub async fn run(
     args: &Args,
-    client: &Client,
+    client: &V7Client,
     model_id: Option<Id>,
     project_id: Option<Id>,
     params: &str,
@@ -29,8 +30,7 @@ pub async fn run(
 
     let sim = client
         .simulations_v7_create(&idempotency_key, &params)
-        .await
-        .map_err(fmt_progenitor_err)?
+        .await?
         .into_inner();
 
     if args.json {

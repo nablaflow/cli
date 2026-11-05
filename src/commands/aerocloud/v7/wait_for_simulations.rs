@@ -1,7 +1,7 @@
 use crate::{
     aerocloud::{
-        ApiError, Client,
         types::{Id, SimulationStatus},
+        v7::V7Client,
     },
     args::Args,
     fmt::link,
@@ -11,7 +11,7 @@ use std::time::Duration;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
+pub async fn run(args: &Args, client: &V7Client, ids: &[Id]) -> eyre::Result<()> {
     if ids.is_empty() {
         bail!("No ids were specified!");
     }
@@ -30,11 +30,7 @@ pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
         for id in &ids_to_wait_for {
             debug!("polling sim `{id}`...");
 
-            match client
-                .simulations_v7_get(&Id(*id))
-                .await
-                .map_err(ApiError::from)
-            {
+            match client.simulations_v7_get(&Id(*id)).await {
                 Ok(res) => {
                     let sim = res.into_inner();
 

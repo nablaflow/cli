@@ -1,4 +1,5 @@
 use crate::{
+    aerocloud::v7::V7Client,
     args::{
         AeroCloudOrgCommand, AeroCloudScope, AeroCloudV6Command,
         AeroCloudV7Command, Args,
@@ -89,93 +90,105 @@ pub async fn run(
                 .await
             }
         },
-        AeroCloudScope::V7 { command } => match command {
-            AeroCloudV7Command::ListProjects { status } => {
-                self::v7::list_projects::run(args, &api_client, *status).await
-            }
-            AeroCloudV7Command::CreateProject { name, description } => {
-                self::v7::create_project::run(
-                    args,
-                    &api_client,
-                    name,
-                    description.as_deref(),
-                )
-                .await
-            }
-            AeroCloudV7Command::DeleteProjects { project_ids } => {
-                self::v7::delete_projects::run(args, &api_client, project_ids)
-                    .await
-            }
-            AeroCloudV7Command::ListSimulations {
+        AeroCloudScope::V7 { org, command } => {
+            run_v7(
+                args,
+                &config,
+                V7Client::new(api_client, org.clone()),
+                command,
+            )
+            .await
+        }
+    }
+}
+
+async fn run_v7(
+    args: &Args,
+    config: &Config,
+    api_client: V7Client,
+    command: &AeroCloudV7Command,
+) -> eyre::Result<()> {
+    match command {
+        AeroCloudV7Command::ListProjects { status } => {
+            self::v7::list_projects::run(args, &api_client, *status).await
+        }
+        AeroCloudV7Command::CreateProject { name, description } => {
+            self::v7::create_project::run(
+                args,
+                &api_client,
+                name,
+                description.as_deref(),
+            )
+            .await
+        }
+        AeroCloudV7Command::DeleteProjects { project_ids } => {
+            self::v7::delete_projects::run(args, &api_client, project_ids).await
+        }
+        AeroCloudV7Command::ListSimulations {
+            project_id,
+            show_results,
+            status,
+            fluid_speed,
+            quality,
+            yaw_angle,
+        } => {
+            self::v7::list_simulations::run(
+                args,
+                &api_client,
                 project_id,
-                show_results,
-                status,
-                fluid_speed,
-                quality,
-                yaw_angle,
-            } => {
-                self::v7::list_simulations::run(
-                    args,
-                    &api_client,
-                    project_id,
-                    *show_results,
-                    *status,
-                    *quality,
-                    fluid_speed.clone(),
-                    yaw_angle.clone(),
-                )
+                *show_results,
+                *status,
+                *quality,
+                fluid_speed.clone(),
+                yaw_angle.clone(),
+            )
+            .await
+        }
+        AeroCloudV7Command::ListReusableModels => {
+            self::v7::list_reusable_models::run(args, &api_client).await
+        }
+        AeroCloudV7Command::CreateModel { params } => {
+            self::v7::create_model::run(
+                args,
+                &ModelSubmitter::new(args, config, api_client.org_id().cloned())?,
+                &params
+                    .clone()
+                    .contents()
+                    .wrap_err("failed to read contents")?,
+            )
+            .await
+        }
+        AeroCloudV7Command::CreateSimulation {
+            params,
+            project_id,
+            model_id,
+        } => {
+            self::v7::create_simulation::run(
+                args,
+                &api_client,
+                model_id.clone(),
+                project_id.clone(),
+                &params
+                    .clone()
+                    .contents()
+                    .wrap_err("failed to read contents")?,
+            )
+            .await
+        }
+        AeroCloudV7Command::DeleteSimulations { simulation_ids } => {
+            self::v7::delete_simulations::run(args, &api_client, simulation_ids)
                 .await
-            }
-            AeroCloudV7Command::ListReusableModels => {
-                self::v7::list_reusable_models::run(args, &api_client).await
-            }
-            AeroCloudV7Command::CreateModel { params } => {
-                self::v7::create_model::run(
-                    args,
-                    &ModelSubmitter::new(args, &config)?,
-                    &params
-                        .clone()
-                        .contents()
-                        .wrap_err("failed to read contents")?,
-                )
-                .await
-            }
-            AeroCloudV7Command::CreateSimulation {
-                params,
-                project_id,
-                model_id,
-            } => {
-                self::v7::create_simulation::run(
-                    args,
-                    &api_client,
-                    model_id.clone(),
-                    project_id.clone(),
-                    &params
-                        .clone()
-                        .contents()
-                        .wrap_err("failed to read contents")?,
-                )
-                .await
-            }
-            AeroCloudV7Command::DeleteSimulations { simulation_ids } => {
-                self::v7::delete_simulations::run(
-                    args,
-                    &api_client,
-                    simulation_ids,
-                )
-                .await
-            }
-            AeroCloudV7Command::WaitForSimulations { ids } => {
-                self::v7::wait_for_simulations::run(args, &api_client, ids).await
-            }
-            AeroCloudV7Command::Batch { root_dir } => {
-                self::v7::batch::run(
-                    &api_client,
-                    &ModelSubmitter::new(args, &config)?,
-                    root_dir.as_ref().map(PathBuf::as_path),
-                )
-                .await
-            }
-        },
+        }
+        AeroCloudV7Command::WaitForSimulations { ids } => {
+            self::v7::wait_for_simulations::run(args, &api_client, ids).await
+        }
+        AeroCloudV7Command::Batch { root_dir } => {
+            self::v7::batch::run(
+                &api_client,
+                &ModelSubmitter::new(args, config, api_client.org_id().cloned())?,
+                root_dir.as_ref().map(PathBuf::as_path),
+            )
+            .await
+        }
     }
 }

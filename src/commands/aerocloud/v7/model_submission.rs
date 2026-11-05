@@ -9,11 +9,12 @@
 
 use crate::{
     aerocloud::{
-        Client, ResponseValue, new_idempotency_key, retry_failure,
+        ResponseValue, new_idempotency_key, retry_failure,
         types::{
             CreateModelV7Params, CreateSimulationV7Params, Filename, Id, ModelV7,
             ModelV7FilesItem, SimulationV7, UpdatePartV7Params,
         },
+        v7::V7Client,
     },
     args::Args,
     config::Config,
@@ -55,19 +56,29 @@ pub struct FileSpec {
 
 #[derive(Debug, Clone)]
 pub struct ModelSubmitter {
-    api: Client,
-    finalise_api: Client,
+    api: V7Client,
+    finalise_api: V7Client,
     uploader: Uploader,
     api_permits: Arc<Semaphore>,
 }
 
 impl ModelSubmitter {
-    pub fn new(args: &Args, config: &Config) -> eyre::Result<Self> {
+    pub fn new(
+        args: &Args,
+        config: &Config,
+        org_id: Option<Id>,
+    ) -> eyre::Result<Self> {
         Ok(Self {
-            api: http::build_aerocloud_client(config, args)
-                .wrap_err("building api client")?,
-            finalise_api: http::build_aerocloud_finalise_client(config, args)
-                .wrap_err("building api client for finalising")?,
+            api: V7Client::new(
+                http::build_aerocloud_client(config, args)
+                    .wrap_err("building api client")?,
+                org_id.clone(),
+            ),
+            finalise_api: V7Client::new(
+                http::build_aerocloud_finalise_client(config, args)
+                    .wrap_err("building api client for finalising")?,
+                org_id,
+            ),
             uploader: Uploader::new(
                 http::build_file_upload_client(args)
                     .wrap_err("building file upload client")?,

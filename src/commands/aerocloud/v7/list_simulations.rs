@@ -1,12 +1,13 @@
 use crate::{
     aerocloud::{
-        ApiError, Client, fmt,
+        fmt,
         types::{
             Ceiling, CeilingCondition, FluidSpeed, Id, ListPageSimulationsV7,
             PaginationOffset, ProjectV7, SimulationQuality,
             SimulationResultsV7YawAnglesItem, SimulationV7,
             SimulationsV7ListStatus, YawAngle,
         },
+        v7::V7Client,
     },
     args::Args,
     fmt::{NOT_AVAILABLE, link},
@@ -20,7 +21,7 @@ use std::fmt::Write as _;
 #[allow(clippy::too_many_arguments)]
 pub async fn run(
     args: &Args,
-    client: &Client,
+    client: &V7Client,
     project_id: &Id,
     show_results: bool,
     status: Option<SimulationsV7ListStatus>,
@@ -42,8 +43,7 @@ pub async fn run(
                 status,
                 yaw_angle.as_ref(),
             )
-            .await
-            .map_err(ApiError::from)?
+            .await?
             .into_inner();
 
         all_items.extend(items);
@@ -58,11 +58,7 @@ pub async fn run(
     if args.json {
         println!("{}", serde_json::to_string(&all_items)?);
     } else {
-        let project = client
-            .projects_v7_get(project_id)
-            .await
-            .map_err(ApiError::from)?
-            .into_inner();
+        let project = client.projects_v7_get(project_id).await?.into_inner();
 
         if show_results {
             print_results_human(&project, &all_items);

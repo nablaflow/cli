@@ -163,7 +163,8 @@ impl Args {
             self.scope,
             Scope::AeroCloud {
                 command: AeroCloudScope::V7 {
-                    command: AeroCloudV7Command::Batch { .. }
+                    command: AeroCloudV7Command::Batch { .. },
+                    ..
                 }
             }
         )
@@ -231,6 +232,15 @@ pub enum AeroCloudScope {
 
     #[command(about = "Operate on AeroCloud v7")]
     V7 {
+        #[arg(
+            long,
+            global = true,
+            value_name = "ORG_ID",
+            env = "NF_AEROCLOUD_ORG",
+            help = "Operate within an organisation, from `nf aerocloud org list`, instead of your personal workspace"
+        )]
+        org: Option<Id>,
+
         #[command(subcommand)]
         command: AeroCloudV7Command,
     },

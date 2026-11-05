@@ -1,7 +1,7 @@
 use crate::{
     aerocloud::{
-        ApiError, Client,
         types::{ListPageProjectsV7, PaginationOffset, ProjectStatus, ProjectV7},
+        v7::V7Client,
     },
     args::Args,
     fmt::link,
@@ -12,7 +12,7 @@ use color_eyre::eyre;
 
 pub async fn run(
     args: &Args,
-    client: &Client,
+    client: &V7Client,
     status: Option<ProjectStatus>,
 ) -> eyre::Result<()> {
     let mut all_items = vec![];
@@ -21,8 +21,7 @@ pub async fn run(
     loop {
         let ListPageProjectsV7 { items, nav } = client
             .projects_v7_list(None, Some(&offset), status)
-            .await
-            .map_err(ApiError::from)?
+            .await?
             .into_inner();
 
         all_items.extend(items);

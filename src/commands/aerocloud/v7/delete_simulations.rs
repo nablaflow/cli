@@ -1,11 +1,11 @@
 use crate::{
-    aerocloud::{ApiError, Client, types::Id},
+    aerocloud::{types::Id, v7::V7Client},
     args::Args,
 };
 use color_eyre::eyre;
 use serde_json::json;
 
-pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
+pub async fn run(args: &Args, client: &V7Client, ids: &[Id]) -> eyre::Result<()> {
     for id in ids {
         if let Err(err) = run_one(args, client, id).await {
             if args.json {
@@ -25,17 +25,10 @@ pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
     Ok(())
 }
 
-async fn run_one(args: &Args, client: &Client, id: &Id) -> eyre::Result<()> {
-    let simulation = client
-        .simulations_v7_get(id)
-        .await
-        .map_err(ApiError::from)?
-        .into_inner();
+async fn run_one(args: &Args, client: &V7Client, id: &Id) -> eyre::Result<()> {
+    let simulation = client.simulations_v7_get(id).await?.into_inner();
 
-    client
-        .simulations_v7_delete(id)
-        .await
-        .map_err(ApiError::from)?;
+    client.simulations_v7_delete(id).await?;
 
     if !args.json {
         println!("Deleted simulation `{}` with id {id}", simulation.name);

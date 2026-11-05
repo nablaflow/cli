@@ -1,7 +1,7 @@
 use crate::{
     aerocloud::{
-        Client, fmt_progenitor_err,
         types::{ListPageProjectsV7, PaginationOffset, ProjectStatus, ProjectV7},
+        v7::V7Client,
     },
     commands::aerocloud::v7::batch::{
         Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR,
@@ -35,7 +35,7 @@ pub enum ProjectPickerState {
     },
 }
 
-pub fn refresh_projects_in_background(client: Client, tx: mpsc::Sender<Event>) {
+pub fn refresh_projects_in_background(client: V7Client, tx: mpsc::Sender<Event>) {
     tokio::spawn(async move {
         tx.send(Event::ProjectsLoading).await?;
 
@@ -46,15 +46,14 @@ pub fn refresh_projects_in_background(client: Client, tx: mpsc::Sender<Event>) {
     });
 }
 
-async fn fetch_projects(client: Client) -> eyre::Result<Vec<ProjectV7>> {
+async fn fetch_projects(client: V7Client) -> eyre::Result<Vec<ProjectV7>> {
     let mut projects = vec![];
     let mut offset = PaginationOffset(0u64);
 
     loop {
         let ListPageProjectsV7 { items, nav } = client
             .projects_v7_list(None, Some(&offset), Some(ProjectStatus::Active))
-            .await
-            .map_err(fmt_progenitor_err)?
+            .await?
             .into_inner();
 
         projects.extend(items);
@@ -73,7 +72,7 @@ impl ProjectPickerState {
     pub async fn handle_event(
         &mut self,
         event: Event,
-        client: Client,
+        client: V7Client,
         tx: mpsc::Sender<Event>,
     ) -> eyre::Result<()> {
         if let Event::KeyPressed(key_event) = &event

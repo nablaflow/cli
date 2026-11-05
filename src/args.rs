@@ -217,6 +217,12 @@ pub enum AeroCloudScope {
         token: MaybeStdin<Token>,
     },
 
+    #[command(about = "Operate on organisations")]
+    Org {
+        #[command(subcommand)]
+        command: AeroCloudOrgCommand,
+    },
+
     #[command(about = "Operate on AeroCloud v6 (end-of-life, read-only)")]
     V6 {
         #[command(subcommand)]
@@ -244,6 +250,19 @@ pub enum ConfigScope {
 
     #[command(about = "Show the config")]
     Show,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum AeroCloudOrgCommand {
+    #[command(about = "List organisations the current user is a member of")]
+    List {
+        #[arg(
+            short = 'm',
+            long,
+            help = "Also show each organisation's members (ignored with `--json`)"
+        )]
+        members: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]

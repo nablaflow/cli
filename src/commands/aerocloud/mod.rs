@@ -1,5 +1,8 @@
 use crate::{
-    args::{AeroCloudScope, AeroCloudV6Command, AeroCloudV7Command, Args},
+    args::{
+        AeroCloudOrgCommand, AeroCloudScope, AeroCloudV6Command,
+        AeroCloudV7Command, Args,
+    },
     commands::aerocloud::v7::model_submission::ModelSubmitter,
     config::Config,
     http,
@@ -9,6 +12,7 @@ use std::path::PathBuf;
 
 pub mod current_token;
 pub mod current_user;
+pub mod org;
 pub mod set_auth_token;
 pub mod v6;
 pub mod v7;
@@ -34,6 +38,11 @@ pub async fn run(
         AeroCloudScope::CurrentToken => {
             self::current_token::run(args, &api_client).await
         }
+        AeroCloudScope::Org { command } => match command {
+            AeroCloudOrgCommand::List { members } => {
+                self::org::list::run(args, &api_client, *members).await
+            }
+        },
         AeroCloudScope::V6 { command } => match command {
             AeroCloudV6Command::ListProjects { status } => {
                 self::v6::list_projects::run(args, &api_client, *status).await

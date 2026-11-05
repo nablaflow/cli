@@ -1,5 +1,5 @@
 use crate::{
-    aerocloud::{Client, types::Id},
+    aerocloud::{ApiError, Client, types::Id},
     args::Args,
 };
 use color_eyre::eyre;
@@ -26,9 +26,16 @@ pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
 }
 
 async fn run_one(args: &Args, client: &Client, id: &Id) -> eyre::Result<()> {
-    let simulation = client.simulations_v7_get(id).await?.into_inner();
+    let simulation = client
+        .simulations_v7_get(id)
+        .await
+        .map_err(ApiError::from)?
+        .into_inner();
 
-    client.simulations_v7_delete(id).await?;
+    client
+        .simulations_v7_delete(id)
+        .await
+        .map_err(ApiError::from)?;
 
     if !args.json {
         println!("Deleted simulation `{}` with id {id}", simulation.name);

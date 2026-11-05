@@ -1,6 +1,6 @@
 use crate::{
     aerocloud::{
-        Client,
+        ApiError, Client,
         types::{ListPageModelsV7, ModelV7, PaginationOffset},
     },
     args::Args,
@@ -16,7 +16,8 @@ pub async fn run(args: &Args, client: &Client) -> eyre::Result<()> {
     loop {
         let ListPageModelsV7 { items, nav } = client
             .models_v7_list_reusable(None, Some(&offset))
-            .await?
+            .await
+            .map_err(ApiError::from)?
             .into_inner();
 
         all_items.extend(items);

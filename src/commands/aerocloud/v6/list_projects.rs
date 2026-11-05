@@ -1,6 +1,6 @@
 use crate::{
     aerocloud::{
-        Client,
+        Client, fmt_progenitor_err,
         types::{ListPageProjectsV6, PaginationOffset, ProjectStatus, ProjectV6},
     },
     args::Args,
@@ -21,7 +21,8 @@ pub async fn run(
     loop {
         let ListPageProjectsV6 { items, nav } = client
             .projects_v6_list(None, Some(&offset), status)
-            .await?
+            .await
+            .map_err(fmt_progenitor_err)?
             .into_inner();
 
         all_items.extend(items);

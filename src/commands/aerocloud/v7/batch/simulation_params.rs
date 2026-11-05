@@ -1,5 +1,5 @@
 use crate::aerocloud::{
-    Client,
+    ApiError, Client,
     extra_types::{CreateSimulationV7ParamsFromJson, FileV7ParamsFromJson},
     types::{
         CreateModelV7Params, CreateModelV7ParamsFilesItem,
@@ -148,6 +148,7 @@ impl ModelParams {
         let model = client
             .models_v7_get(id)
             .await
+            .map_err(ApiError::from)
             .wrap_err_with(|| format!("fetching reusable model {id}"))?
             .into_inner();
 

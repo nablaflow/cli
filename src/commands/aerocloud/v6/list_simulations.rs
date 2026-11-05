@@ -1,6 +1,6 @@
 use crate::{
     aerocloud::{
-        Client, fmt,
+        Client, fmt, fmt_progenitor_err,
         types::{
             Fluid, FluidSpeed, Id, ListPageSimulationsV6, PaginationOffset,
             ProjectV6, SimulationQuality, SimulationResultsV6YawAnglesItem,
@@ -41,7 +41,8 @@ pub async fn run(
                 status,
                 yaw_angle.as_ref(),
             )
-            .await?
+            .await
+            .map_err(fmt_progenitor_err)?
             .into_inner();
 
         all_items.extend(items);
@@ -56,7 +57,11 @@ pub async fn run(
     if args.json {
         println!("{}", serde_json::to_string(&all_items)?);
     } else {
-        let project = client.projects_v6_get(project_id).await?.into_inner();
+        let project = client
+            .projects_v6_get(project_id)
+            .await
+            .map_err(fmt_progenitor_err)?
+            .into_inner();
 
         if show_results {
             print_results_human(&project, &all_items);

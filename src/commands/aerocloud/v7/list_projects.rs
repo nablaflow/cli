@@ -1,6 +1,6 @@
 use crate::{
     aerocloud::{
-        Client,
+        ApiError, Client,
         types::{ListPageProjectsV7, PaginationOffset, ProjectStatus, ProjectV7},
     },
     args::Args,
@@ -21,7 +21,8 @@ pub async fn run(
     loop {
         let ListPageProjectsV7 { items, nav } = client
             .projects_v7_list(None, Some(&offset), status)
-            .await?
+            .await
+            .map_err(ApiError::from)?
             .into_inner();
 
         all_items.extend(items);

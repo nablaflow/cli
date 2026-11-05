@@ -1,6 +1,6 @@
 use crate::{
     aerocloud::{
-        Client,
+        ApiError, Client,
         types::{Id, SimulationStatus},
     },
     args::Args,
@@ -30,7 +30,11 @@ pub async fn run(args: &Args, client: &Client, ids: &[Id]) -> eyre::Result<()> {
         for id in &ids_to_wait_for {
             debug!("polling sim `{id}`...");
 
-            match client.simulations_v7_get(&Id(*id)).await {
+            match client
+                .simulations_v7_get(&Id(*id))
+                .await
+                .map_err(ApiError::from)
+            {
                 Ok(res) => {
                     let sim = res.into_inner();
 

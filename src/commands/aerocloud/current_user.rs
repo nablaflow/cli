@@ -1,12 +1,16 @@
 use crate::{
-    aerocloud::{Client, types::User},
+    aerocloud::{Client, fmt_progenitor_err, types::User},
     args::Args,
     utils,
 };
 use color_eyre::eyre;
 
 pub async fn run(args: &Args, client: &Client) -> eyre::Result<()> {
-    let user = client.users_self().await?.into_inner();
+    let user = client
+        .users_self()
+        .await
+        .map_err(fmt_progenitor_err)?
+        .into_inner();
 
     if args.json {
         println!("{}", serde_json::to_string(&user)?);

@@ -69,6 +69,11 @@ in {
       });
 
     fmt = craneLib.cargoFmt commonArgs;
+
+    test = craneLib.cargoTest (commonArgs
+      // {
+        inherit cargoArtifacts;
+      });
   };
 
   inherit rustToolchain;

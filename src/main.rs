@@ -15,6 +15,7 @@ mod retry;
 mod tracing;
 mod upload;
 mod utils;
+mod workspace;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> eyre::Result<()> {

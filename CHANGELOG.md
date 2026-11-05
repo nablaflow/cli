@@ -6,6 +6,16 @@
 
 ## AeroCloud
 
+### Features
+
+  - Add support for organisations:
+    - `org list` lists the organisations you are a member of. Pass `--members` to also show their members.
+    - `v7` commands operate within an organisation with `--org <ORG_ID>` (or `NF_AEROCLOUD_ORG`). `v7 list-reusable-models` is not available within organisations.
+    - `set-org <ORG_ID>` saves a default organisation for `v7` commands, `unset-org` removes it. `nf config show` displays it.
+    - `--personal` operates within your personal workspace, ignoring `--org` and the default organisation.
+    - `v7 batch` shows the organisation, or your personal workspace, in its headers.
+    - Other `v7` commands print the workspace they operate within on stderr before running, unless `--json` is set.
+
 ### Improvements
 
   - API errors are shown as a short message, e.g. `API responded with 403 Forbidden: …`, instead of a dump of the whole response. Errors about specific attributes are still shown as a table.

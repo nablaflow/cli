@@ -1,10 +1,10 @@
 use crate::aerocloud::{
-    ApiError, Client,
     extra_types::{CreateSimulationV7ParamsFromJson, FileV7ParamsFromJson},
     types::{
         CreateModelV7Params, CreateModelV7ParamsFilesItem,
         CreateSimulationV7Params, Filename, Id, ModelV7, Url,
     },
+    v7::V7Client,
 };
 use bytesize::ByteSize;
 use color_eyre::eyre::{self, WrapErr};
@@ -144,11 +144,10 @@ impl ModelParams {
         Ok(Self::New { files })
     }
 
-    async fn from_existing(client: &Client, id: &Id) -> eyre::Result<Self> {
+    async fn from_existing(client: &V7Client, id: &Id) -> eyre::Result<Self> {
         let model = client
             .models_v7_get(id)
             .await
-            .map_err(ApiError::from)
             .wrap_err_with(|| format!("fetching reusable model {id}"))?
             .into_inner();
 
@@ -169,7 +168,7 @@ pub struct SimulationParams {
 
 impl SimulationParams {
     pub async fn many_from_root_dir(
-        client: &Client,
+        client: &V7Client,
         root_dir: &Path,
     ) -> eyre::Result<Vec<Self>> {
         if !fs::metadata(root_dir).await?.is_dir() {
@@ -212,7 +211,7 @@ impl SimulationParams {
     }
 
     #[allow(clippy::too_many_lines)]
-    pub async fn from_dir(client: &Client, dir: &Path) -> eyre::Result<Self> {
+    pub async fn from_dir(client: &V7Client, dir: &Path) -> eyre::Result<Self> {
         let params_path = dir.join("params.json");
 
         let dir_name = dir.file_name().ok_or_else(|| {

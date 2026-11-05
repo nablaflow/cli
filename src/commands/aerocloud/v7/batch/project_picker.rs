@@ -1,11 +1,12 @@
 use crate::{
     aerocloud::{
-        Client, fmt_progenitor_err,
         types::{ListPageProjectsV7, PaginationOffset, ProjectStatus, ProjectV7},
+        v7::V7Client,
     },
     commands::aerocloud::v7::batch::{
         Event, STYLE_ACCENT, STYLE_BOLD, STYLE_ERROR,
     },
+    commands::aerocloud::workspace_label::WorkspaceLabel,
 };
 use color_eyre::eyre;
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -14,6 +15,7 @@ use ratatui::{
     layout::{Constraint, Rect},
     macros::{line, span},
     symbols::border,
+    text::{Line, Span},
     widgets::{
         Block, Cell, Clear, HighlightSpacing, Paragraph, Row, StatefulWidget,
         Table, TableState, Widget, Wrap,
@@ -22,7 +24,9 @@ use ratatui::{
 use tokio::sync::mpsc;
 
 #[derive(Debug, Clone)]
-pub struct ProjectPicker;
+pub struct ProjectPicker<'a> {
+    pub workspace: &'a WorkspaceLabel,
+}
 
 #[derive(Debug, Default)]
 pub enum ProjectPickerState {
@@ -35,7 +39,7 @@ pub enum ProjectPickerState {
     },
 }
 
-pub fn refresh_projects_in_background(client: Client, tx: mpsc::Sender<Event>) {
+pub fn refresh_projects_in_background(client: V7Client, tx: mpsc::Sender<Event>) {
     tokio::spawn(async move {
         tx.send(Event::ProjectsLoading).await?;
 
@@ -46,15 +50,14 @@ pub fn refresh_projects_in_background(client: Client, tx: mpsc::Sender<Event>) {
     });
 }
 
-async fn fetch_projects(client: Client) -> eyre::Result<Vec<ProjectV7>> {
+async fn fetch_projects(client: V7Client) -> eyre::Result<Vec<ProjectV7>> {
     let mut projects = vec![];
     let mut offset = PaginationOffset(0u64);
 
     loop {
         let ListPageProjectsV7 { items, nav } = client
             .projects_v7_list(None, Some(&offset), Some(ProjectStatus::Active))
-            .await
-            .map_err(fmt_progenitor_err)?
+            .await?
             .into_inner();
 
         projects.extend(items);
@@ -73,7 +76,7 @@ impl ProjectPickerState {
     pub async fn handle_event(
         &mut self,
         event: Event,
-        client: Client,
+        client: V7Client,
         tx: mpsc::Sender<Event>,
     ) -> eyre::Result<()> {
         if let Event::KeyPressed(key_event) = &event
@@ -153,13 +156,16 @@ impl ProjectPickerState {
     }
 }
 
-impl StatefulWidget for &ProjectPicker {
+impl StatefulWidget for &ProjectPicker<'_> {
     type State = ProjectPickerState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         Clear.render(area, buf);
 
-        let title = line![span!(STYLE_BOLD; " Select a project ")];
+        let mut title = vec![Span::from(" Select a project from ")];
+        title.extend(self.workspace.spans());
+        title.push(" ".into());
+        let title = Line::from(title).style(STYLE_BOLD);
 
         let instructions = line![
             " (",

@@ -1,9 +1,12 @@
-use crate::args::Args;
+use crate::{aerocloud::types::Id, args::Args};
 use clap::parser::ValueSource;
 use color_eyre::eyre::{self, WrapErr};
 use reqwest::Url;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::path::{Path, PathBuf};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+};
 use tokio::fs as tokio_fs;
 
 pub const DEFAULT_HOSTNAME: &str = "https://api.nablaflow.io";
@@ -18,6 +21,19 @@ pub enum TokenSource {
     ConfigFile(PathBuf),
 }
 
+/// An organisation saved in config. The name is only for display, it is not kept in sync.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ConfigOrg {
+    pub id: Id,
+    pub name: String,
+}
+
+impl fmt::Display for ConfigOrg {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({})", self.name, self.id)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -30,6 +46,10 @@ pub struct Config {
         default
     )]
     pub hostname: Option<Url>,
+
+    /// Organisation to operate within by default, see `nf aerocloud set-org`.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub aerocloud_org: Option<ConfigOrg>,
 
     #[serde(skip)]
     pub aerocloud_token_source: Option<TokenSource>,
@@ -84,7 +104,10 @@ impl Config {
         self.hostname.clone().unwrap_or_else(default_hostname)
     }
 
-    async fn load_from_path(path: &Path) -> eyre::Result<Self> {
+    /// Loads only what is saved on disk, without overrides from flags or the env.
+    ///
+    /// Use it to change and write back the config, so overrides do not get saved.
+    pub async fn load_from_path(path: &Path) -> eyre::Result<Self> {
         if path.exists() {
             let buf: Vec<u8> = tokio_fs::read(path)
                 .await

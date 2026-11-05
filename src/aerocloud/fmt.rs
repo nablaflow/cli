@@ -1,5 +1,5 @@
 use crate::aerocloud::types::{
-    BoundaryLayerTreatment, SimulationStatus, Symmetry,
+    BoundaryLayerTreatment, OrganisationApiAccess, SimulationStatus, Symmetry,
 };
 
 pub const fn human_simulation_status(v: SimulationStatus) -> &'static str {
@@ -28,5 +28,15 @@ pub const fn human_symmetry(v: Symmetry) -> &'static str {
         Symmetry::Center => "center",
         Symmetry::Left => "left",
         Symmetry::Right => "right",
+    }
+}
+
+pub const fn human_organisation_api_access(
+    v: OrganisationApiAccess,
+) -> &'static str {
+    match v {
+        OrganisationApiAccess::None => "none",
+        OrganisationApiAccess::Read => "read-only",
+        OrganisationApiAccess::ReadWrite => "read/write",
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     aerocloud::{
-        ApiError, Client,
         types::{ListPageModelsV7, ModelV7, PaginationOffset},
+        v7::V7Client,
     },
     args::Args,
     utils::new_dynamic_table,
@@ -9,15 +9,14 @@ use crate::{
 use chrono::Local;
 use color_eyre::eyre;
 
-pub async fn run(args: &Args, client: &Client) -> eyre::Result<()> {
+pub async fn run(args: &Args, client: &V7Client) -> eyre::Result<()> {
     let mut all_items = vec![];
     let mut offset = PaginationOffset(0u64);
 
     loop {
         let ListPageModelsV7 { items, nav } = client
             .models_v7_list_reusable(None, Some(&offset))
-            .await
-            .map_err(ApiError::from)?
+            .await?
             .into_inner();
 
         all_items.extend(items);

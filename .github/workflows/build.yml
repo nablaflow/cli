@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    tags:
+      - "v*"
     paths-ignore:
       - ".github/dependabot.yml"
   pull_request:
@@ -38,3 +40,14 @@ jobs:
 
       - run: nix flake check -L
       - run: nix build -L .
+
+      - name: pin release in cachix
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          VERSION: ${{ github.ref_name }}
+          ARCH: ${{ matrix.platform }}
+        run: |
+          out="$(readlink -f result)"
+
+          cachix push nablaflow-public "$out"
+          cachix pin nablaflow-public "nf-${VERSION}-${ARCH}" "$out"
